@@ -1,0 +1,66 @@
+# ============================================================================
+# <project name> .gitignore
+#
+# [The whole rule, in two sentences]
+#   1. **Only two directories stay out of git: `tmp/` and `dist/`.** Everything else goes in.
+#   2. If you are about to create a one-off file or directory, **it belongs in `tmp/`**
+#      (build output in `dist/`). Do not create temporary things elsewhere and then come back
+#      to add an ignore rule -- that is the standard path by which a repo grows garbage.
+#
+# [What goes in, do not mix these up]
+#   In git: specs, reports, review records, supervisor output, screenshots, measurements
+#           -> `claude-outputs/` (evidence and material; keep it)
+#   Not in git: one-off things produced for packaging / release / deployment / moving files
+#           -> `tmp/` (delete it yourself when done)
+#
+# [Maintenance] Before adding a rule, ask: should this have been in tmp/ or dist/ in the first place?
+#   Usually yes -- then change where it is written, do not add a rule.
+#   Fewer rules is better; a dead rule pointing at a directory that no longer exists gets
+#   **deleted**, not commented out and kept.
+# ============================================================================
+
+# ---- the two directories that stay out of git ----
+/tmp/
+/dist/
+
+# ---- build output ----
+# WARNING: **do not write a bare binary name or a bare extension here.** A real incident:
+#    a pattern like `myapp-installer*` swallowed the whole source directory
+#    `src/<project>/cmd/myapp-installer/`; a bare `myappd` swallowed `cmd/myappd/main.go`;
+#    `*.tgz` swallowed two vendored dependencies. Fourteen source files were silently excluded
+#    from git with **no symptom at all** -- `git ls-files --others --ignored` was what found it.
+# The rule: output always goes to `dist/` (the whole directory is ignored). Separate output from
+# source **by location, not by name**.
+*.iso
+*.iso.part*
+
+# ---- language artifacts (delete whole lines you do not need) ----
+**/__pycache__/
+*.py[cod]
+node_modules/
+npm-debug.log*
+
+# ---- editor / OS / patch leftovers ----
+*.bak
+*.orig
+*.rej
+*.tmp
+*.swp
+**/.DS_Store
+Thumbs.db
+.idea/
+.vscode/
+*.iml
+
+# ---- local secrets, never in git ----
+*.pem
+*.key
+.env
+.env.*
+# <your credential file name>
+
+# Some tools (the Claude desktop app, for one) keep dropping an output directory at the repo root.
+# Block it so it does not pollute the root; anything worth keeping goes in `claude-outputs/<seat>/<date>-<topic>/`.
+# The guard `ops/verify/check-root.sh` only judges what is in the repo: ignored paths are not reported,
+# **but the moment someone commits one it goes red**.
+Claude outputs/

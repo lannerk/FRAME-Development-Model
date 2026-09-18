@@ -1,0 +1,13 @@
+# Link-check allowlist: one full path per line, matched exactly.
+# Only for "this really should not exist, but that reference is correct" (e.g. a record of a past
+# event that mentions a file since deleted).
+# Before adding one, ask: should the reference itself be fixed instead? Usually, yes.
+
+# -- these exist only in the repo that OWNS the method --
+# This project was copied out of the template, so there is no ai/template/ in its root and
+# neither of the two template-maintenance guards is here. The Maintainer handbook mentions
+# them to explain who owns the rules themselves, not to send you looking for these files.
+ai/template/SYNC.md
+ai/template/docs/guide/project-init.md
+ops/verify/check-template-sync.sh
+ops/verify/gen-frame-manifest.sh

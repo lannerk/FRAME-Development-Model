@@ -1,0 +1,14 @@
+Handled letters are archived here, one file per seat per month: ai/mail/archive/<recipient seat>-<YYYY-MM>.md
+(developer / reviewer / supervisor / maintainer, e.g. supervisor-2026-09.md).
+
+🔴 The archive belongs to the **recipient**: a letter the Maintainer seat sent to the Supervisor seat is archived by the
+Supervisor seat into supervisor-<YYYY-MM>.md — **a letter belongs to whoever it was sent to**; the sender archives nothing
+(to look up what you sent, read the recipient's file).
+
+Copy this header (see "How to read and how to handle" in ai/mail/README.md):
+
+| Date | From | What had to be done | Where the detail is | Outcome |
+|---|---|---|---|---|
+
+Each seat writes only its own — one shared file would have all four seats appending to the same end of the same file,
+and a git conflict is then a certainty.

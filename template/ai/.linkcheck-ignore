@@ -1,0 +1,16 @@
+# 引用完整性检查白名单：一行一条完整路径，精确匹配。
+# 只放「确实不该存在、但那句引用是对的」的情况（例如记录历史事件时提到一个已删的文件）。
+# 放进来之前先问一句：是不是应该改掉那条引用？多数情况是。
+
+# ── 迁移时登记的已知误报（2026-09-16）──
+# 这些不是仓库路径，是搬进来的文档正文在说别的东西：
+#  · ai/xxx.go            → Go 包内路径（真实位置 src/inos/internal/ai/xxx.go）
+#  · tmp/xxx、ops/xxx.py  → 真机上的路径，不在仓库里
+
+# ── 只存在于「拥有模板的那个仓库」里 ──
+# 这个项目是从模板拷出来的，根目录下没有 ai/template/，也没有那两条维护模板用的守门。
+# 维护席手册里提到它们是为了说明「规矩本身归谁维护」，不是让你在这里找这些文件。
+ai/template/SYNC.md
+ai/template/docs/guide/project-init.md
+ops/verify/check-template-sync.sh
+ops/verify/gen-frame-manifest.sh

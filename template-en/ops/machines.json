@@ -1,0 +1,31 @@
+{
+  "_note": "Machine list -- the single source of machine information for the whole project. No document or script may hardcode an IP; they all read it from here.",
+  "_how_to_edit": "Edit this file directly. Adding a machine adds an entry; swapping one changes host; retiring one sets status to retired (do not delete it -- older documents still refer to its id).",
+  "_fields": {
+    "id": "A short, stable name. Documents refer to a machine by id, never by IP -- when the IP changes, not one word of the documents changes",
+    "host": "The current address. It changes, so this is the only place it is written",
+    "roles": "primary=main test box / deploy=the deploy scripts push here by default / build=images are built here / debug=you may log in and investigate",
+    "status": "in-use / standby / retired (keep the record, do not delete)"
+  },
+  "_guard": "ops/verify/check-paths.sh scans documents and scripts for hardcoded private IPs; the only place one may appear is this file.",
+
+  "machines": [
+    {
+      "id": "<short name, e.g. vm-dev>",
+      "name": "<human-readable name>",
+      "host": "<IP or hostname>",
+      "platform": "<what machine, what OS>",
+      "roles": ["primary", "deploy", "debug", "build"],
+      "status": "in-use",
+      "terminal": "<a terminal address you can go straight into; delete this line if there is none>",
+      "ports": { "<service>": 0 },
+      "notes": [
+        "<what is special about this machine: is it the main battlefield? can it not reach some external network? what do you have to watch out for once you are on it?>",
+        "<writing down the 'do not try this again' facts here saves everyone after you from trying them one by one>"
+      ]
+    }
+  ],
+
+  "_default_deploy_target": ["<one of the ids above>"],
+  "_last_updated": "<YYYY-MM-DD>"
+}

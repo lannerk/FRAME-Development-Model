@@ -1,0 +1,12 @@
+# check-paths.sh exemption list -- one path prefix per line.
+# Rule: every entry says **why it is exempt and when it goes away**. A temporary exemption with a
+# task number counts; an open-ended one does not.
+
+# -- usually exempt for good --
+src/                       # example IPs and subnets in source are content, not machine configuration
+archive/                   # frozen history; not one word of it should change
+claude-outputs/            # scratch area: screenshots, reports, records -- the facts as they were then
+product/                   # the Requester's own words are kept verbatim
+
+# -- temporary exemptions go here, **each must carry a task number** --
+# <path>/                  # <why> -> T-<number>. Delete this line when it is done
