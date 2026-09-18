@@ -1,5 +1,5 @@
 # FRAME — the four-role AI development model
-
+### [中文](/README-zh_CN.md) ### 
 > **Four-Role · Audited · Maintained · Evidence-based**
 >
 > A **directory structure + four role handbooks + a set of guard scripts**.
@@ -12,6 +12,8 @@
 > new README pointing at it.
 
 ---
+
+
 
 ## 1. What this is
 
@@ -314,5 +316,5 @@ words** — so that three months later, "why does this rule exist" has an answer
 
 ---
 
-**Full design write-up**: `FRAME-Development-Model.md` at the root
+**Full design write-up**: [FRAME-Development-Model-Spec.md](/FRAME-Development-Model-Spec.md)  at the root
 **Initialization procedure**: `docs/guide/project-init.md`
