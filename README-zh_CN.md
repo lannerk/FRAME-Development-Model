@@ -288,5 +288,5 @@ Maven 就 `src/main/java`，前端就按脚手架生成的那套。**这套模�
 
 ---
 
-**完整设计说明**：根目录 `FRAME-Development-Model.md`
+**完整设计说明**：根目录 [FRAME-Development-Model-Spec-Zh_CN.md](/FRAME-Development-Model-Spec-Zh_CN.md)
 **初始化流程**：`docs/guide/project-init.md`
