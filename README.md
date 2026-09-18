@@ -1,5 +1,5 @@
 # FRAME — the four-role AI development model
-### [中文](/README-zh_CN.md) ### 
+#### [中文](/README-zh_CN.md) #### 
 > **Four-Role · Audited · Maintained · Evidence-based**
 >
 > A **directory structure + four role handbooks + a set of guard scripts**.
