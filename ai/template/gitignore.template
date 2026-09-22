@@ -57,3 +57,15 @@ Thumbs.db
 # 挡掉它，别让它污染根目录；真要留的产出放 `claude-outputs/<席>/<日期>-<题>/`。
 # 守门 `ops/verify/check-root.sh` 只管仓库里的东西：被 ignore 的不报，**一旦有人提交进来就报红**。
 Claude outputs/
+
+# ── R&D 线的实验目录（ai/RandD/<话题>/lab/<实验>/）────────────────────────────
+# 依赖清单（package.json / go.mod / requirements.txt）**入库**，装出来的东西不入库。
+# 🔴 全部写**带路径**的规则，绝不用裸名：裸名 `inosd` 曾经无声吞掉 14 个源码文件。
+# 这是对「只有 tmp/ 和 dist/ 不入库」的一条**事先定好的显式例外**，不是造完再回来补。
+ai/RandD/*/lab/*/node_modules/
+ai/RandD/*/lab/*/venv/
+ai/RandD/*/lab/*/.venv/
+ai/RandD/*/lab/*/__pycache__/
+ai/RandD/*/lab/*/target/
+ai/RandD/*/lab/*/.next/
+ai/RandD/*/lab/*/dist/

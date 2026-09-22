@@ -77,10 +77,23 @@ Who decides the rules themselves  →  the Maintainer (after the Requester confi
 ```
 
 **One hard rule**: the rules, the role handbooks, `CLAUDE.md` and the guard scripts are
-**the Maintainer's alone to change**. Any other seat that spots something writes one separate line
-in its own report — "**this suggestion is for the Maintainer seat**" — and the Requester passes it
-on. (The one exception: `docs/`, engineering documentation — whoever is blocked by it fixes it on
-the spot.)
+**the Maintainer's alone to change**. Any other seat that spots something **sends a letter to
+`ai/mail/to-maintainer/from-<its own seat>.md`** (mail carries talk, the ledger carries work) —
+**the Requester is not needed as a transport**. (The one exception: `docs/`, engineering documentation —
+whoever is blocked by it fixes it on the spot.)
+
+### An extra seat: the Researcher (the R&D line)
+
+🔴 **The four-power structure is unchanged — the Researcher has a seat but not one of the powers**:
+until the Supervisor has verified it, its output carries the weight of "I think" and sits at the **very bottom**
+of the order of precedence above. It is not part of the checks and balances; what checks it is **the Requester**
+and **falsifiable experiments**.
+
+It works on an **R&D line that runs alongside development**, taking an idea that does not have a name yet to a
+project that can be started: the directory `ai/RandD/`, the command word `researcher`, the handbook
+`ai/roles/researcher.md`, the guard `check-randd.sh`, and **graduation** as its end point (nine criteria green →
+the Supervisor verifies → the Requester settles it → the Supervisor migrates it).
+**Whether to open this line is the Requester's call, and development is unaffected either way**; leave `ai/RandD/` empty if it is not open.
 
 ---
 
@@ -182,6 +195,7 @@ yours.
 | You say | To | Meaning |
 |---|---|---|
 | `developer` / `reviewer` / `supervisor` / `maintainer` | a new session | Claim a seat. Saying nothing means developer |
+| `researcher` | a new session | Claim the **extra seat** on the R&D line (see §3). Unused while that line is not open |
 | `initialize project` (**any language**) | a new session | That session becomes the Maintainer seat and runs initialization |
 | `review done, continue` | Developer | Take the highest-priority item off the queue and carry on |
 | `review` | Reviewer | Review only: check the evidence, read the code, run the guards |
@@ -190,7 +204,8 @@ yours.
 | `look at the task` | Supervisor | Read the one advisory task assigned to it (**its only exception to not reading the queue**) |
 | `the supervisor has given its opinion` | Reviewer | Read the Supervisor's output and rule again with it in hand |
 | `reload rules` | any seat | The rules changed — **actually read them again** and say what changed |
-| `conformance sweep` | Maintainer | Run `check-all.sh` and report one table |
+| `check mail` | any seat | Read `ai/mail/to-<your seat>/`: **read it all at once, de-duplicate, handle each letter**, then move the row into your own archive |
+| `conformance sweep` | any seat | Run `check-all.sh` and report one table; **whose red it is follows the ownership table**, and only the Maintainer may change a rule because of it |
 
 ---
 
@@ -208,6 +223,8 @@ yours.
 | `ai/state/now.md` | **Current state and handover**: where things stand, what not to step on again |
 | `product/` | Requirements (verbatim / specs) · design and prototypes · **development plan and milestones** |
 | `docs/` · `src/` · `ops/` · `dist/` · `tmp/` · `archive/` | Engineering docs / source / ops and guards / build output / scratch / history |
+| `ai/mail/` | **The inter-seat mail**: `to-<recipient>/from-<sender>.md` holds unread letters only, plus one archive per seat. **Mail carries talk, the ledger carries work** |
+| `ai/RandD/` | **The workspace of the R&D line** (the extra Researcher seat, see §3): one numbered directory per topic, holding everything not yet settled; empty while the line is not open |
 | `claude-outputs/` | The AI's scratch area: screenshots, measurements, reports, supervisor output |
 
 **Inside `src/<project>/`, organize by that language's own official convention** — Go gets `cmd/`
@@ -232,6 +249,11 @@ Rules do not run on good intentions; they run on scripts that can turn red.
 | `check-entrypoints.sh` | Whether alias entry points like `AGENTS.md` are still just pointers |
 | `check-writeback.sh` | Anything changed but never written back to the repo, left parked |
 | `check-template-sync.sh` | Whether the template kept up (**content fingerprints, not mtime** — mtime does not survive `git clone`) |
+| `check-root.sh` | Every entry at the repo root is on the list, no retired directory name has come back, scratch entries carry a date |
+| `check-filenames.sh` | File names that cannot be created on Windows (they break cross-platform work on the spot) |
+| `check-mail.sh` | The mail has not rotted: unread only · no stale letters · nobody assigning work by mail · one archive per seat per month |
+| `check-randd.sh` | The R&D line's structure and indexes (**skips itself when that line is not open**): an `INDEX.md` in each archive dir · live files within their caps · **nine green criteria before anything may be marked graduated** |
+| A few project-specific ones | e.g. frontend cache-busting, source-to-mirror drift, CSS class clashes — **they skip themselves where they do not apply** |
 
 **One design principle runs through all of them**:
 

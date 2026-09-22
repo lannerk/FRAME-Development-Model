@@ -10,3 +10,7 @@ product/                   # the Requester's own words are kept verbatim
 
 # -- temporary exemptions go here, **each must carry a task number** --
 # <path>/                  # <why> -> T-<number>. Delete this line when it is done
+
+# The exemption list should be as SHORT as possible: every line is a hole where the criterion does not apply.
+#   Anything a criterion can solve should not be exempted — e.g. a tool's own output directory should be handled by
+#   making the guard **skip git-ignored paths**, not by a line here.

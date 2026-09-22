@@ -47,6 +47,8 @@ echo
 [ -x ops/verify/check-mail.sh ]           && run "席间信箱"       bash ops/verify/check-mail.sh
 [ -x ops/verify/check-writeback.sh ]      && run "回写待合"     bash ops/verify/check-writeback.sh
 [ -x ops/verify/check-template-sync.sh ]  && run "模板同步"     bash ops/verify/check-template-sync.sh
+[ -x ops/verify/check-cachebust.sh ]     && run "前端缓存串"   bash ops/verify/check-cachebust.sh
+[ -x ops/verify/check-randd.sh ]         && run "R&D 线"         bash ops/verify/check-randd.sh
 
 echo
 if [ "$fail" -gt 0 ]; then

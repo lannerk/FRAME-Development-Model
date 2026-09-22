@@ -89,8 +89,7 @@ The Requester often says things straight to whichever session is in front of him
 Two things are still required:
 
 - **State the cost first**, in one line: "Fine, but then nobody reviewed this independently."
-- **Leave a trace**: write the bypass into the matching record (the Developer seat into the task report, the Maintainer seat into the maintenance log),
-  saying **"at the Requester's request, bypassing X"**. Next time someone asks why this one skipped the process, the answer is in a file, not in somebody's memory.
+- **Leave a trace**: write the bypass into the matching record (the Developer seat into the task report, the Maintainer seat into the maintenance log), saying **"at the Requester's request, bypassing X"**. Next time someone asks why this one skipped the process, the answer is in a file, not in somebody's memory.
 
 ### If he asks "so how do I start"
 

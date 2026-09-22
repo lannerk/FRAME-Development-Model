@@ -47,6 +47,8 @@ echo
 [ -x ops/verify/check-mail.sh ]           && run "seat mail"        bash ops/verify/check-mail.sh
 [ -x ops/verify/check-writeback.sh ]      && run "write-back parked" bash ops/verify/check-writeback.sh
 [ -x ops/verify/check-template-sync.sh ]  && run "template sync"  bash ops/verify/check-template-sync.sh
+[ -x ops/verify/check-cachebust.sh ]     && run "web cache-bust"  bash ops/verify/check-cachebust.sh
+[ -x ops/verify/check-randd.sh ]         && run "R&D line"       bash ops/verify/check-randd.sh
 
 echo
 if [ "$fail" -gt 0 ]; then

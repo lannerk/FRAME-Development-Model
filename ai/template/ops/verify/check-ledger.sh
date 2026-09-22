@@ -89,10 +89,44 @@ for pair in "ai/tasks:T" "ai/bugs:B" "ai/specs:AD"; do
             | sed -E "s#.*/(${pre}-[0-9]{4})-.*#\1#" | LC_ALL=C sort | uniq -d)
 done
 
+# ---- ③之四 推「待审」的任务必须有构建对账 ----
+# 【为什么要这条】2026-09-22 事故：一个应用的前端 ＋ 三条路由**只在测试机上有、仓库里没有**
+#（测试机上那个 inosd 从仓库根本编不出来），而**七件套全绿、真机验收也全绿**——
+# 因为仓库里编得过（缺的文件没人引用）、真机跑的是推上去的那份。
+# **逐文件对 sha 只咬得住「已经想起来要写回的那几个」**；能咬住「忘了写回」整类的，是**整棵树重编后对二进制的 sha**。
+# 判的是**任务文件里有没有这条账**（有没有写、写了什么），跑不跑得动那条命令是开发席的事。
+# 按 §三之三 不追溯：只查生效日之后推到「待审」的任务（闸门用 git 首次入库时间，不用 mtime）。
+SINCE_BUILD="${BUILDRECON_SINCE:-2026-09-22}"
+if git rev-parse --git-dir >/dev/null 2>&1; then
+  for f in ai/tasks/T-*.md; do
+    [ -f "$f" ] || continue
+    st=$(grep -m1 '^状态:' "$f" | sed 's/^状态:[[:space:]]*//;s/[[:space:]].*$//')
+    case "$st" in 待审|已过|已过（带遗留）) ;; *) continue;; esac
+    a=$(git log --diff-filter=A --format=%cI -- "$f" 2>/dev/null | tail -1 | cut -c1-10)
+    [ -n "$a" ] && [ "$a" \< "$SINCE_BUILD" ] && continue
+    grep -qE 'sha256|构建对账' "$f" || say "$f 推到「$st」却没有**构建对账**（仓库整棵树重编的 sha ＝ 测试机上跑的那份）：ai/rules/workflow.md 的「自测」一节"
+  done
+fi
+
+# ---- ③之三 记忆卷宗只许增不许减 ----
+# 【为什么要这条】`ai/memory.md` 顶满（80/80）时的解法是**分卷**，不是删行、也不是放宽上限
+#（开发席 2026-09-18 报「记忆顶满了」，它自己不肯删别人的行——**那是对的**）。
+# 分卷之后卷宗成了唯一的落脚处，所以它和信箱归档同一个判据：**只追加，不删行**。
+if git rev-parse --git-dir >/dev/null 2>&1; then
+  for f in ai/memory-archive/*.md; do
+    [ -f "$f" ] || continue
+    cur=$(grep -cE '^\|[[:space:]]*[0-9A-Za-z]' "$f" || true)
+    if git cat-file -e "HEAD:$f" 2>/dev/null; then
+      old=$(git show "HEAD:$f" 2>/dev/null | grep -cE '^\|[[:space:]]*[0-9A-Za-z]' || true)
+      [ "$cur" -lt "$old" ] && say "$f 条目变少了（HEAD $old → 现在 $cur）：记忆卷宗只许增不许减（git show HEAD:$f 找回来）"
+    fi
+  done
+fi
+
 # ---- ④ ai/ 根下的散件 ----
 while IFS= read -r f; do
   case "$(basename "$f")" in
-    index.md|memory.md|check-links.sh|.linkcheck-ignore|glossary.md|frame-manifest.txt) ;;
+    index.md|memory.md|check-links.sh|.linkcheck-ignore|glossary.md|frame-manifest.txt|frame-repo.conf|FRAME-VERSION) ;;
     *) say "ai/ 根下多了一个散件：$f（ai/rules/layout.md §二：ai/ 下只放子目录 + 那几份）";;
   esac
 done < <(find ai -maxdepth 1 -type f)

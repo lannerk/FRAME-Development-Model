@@ -138,6 +138,21 @@ There are only three ways to handle a letter, and **when you are done you move t
 (that is exactly how the inbox rotted once). The archive exists so that later you can answer "did anyone ever deal with this letter, and how".
 
 
+## 🔴 The Researcher writes only to the Supervisor (the R&D line)
+
+The Researcher on the R&D line is an **extra seat** (`ai/roles/researcher.md`): it **reads the whole repo and writes only
+under `ai/RandD/`**, so anything outside that has to go **through the Supervisor**. It therefore **stays out of the four-seat
+drop-box matrix**; there is exactly one pair:
+
+| Drop-box | Who writes it | What goes in |
+|---|---|---|
+| `to-supervisor/from-researcher.md` | Researcher | asking for something outside `ai/RandD/` to be changed · asking for a cross-topic fact to be recorded in `ai/memory.md` (the Researcher cannot write it) · notice of a graduation request |
+| `to-researcher/from-supervisor.md` | Supervisor | opinions · reminders · notices. 🔴 **Exploration is never sent back**; only converged output is, against the criteria, naming the one that failed |
+
+**A drop-box nobody uses is worse than none** (it makes people think they may post there), so the gate reds both
+`to-researcher/from-<anyone but the Supervisor>` and `to-<anyone but the Supervisor>/from-researcher`. Its archive is `archive/researcher-<YYYY-MM>.md`.
+🔴 **When its letter needs a long body, it points into `ai/RandD/<topic>/`** — `claude-outputs/` is the four development seats' scratch area; the Researcher does not write there.
+
 ## One boundary you have to know
 
 The mail is only read when that seat **next opens**, or when the Requester says `check mail` / `reload rules`.

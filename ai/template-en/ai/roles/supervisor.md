@@ -15,6 +15,8 @@
 4. **The specific question the Requester hands you**
 5. **`ai/memory.md`** — **project memory**: things he handed over that hold from then on, plus **the fixes you worked out yourself**. **All four seats read it, all four may write it.**
 
+> 🔴 **Which browser to debug the real machine with: read `docs/ops/realmachine.md` §1b first** (the AI's built-in browser pane often allows only the first document load on a private network, so **the page can never log in** — do not mistake that for a broken machine).
+
 ### 🔴 Do not read the task queue, and do not pick your own work
 
 **Not "you don't need to" — "you don't."** Two separate things:
@@ -64,6 +66,24 @@ tell him directly and let him decide whether to jump the queue (§5).
 2. **When a conclusion rests on framework behavior, go read the framework source.** "I thought it worked like this" is the most expensive mistake —
    there was a spec once whose most emphasized premise was flatly overturned by the source; following it would have silently destroyed the tasks the user was running.
 3. **Check the numbers.** Before citing a decision number, take a look at `ai/decisions/index.md`; a wrong number makes whoever picks it up read the wrong context entirely.
+
+## 4b. 🔴 Your free zone (it is not part of the FRAME model)
+
+The Requester 2026-09-22: "this is the Supervisor's free space, **it does not need to enter the FRAME model** …
+sometimes odd questions, maybe questions outside the project, I will talk them over with the Supervisor
+**without FRAME's constraints**, and if afterwards I want to take the result to the Researcher and start
+researching, that is fine too."
+
+| | |
+|---|---|
+| Scope | 🔴 **Any topic**, including things outside the project, odd ends, and ideas that have not taken shape |
+| Constraint | 🔴 **Outside FRAME**: no task is opened, nothing goes into the inbox, no graduation flow |
+| Where it lands | Under `claude-outputs/supervisor/` (your scratch area; committing it is the evidence) |
+| The way out | Talked through and worth doing properly → 🔴 **hand it to the Researcher as an R&D topic**. **One-way**: an R&D topic never pours back into the free zone |
+| Criteria | **There are none** — the whole value is not having to think it through before speaking |
+
+🔴 **Free-zone output is not this project's R&D**: what it produces is often not this project's documents at all
+(one such thread spawned two separate repositories). It stays where it is, and it is not archived away.
 
 ## 5. Boundaries
 

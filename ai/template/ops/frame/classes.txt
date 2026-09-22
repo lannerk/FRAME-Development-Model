@@ -1,0 +1,80 @@
+# FRAME 同步分类表 —— 每条 `<模式> <glob>`，**最后匹配的那条胜出**
+#
+# 🔴 默认是 seed（只在目标缺失时创建，已存在永不覆盖）。
+#    只有下面显式列为 follow 的才会被覆盖。**把风险反过来**：
+#    没分类过的新文件会被创建，但永远不会盖掉目标已有的东西。
+#
+# follow = 纯规矩与守门，源变了就覆盖（且要三方安全）
+# seed   = 骨架与台账，只创建不覆盖
+# skip   = 永不同步
+
+seed    **
+
+# ── 纯规矩（换个项目一字不改）──
+follow  FRAME-Development-Model.md
+follow  AGENTS.md
+follow  ai/roles/*.md
+# 🔴 整个 ai/rules/ 都是 FRAME 的规矩，**按目录写而不是逐份写**：
+# 逐份列的那一版漏掉了 investigate.md（实测：它被当成 seed，源改了也不会跟）。
+# 一条一条列 = 每加一份规矩文件就要记得回来加一行，**而忘了不会有任何症状**。
+follow  ai/rules/*.md
+seed    ai/rules/maintenance-log.md
+follow  ai/mail/README.md
+follow  ai/bugs/README.md
+follow  ai/RandD/README.md
+follow  ai/glossary.md
+follow  claude-outputs/README.md
+follow  docs/guide/*.md
+# 🔴 版本文件**不跟着拷**：它两边按定义就不一样（各自的 fingerprint、各自的 synced_with），
+# 拷过去等于每轮都报「两边都改了」（实测）。它由 `--stamp` 在两边各写一次保持同版本。
+seed    ai/FRAME-VERSION
+
+# ── 守门与工具（源变了必须跟，否则判据两套）──
+follow  ai/check-links.sh
+follow  ai/frame-manifest.txt
+follow  ai/.linkcheck-ignore
+follow  ops/verify/*.sh
+follow  ops/scripts/*.sh
+follow  ops/frame/*.sh
+follow  ops/frame/classes.txt
+follow  ops/.pathcheck-ignore
+
+# ── 🔴 永不同步 ──
+skip    SYNC.md
+skip    README.md
+skip    README-*.md
+skip    gitignore.template
+skip    .gitignore
+skip    ops/machines.json
+skip    ops/paths.ps1
+skip    ai/frame-repo.conf
+skip    ops/frame/targets.txt
+skip    ops/frame/.baseline
+skip    ops/verify/.sync-state
+skip    ops/verify/.template-baseline
+skip    ops/verify/.rootcheck-allow
+
+# ── 🔴 明确留 seed 的几处（虽然默认已是 seed，写出来是为了让人看见）──
+seed    CLAUDE.md
+seed    ai/index.md
+seed    ai/state/now.md
+seed    ai/memory.md
+seed    ai/RandD/memory.md
+seed    ai/RandD/index.md
+seed    ai/rules/maintenance-log.md
+seed    ai/tasks/index.md
+seed    ai/decisions/index.md
+seed    ai/specs/index.md
+seed    ai/bugs/index.md
+seed    ai/mail/to-*/from-*.md
+seed    product/requirements/inbox.md
+
+# ── 🔴 角色限定：<模式>@<目标角色>，只对该类目标生效 ──
+# 目标是 home/host 时，落点是它的「模板目录」，那里的 README / SYNC.md / gitignore.template
+# 是 FRAME 自己的介绍与配件，要跟；目标是 consumer 时落项目根，那几份是项目自己的，不能碰。
+follow@home  README.md
+follow@host  README.md
+follow@home  SYNC.md
+follow@host  SYNC.md
+follow@home  gitignore.template
+follow@host  gitignore.template

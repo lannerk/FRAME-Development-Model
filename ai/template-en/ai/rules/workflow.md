@@ -26,6 +26,7 @@ blocked: blocked on the Requester / the real machine / another task ("blocked on
 dropped: the requirement changed or another task superseded it (state which one superseded it)
 ```
 
+- 🔴 **Open the next ticket the moment one goes to `in review`** — review is **asynchronous**; do not stop for the verdict.
 - **There are only these six states**, don't invent more. `pass with follow-up` is a **review verdict, not a state**: the task still goes to `passed`,
   and the follow-up part **must get its own `T-####`**; if you can't open one, it's a `reject`.
 - Changing a state **changes two places**: the task file header + `tasks/index.md`.
@@ -70,8 +71,13 @@ The approach and evidence the Reviewer gives. **The Developer may do it differen
 - **Self-check output**: results of the self-check list (`ai/rules/conventions.md` §5; how many checks is up to your project), pasted as the file name under `claude-outputs/developer/`
 - **Where it differs from the suggestion**: what changed, how it was verified, why the suggested way doesn't fit (write "none" if there is none)
 - **Bugs fixed**: `B-####` (write `none` if you fixed none). **If this line is filled in, the Reviewer seat must retest this round**
+- 🔴 **Why I stopped here** (**the last line of the report; it must be there**): only one of four —
+  **① needs the Requester to settle it** · **② needs real hardware/conditions I do not have** · **③ going further would cut someone off the network or lose data** · **④ the design contradicts itself, so doing it would be wrong anyway**.
+  If there were still doable tickets in the queue and you stopped, **not being able to name one of those four is itself grounds to send the work back**.
+  "This ticket is done" does not count — that is handing one over, not stopping.
 
 ## Self-test (Developer writes; required before pushing to `in review`)
+- **Build reconciliation**: rebuild from **the whole repo tree** and the artifact's hash must equal the hash of what is running on the test machine; a mismatch means something was never written back — find it now. **Per-file hashes only bite the files someone remembered**; this one bites the whole class of "forgot to write it back". (The build has to be reproducible: strip build paths, timestamps and anything else that would make the two sides differ forever.)
 - **Function**: the result of walking "Acceptance" item by item (each one pass / fail)
 - **UI one-to-one**: which items were compared against `prototype`, whether the four states plus narrow screen and dark mode were checked, where the screenshots are
 - **Surroundings**: who else uses the shared dependencies you touched, and whether you clicked through them
@@ -136,6 +142,27 @@ Changes not yet committed count as "now".
 
 > **The Maintainer seat's half of this**: after changing a rule, the 🔔 line at the top of `ai/state/now.md` carries **a date**,
 > so "which came first" is a matter of record, not of whose memory is better.
+
+## 3d. The task touches **another seat's files** — now what
+
+The ownership table in §7 says **who maintains a file, whose red it is, who commits it** — **not who is allowed to touch it**.
+A task the Requester has settled may send one seat into another seat's files; that is what the order of authority means.
+So each end does one thing:
+
+| Who | When | What |
+|---|---|---|
+| **The seat opening the task** | Before opening it | Check it against §7 and **write "which files belong to whom" into the ticket**; name them in "what to do" when it crosses seats |
+| **The seat doing the work** | On noticing it crosses | **Do it, don't stop** (stopping to wait for a ruling leaves the hole open one more round), but **mail the owning seat the same round**: which files, why, and which parts went beyond the ticket |
+| **The owning seat** | Next mail check | Review it, revert what is wrong, and write the verdict into the archived row (`ai/mail/README.md`) |
+
+🔴 **These three always require a letter** — skip it and the books changed with nobody knowing: ① you touched `ai/template/*` / `ai/template-en/*`;
+② you ran `check-template-sync.sh --accept` (it rewrites `ops/verify/.sync-state`, **the sync ledger for every template pair**, which is not yours for the round);
+③ you added or rewrote a gate under `ops/verify/*`.
+
+**Measured in the project this template came from**: three of a ticket's four items belonged to the Maintainer seat; the seat doing
+the work finished the ticket and mailed a report the same round, and the owning seat reviewed it next round and corrected two things
+(only one language of the template had been synced · the script had this project's filename prefix hard-coded).
+**Crossing seats is not the mistake; not reporting it is.**
 
 ## 4. How the Requester's input comes in
 
@@ -284,7 +311,14 @@ One seat sets the standard and judges compliance with it, with no second pair of
 
 **A `blocked` item takes no priority** — it's waiting on an external condition, not queued behind someone.
 
-## 7. Four things the Developer must do at every stage's wrap-up
+## 7. Four things the Developer must do at every stage's wrap-up (**a stage can hold several tickets**)
+
+🔴 **"Pushing one ticket to `in review`" is not "this stage is over."** These four are the wrap-up of a **stage, done once**,
+not something you repeat per ticket. Once a ticket is handed over, **open the next one immediately** — review is asynchronous:
+the Reviewer reviews, you keep building. **A stage ends** when every ticket assigned to you has been pushed, or when you hit
+one of the four reasons under "why I stopped here".
+(Measured in the project this template came from: the seam between those two rules let the Developer wrap up after one ticket
+while three more sat in the queue untouched — **each sentence was right, together they stopped early**.)
 
 1. Update the paragraphs of `ai/state/now.md` this stage's changes touched.
 2. Change the **"implementation" column of every AD** this stage touched (in the matching number-range file under `ai/decisions/`; don't miss one).

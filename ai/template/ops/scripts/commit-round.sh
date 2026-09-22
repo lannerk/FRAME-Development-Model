@@ -99,7 +99,7 @@ SEAT_OF_FILE() {  # $1=路径 → 输出 维护席/审查席/开发席/监督席
       if (n < 3) next
       paths=c[2]; owner=c[3]
       gsub(/^[ \t]+|[ \t]+$/, "", owner)
-      if (owner !~ /(维护席|审查席|开发席|监督席|共写)/) next
+      if (owner !~ /(维护席|审查席|开发席|监督席|研究席|共写)/) next
       # 只留席位那个词：表里写的是「**共写**（四席都能写）」这类，带括号说明。
       # 【坑】原来整段输出，于是 `$1=="共写"` 永远不成立，共写文件被算成「别席的」。
       if (owner ~ /共写/) owner="共写"
@@ -107,6 +107,7 @@ SEAT_OF_FILE() {  # $1=路径 → 输出 维护席/审查席/开发席/监督席
       else if (owner ~ /审查席/) owner="审查席"
       else if (owner ~ /开发席/) owner="开发席"
       else if (owner ~ /监督席/) owner="监督席"
+      else if (owner ~ /研究席/) owner="研究席"  # R&D 线的编外座位，只写 ai/RandD/
       m=split(paths, ps, "·")
       for (i=1; i<=m; i++) {
         p=ps[i]
@@ -151,7 +152,8 @@ if [ -n "$SEAT" ]; then
     审|审查|审查席|reviewer)  SEAT=审查席;;
     开|开发|开发席|developer) SEAT=开发席;;
     监|监督|监督席|supervisor) SEAT=监督席;;
-    *) echo "⛔ --seat 只认：维护席 / 审查席 / 开发席 / 监督席（也可写 maintainer / reviewer / developer / supervisor）"; exit 2;;
+    研|研究|研究席|researcher) SEAT=研究席;;
+    *) echo "⛔ --seat 只认：维护席 / 审查席 / 开发席 / 监督席 / 研究席（也可写 maintainer / reviewer / developer / supervisor / researcher）"; exit 2;;
   esac
 fi
 if [ "$ALLSEATS" != 1 ] && [ "$NSEATS" -gt 1 ] && [ -z "$SEAT" ]; then

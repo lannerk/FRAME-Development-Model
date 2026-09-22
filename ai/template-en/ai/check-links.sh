@@ -19,7 +19,11 @@ OUT="$(mktemp)"
 PAT='(ai|product|docs|src|ops|dist|claude-outputs|archive|tmp)/[^[:space:]`"'"'"'()（）,，|]+\.(md|sh|py|js|css|html|json|go|txt|ps1|service)'
 
 while IFS= read -r f; do
-  grep -ohE "$PAT" "$f" 2>/dev/null | sort -u | while IFS= read -r p; do
+  # [Trap] `$PAT` starts with a top-level directory name, so a plain `grep -oE` **cuts a path out of the middle
+  # of a longer name**: measured 2026-09-18, `memory-archive/type4-….md` was cut down to `archive/type4-….md`
+  # and reported as a broken link that does not exist. The criterion judges a **path**, not a **substring** —
+  # so require the match to start at a line start or a non-path character, then strip that character.
+  grep -ohE "(^|[^A-Za-z0-9_./-])$PAT" "$f" 2>/dev/null | sed -E 's/^[^A-Za-z0-9_.-]//' | sort -u | while IFS= read -r p; do
     # skip template placeholders
     case "$p" in *'<'*|*'>'*|*'*'*|*xxx*|*XXX*|*'》'*|*'《'*|*'–'*|*'~'*|*'####'*) continue;; esac
     # Allowlist: ai/.linkcheck-ignore, one full path per line, # starts a comment

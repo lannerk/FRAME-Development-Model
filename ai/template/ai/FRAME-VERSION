@@ -1,0 +1,6 @@
+version: 1.0.0
+date: 2026-09-22
+fingerprint: f3bff05c5d7d3bb2
+synced_with: /sessions/rcw-01fdvmbjtpdsxr8qua9c2q42/mnt/INOS
+# version 由维护席 bump：结构/角色变=major · 规矩语义变=minor · 措辞=patch
+# 🔴 fingerprint 自动算，别手改——它是「两边是不是同一套 FRAME」的唯一判据

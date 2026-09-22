@@ -19,7 +19,10 @@ OUT="$(mktemp)"
 PAT='(ai|product|docs|src|ops|dist|claude-outputs|archive|tmp)/[^[:space:]`"'"'"'()（）,，|]+\.(md|sh|py|js|css|html|json|go|txt|ps1|service)'
 
 while IFS= read -r f; do
-  grep -ohE "$PAT" "$f" 2>/dev/null | sort -u | while IFS= read -r p; do
+  # 【坑】`$PAT` 以顶层目录名开头，直接 `grep -oE` 会**从一个更长的名字中间截出来**：
+  # 2026-09-18 实测 `memory-archive/type4-….md` 被截成 `archive/type4-….md`，报了一条不存在的断链。
+  # 判的是**路径**，不是**子串**——所以要求匹配前面是行首或非路径字符，再把那个字符去掉。
+  grep -ohE "(^|[^A-Za-z0-9_./-])$PAT" "$f" 2>/dev/null | sed -E 's/^[^A-Za-z0-9_.-]//' | sort -u | while IFS= read -r p; do
     # 模板占位跳过
     case "$p" in *'<'*|*'>'*|*'*'*|*xxx*|*XXX*|*'》'*|*'《'*|*'–'*|*'~'*|*'####'*) continue;; esac
     # 白名单：ai/.linkcheck-ignore，一行一条完整路径，# 开头是注释
@@ -37,7 +40,7 @@ done < <(find . -name '*.md' \
           -not -path './ai/specs/*' -not -path './product/requirements/*' \
           -not -path './claude-outputs/*' -not -path './src/*' \
           -not -path './_newroot/*' \
-          -not -path './ai/template/*' -not -path './ai/template-en/*' -not -path './SYNC.md' \
+          -not -path './ai/template/*' -not -path './ai/template-en/*' \
           -not -name 'maintenance-log.md') >> "$OUT"
 
 # 【为什么把维护记录排除在第①段之外】它是**历史记录，不是导航**：
@@ -79,7 +82,7 @@ done < <(find . -name '*.md' \
           -not -path './.git/*' -not -path './tmp/*' -not -path './dist/*' \
           -not -path './archive/*' -not -path './*/archive/*' \
           -not -path './claude-outputs/*' -not -path './src/*' -not -path './_newroot/*' \
-          -not -path './ai/template/*' -not -path './ai/template-en/*' -not -path './SYNC.md' \
+          -not -path './ai/template/*' -not -path './ai/template-en/*' \
           -not -name 'maintenance-log.md') >> "$OUT"
 
 if [ -s "$OUT" ]; then

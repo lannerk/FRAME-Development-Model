@@ -69,15 +69,36 @@ done < <(find . -maxdepth 3 \( -path ./.git -o -path ./archive -o -path ./tmp -o
 SINCE="${ROOTRULES_SINCE:-2026-09-16}"
 added_at() { git log --diff-filter=A --format=%cI -- "$1" 2>/dev/null | tail -1 | cut -c1-10; }
 note(){ echo "  ·  $* （旧件，按 §三之三 不追溯）"; }
+# 【claude-outputs 的一级目录只许是四席 + shared】`claude-outputs/README.md` 那张表就是清单。
+# 2026-09-18 实测多出一个 `claude-outputs/INOS-V2/`（12 份编号章节 + README）——**东西没问题，位置不对**：
+# 草稿区按席分家，才知道「谁写的、谁能改」（监督席那一份连一个字都不许别人动）。
+# 报**一条**红（不是把里面 14 个文件各报一遍）：挪进某一席名下，或者维护席改 README 那张表。
+for e in claude-outputs/*; do
+  [ -e "$e" ] || continue
+  b=$(basename "$e")
+  case "$b" in developer|reviewer|supervisor|maintainer|shared|README.md|index.md) continue;; esac
+  allowed "$e" && continue
+  skip "$e" && continue
+  echo "  ✗  claude-outputs 的一级目录只许是四席 + shared（见 claude-outputs/README.md）：多了 $e"
+  echo "     挪进某一席名下（谁写的归谁），或者让维护席改那张表——**别把它留在没人负责的位置**"
+  bad=$((bad+1))
+done
+
 for d in claude-outputs/*/; do
   [ -d "$d" ] || continue
   case "$d" in claude-outputs/shared/) continue;; esac   # shared/ 下是固定三个子目录，单独看
+  case "$(basename "$d")" in developer|reviewer|supervisor|maintainer) ;; *) continue;; esac
   for e in "$d"*; do
     [ -e "$e" ] || continue
     b=$(basename "$e")
     case "$b" in README.md|index.md) continue;; esac
     allowed "$e" && continue
     printf '%s' "$b" | grep -qE '^[0-9]{4}-[0-9]{2}-[0-9]{2}-' && continue
+    # 【为什么放开「带 README 的分组目录」】判据要判「找得到、说得清」，不是判「名字里有没有日期」。
+    # 2026-09-18 实测：审查/开发那边建了 `claude-outputs/INOS-V2/`（00-总纲、10-规划…12 份编号章节 + README.md），
+    # **编号顺序本身是内容**，硬套日期前缀等于为了让守门绿而改 14 个文件名。
+    # 所以：**一级条目是目录、且里面有 `README.md`（说清这是什么、什么时候的）就算合规**；里面的文件不再逐个判日期。
+    [ -d "$e" ] && [ -f "$e/README.md" ] && continue
     a=$(added_at "$e")
     if [ -n "$a" ] && [ "$a" \< "$SINCE" ]; then note "$e 命名不带日期（$a 入库）"; continue; fi
     echo "  ✗  草稿区命名不合规（要 <日期>-<一句话>）：$e"; bad=$((bad+1))

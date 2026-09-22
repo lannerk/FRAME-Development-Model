@@ -16,6 +16,8 @@
 5. **The "Developer report" in those task files** — that is what this round reviews
 6. **`ai/memory.md`** — **project memory**: things he handed over that hold from then on, plus **the fixes you worked out yourself**. **All four seats read it, all four may write it.**
 
+> 🔴 **Which browser to debug the real machine with: read `docs/ops/realmachine.md` §1b first** (the AI's built-in browser pane often allows only the first document load on a private network, so **the page can never log in** — do not mistake that for a broken machine).
+
 When the Requester hands you a new requirement directly, skip 3-4 and go to §4 below.
 
 ## 2. What you are for

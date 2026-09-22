@@ -32,6 +32,10 @@ CAP="${MAIL_CAP:-12}"
 FLOOD="${MAIL_FLOOD:-3}"
 TYPES="suggestion hand-over notice request reply"
 SEATS="developer reviewer supervisor maintainer"
+# 【R&D 线的编外座位】研究席**只和监督席通信**（`ai/roles/researcher.md`：它写只在 `ai/RandD/`，
+# 要动别的目录得请监督席）。所以它**不进四席的投递口矩阵**——那会凭空多出 6 份没人用的文件，
+# 而**没人用的投递口比没有更坏**：它会让人以为可以往那儿发。只认下面这一对。
+RND_SEAT="${RND_SEAT:-researcher}"; RND_PEER="${RND_PEER:-supervisor}"
 bad=0
 today=$(date +%s)
 
@@ -39,6 +43,11 @@ for f in "$D"/to-*/from-*.md; do
   [ -f "$f" ] || continue
   recv=$(basename "$(dirname "$f")"); recv=${recv#to-}
   sender=$(basename "$f" .md); sender=${sender#from-}
+  # 研究席的投递口只许配监督席
+  if [ "$recv" = "$RND_SEAT" ] || [ "$sender" = "$RND_SEAT" ]; then
+    other="$sender"; [ "$sender" = "$RND_SEAT" ] && other="$recv"
+    [ "$other" = "$RND_PEER" ] || { echo "  x  $f -- the Researcher seat only exchanges letters with the $RND_PEER seat (see ai/roles/researcher.md); this drop-box should not exist"; bad=$((bad+1)); }
+  fi
   [ "$recv" = "$sender" ] && { echo "  x  $f -- a seat sending itself mail; this file should not exist"; bad=$((bad+1)); }
   n=$(wc -l < "$f")
   [ "$n" -gt "$CAP" ] && { echo "  x  $f  $n lines / cap $CAP -- full does not mean raise the cap; it means nobody reads it or the letters are too fragmented"; bad=$((bad+1)); }
@@ -108,6 +117,12 @@ for f in "$D"/to-*/from-*.md; do
       # inside a CJK filename -- **truncating the path into a name that does not exist and reporting a false red**
       # (measured and reported by the Supervisor seat on 2026-09-15). **Use sed, which works on characters.**
       for pth in $(printf '%s' "$where" | sed 's/[`·,]/ /g' | grep -oE '[A-Za-z0-9_./-]+/[^[:space:]]+' || true); do
+        # 【判文件在不在，不判后面挂了什么】A letter often writes `ai/rules/laws.md:33` to point at a line.
+        # What must hold is that **the file still exists**; the line number is not part of the path.
+        # Without stripping it every such reference goes falsely red, and the only way to clear a false red
+        # would be to drop the line number — **a rule that forces people to write less precisely**.
+        pth="${pth%%:*}"
+        [ -z "$pth" ] && continue
         [ -e "$pth" ] || { echo "  x  $tag -- the detail path does not resolve: $pth"; bad=$((bad+1)); }
       done
     fi
@@ -166,7 +181,7 @@ done
 for f in "$D"/archive/*.md; do
   [ -f "$f" ] || continue
   bn=$(basename "$f")
-  if ! printf '%s' "$bn" | grep -qE '^(developer|reviewer|supervisor|maintainer)-[0-9]{4}-[0-9]{2}\.md$'; then
+  if ! printf '%s' "$bn" | grep -qE "^(developer|reviewer|supervisor|maintainer|$RND_SEAT)-[0-9]{4}-[0-9]{2}\.md$"; then
     echo "  x  $f -- the archive filename must be one per seat per month: <seat>-<YYYY-MM>.md (one shared file guarantees git conflicts)"; bad=$((bad+1))
   fi
   while IFS= read -r line; do
@@ -185,6 +200,11 @@ for r in $SEATS; do
     [ "$r" = "$s" ] && continue
     [ -f "$D/to-$r/from-$s.md" ] || { echo "  x  $D/to-$r/from-$s.md is missing -- $s cannot deliver to $r"; bad=$((bad+1)); }
   done
+done
+
+# ⑪ 研究席↔监督席那一对投递口也得在（R&D 线用它，见 ai/rules/layout.md §二 RandD/）
+for pair in "to-$RND_SEAT/from-$RND_PEER.md" "to-$RND_PEER/from-$RND_SEAT.md"; do
+  [ -f "$D/$pair" ] || { echo "  x  missing $D/$pair -- the Researcher and the Supervisor cannot post letters to each other"; bad=$((bad+1)); }
 done
 
 if [ "$bad" -gt 0 ]; then

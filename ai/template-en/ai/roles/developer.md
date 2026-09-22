@@ -16,6 +16,8 @@
 5. **That task file itself** (≤150 lines) — it says what to do, how it is suggested you do it, and what counts as passing.
 6. **`ai/memory.md`** — **project memory**: things he handed over that hold from then on, plus **the fixes you worked out yourself**. **All four seats read it, all four may write it.**
 
+> 🔴 **Which browser to debug the real machine with: read `docs/ops/realmachine.md` §1b first** (the AI's built-in browser pane often allows only the first document load on a private network, so **the page can never log in** — do not mistake that for a broken machine).
+
 Whatever `spec:` / `prototype:` in the task file points at, read that one before you touch anything:
 - **Spec** `ai/specs/<name>.md` — **required reading before you start, not reference material**.
 - **Design** `product/design/prototype/_PROJECT_/feature/<name>/` — build the prototype to match it, **take the icons as given, do not draw your own**,
@@ -107,7 +109,7 @@ normal write-back → **the rename trick** → write into `tmp/` and say so in t
 🔴 **Three things not to do**: do not retry the same failing method over and over; **do not treat "please run this command for me" as a solution** (hard law 5);
 do not change only the real machine and leave the repo alone.
 
-**The exact commands for the four methods, and the holes stepped in**: `docs/ops/realmachine.md`.
+**The exact commands for the four methods, and the holes stepped in**: `docs/ops/realmachine.md`. **Verify on one machine, push updates to all of them** (every in-use machine with the `deploy` role — the same document spells it out).
 
 **None of the four works → park it**: put those files in `tmp/writeback-pending/` (keeping their original relative paths),
 and state in the report **which file, why it did not get in, and how it has to be merged**. The guard `bash ops/verify/check-writeback.sh` watches it,

@@ -31,7 +31,11 @@ scan() {   # $1=file $2=regex
 EX="$ROOT/ops/.pathcheck-ignore"
 skip(){ [ -f "$EX" ] || return 1; while IFS= read -r l; do
           l="${l%%#*}"                      # strip trailing comment
-          l="$(printf '%s' "$l" | tr -d '[:space:]')"   # strip whitespace
+          # [Trap] This used to be `tr -d '[:space:]'`, which strips **all** whitespace in the line, so
+          # **a path containing a space (e.g. `Claude outputs/`) could never match — writing it did nothing**
+          # (reported by the Developer seat on 2026-09-17; the "criterion looks present but does not fire" family).
+          # Strip only leading/trailing whitespace; spaces inside the path must survive.
+          l="$(printf '%s' "$l" | sed 's/^[[:space:]]*//;s/[[:space:]]*$//')"
           [ -z "$l" ] && continue
           case "${1#./}" in $l*) return 0;; esac
         done < "$EX"; return 1; }
@@ -51,7 +55,14 @@ while IFS= read -r f; do
   esac
 done < <(find . \( -name '*.ps1' -o -name '*.sh' -o -name '*.service' -o -name '*.md' \) \
           -not -path './.git/*' -not -path './tmp/*' -not -path './dist/*' \
-          -not -path './archive/*' -not -path './_newroot/*')
+          -not -path './archive/*' -not -path './_newroot/*' \
+          | while IFS= read -r f; do
+              # [Why git-ignored paths are skipped] A bare `find .` also scans what `.gitignore` excludes,
+              # so a tool's own output directory gets judged red. **A guard should only judge what is in the repo**
+              # (same criterion as `check-root.sh`: a tracked file is still judged).
+              git ls-files --error-unmatch -- "$f" >/dev/null 2>&1 && { echo "$f"; continue; }
+              git check-ignore -q -- "$f" 2>/dev/null || echo "$f"
+            done)
 
 if [ "$n" -gt 0 ]; then
   echo "CHECK-PATHS-FAIL ($n files hard-code a path or a test-machine IP)"

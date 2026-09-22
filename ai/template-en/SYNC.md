@@ -39,6 +39,15 @@ replace project-specific names with placeholders, boil the incident details down
 | `ai/rules/workflow.md` | `ai/template/ai/rules/workflow.md` | **almost as is** (the state machine, the task template, priorities and the four wrap-up items are all generic) |
 | `ai/rules/layout.md` | `ai/template/ai/rules/layout.md` | **almost as is** (directory responsibilities, size budgets, naming and the banned items are all generic) |
 | `ai/rules/conventions.md` | `ai/template/ai/rules/conventions.md` | §1 §2 §6 §7 §8 carried over as generic; **§3 §4 §5 replaced with fill-in-the-blanks tables** |
+| `ops/verify/check-cachebust.sh` | `ai/template/ops/verify/check-cachebust.sh` | **as-is** (it skips itself when the project has no frontend) |
+| `ops/verify/check-randd.sh` | `ai/template/ops/verify/check-randd.sh` | **as-is** (it skips itself when the project has no R&D line; the criteria match on the `00-` `01-` `02-` prefix, **not on the language**) |
+| `ai/roles/researcher.md` | `ai/template/ai/roles/researcher.md` | **as-is** (the Researcher's boundary and its four per-round duties are generic) |
+| `ai/RandD/` (the whole tree) | `ai/template/ai/RandD/` | **an empty skeleton**: `README.md` (the rules + the nine criteria) · an empty `index.md` · an empty `memory.md` · one `NN-topic/` skeleton (an `INDEX.md` in each of the four archive dirs). 🔴 **Neutral file names, content in the project's language** — the two templates' paths must match character for character |
+| `ai/mail/to-researcher/from-supervisor.md` · `ai/mail/to-supervisor/from-researcher.md` | same paths | **empty mailboxes** (the Researcher exchanges letters only with the Supervisor; the gate reds any other pairing) |
+| `ops/frame/frame-sync.sh` · `ops/frame/classes.txt` | same paths | **as-is** (the tool behind "sync FRAME" and its classes table; repositories differ only through their own `ai/frame-repo.conf`, **no repo name is hard-coded**) |
+| `docs/guide/frame-sync.md` | `ai/template/docs/guide/frame-sync.md` | **as-is** (the ten steps and the five iron rules are generic) |
+| `ai/FRAME-VERSION` | `ai/template/ai/FRAME-VERSION` | **the version travels with FRAME**; `fingerprint` is computed by the script, never filled in by hand |
+| `ai/frame-repo.conf` | `ai/template/ai/frame-repo.conf` | **a blank sample**: `role=consumer` plus a `home=<absolute path>` placeholder, filled in at initialization. 🔴 **Sync never overwrites it** (it is on the skip list) |
 | `ai/decisions/index.md` | `ai/template/ai/decisions/index.md` | reset numbering to AD1; drop the section on this project's known numbering problems |
 | `ai/tasks/index.md` | `ai/template/ai/tasks/index.md` | empty the table; reset the task number to T-0001 |
 | `ai/specs/index.md` | `ai/template/ai/specs/index.md` | empty the table, keep only the file-header rules |

@@ -104,12 +104,13 @@ SEAT_OF_FILE() {  # $1=path -> prints Maintainer/Reviewer/Developer/Supervisor/s
       if (n < 3) next
       paths=c[2]; owner=c[3]
       gsub(/^[ \t]+|[ \t]+$/, "", owner)
-      if (owner !~ /(Maintainer|Reviewer|Developer|Supervisor|shared)/) next
+      if (owner !~ /(Maintainer|Reviewer|Developer|Supervisor|Researcher|shared)/) next
       if (owner ~ /shared/) owner="shared"
       else if (owner ~ /Maintainer/) owner="Maintainer"
       else if (owner ~ /Reviewer/) owner="Reviewer"
       else if (owner ~ /Developer/) owner="Developer"
       else if (owner ~ /Supervisor/) owner="Supervisor"
+      else if (owner ~ /Researcher/) owner="Researcher"  # R&D line, writes only under ai/RandD/
       m=split(paths, ps, "·")
       for (i=1; i<=m; i++) {
         p=ps[i]
@@ -154,7 +155,8 @@ if [ -n "$SEAT" ]; then
     reviewer|Reviewer)     SEAT=Reviewer;;
     developer|Developer)   SEAT=Developer;;
     supervisor|Supervisor) SEAT=Supervisor;;
-    *) echo "STOP --seat takes one of: maintainer / reviewer / developer / supervisor"; exit 2;;
+    researcher|Researcher) SEAT=Researcher;;
+    *) echo "STOP --seat takes one of: maintainer / reviewer / developer / supervisor / researcher"; exit 2;;
   esac
 fi
 if [ "$ALLSEATS" != 1 ] && [ "$NSEATS" -gt 1 ] && [ -z "$SEAT" ]; then

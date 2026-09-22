@@ -30,7 +30,11 @@ scan() {   # $1=文件 $2=正则
 EX="$ROOT/ops/.pathcheck-ignore"
 skip(){ [ -f "$EX" ] || return 1; while IFS= read -r l; do
           l="${l%%#*}"                      # 去掉行尾注释
-          l="$(printf '%s' "$l" | tr -d '[:space:]')"   # 去掉空白
+          # 【坑】原来用 `tr -d '[:space:]'` 把**整行空白全删**，于是
+          # **带空格的路径（例如 `Claude outputs/`）写进豁免清单永远匹配不上——写了等于没写**
+          #（开发席 2026-09-17 实测报来，属于「判据看着有、其实不生效」那一族）。
+          # 只去首尾空白，路径中间的空格必须留着。
+          l="$(printf '%s' "$l" | sed 's/^[[:space:]]*//;s/[[:space:]]*$//')"
           [ -z "$l" ] && continue
           case "${1#./}" in $l*) return 0;; esac
         done < "$EX"; return 1; }
@@ -54,7 +58,14 @@ while IFS= read -r f; do
 done < <(find . \( -name '*.ps1' -o -name '*.sh' -o -name '*.service' -o -name '*.md' \) \
           -not -path './.git/*' -not -path './tmp/*' -not -path './dist/*' \
           -not -path './archive/*' -not -path './_newroot/*' \
-          -not -path './ai/template/*' -not -path './ai/template-en/*')
+          -not -path './ai/template/*' -not -path './ai/template-en/*' \
+          | while IFS= read -r f; do
+              # 【为什么要跳过 git 忽略的】裸 `find .` 连 `.gitignore` 掉的东西一起扫，
+              # 于是桌面端自动落盘的 `Claude outputs/`（里面是别席正在写的稿子）被判红——
+              # **守门只该管仓库里的东西**（和 `check-root.sh` 同一个判据：被跟踪的照样管）。
+              git ls-files --error-unmatch -- "$f" >/dev/null 2>&1 && { echo "$f"; continue; }
+              git check-ignore -q -- "$f" 2>/dev/null || echo "$f"
+            done)
 
 if [ "$n" -gt 0 ]; then
   echo "CHECK-PATHS-FAIL（$n 个文件写死了路径或测试机 IP）"

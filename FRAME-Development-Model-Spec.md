@@ -312,9 +312,50 @@ they are the evidence for a later re-check; things generated during packaging an
    first a multiple-choice question for your **project name** and **working language**, then it localizes the docs into that language and walks you through the five blanks.
    **An existing project goes the same route** — copy the template over it and it will use `ai/frame-manifest.txt` to sort everything into
    "ours / the old project's / name clashes", produce a migration mapping table for you to confirm, then migrate and archive.
-3. Open the sessions and say one word to each (`developer` / `reviewer` / `supervisor` / `maintainer`).
+3. Open the sessions and say one word to each (`developer` / `reviewer` / `supervisor` / `maintainer`; say `researcher` to open the R&D line, see §8b).
 
 The template ships with guard scripts (broken doc links, hardcoded paths and IPs, gaps in the inbox, broken bug loops, whether the template has kept up), usable out of the box.
+
+---
+
+## 8b. The R&D line and the Researcher seat (**an extra seat; the four powers do not change**)
+
+> Directory and numbering rules: `ai/RandD/README.md`; the handbook: `ai/roles/researcher.md`.
+> **Whether to open this line is the Requester's call**, and the development line is unaffected either way.
+
+FRAME assumes **a clear goal and a design that is nearly settled**: tasks have acceptance criteria, review has a spec to
+check against, maintenance has rules to maintain. An **idea that does not have a name yet** has none of those three —
+force FRAME onto it and three of the four seats spin idle while the exploration itself is blocked on "write the acceptance
+criteria first". So there is a second, permanent line **running alongside development**: the **R&D line**.
+
+| | Development line | R&D line |
+|---|---|---|
+| The question | has this thing been built | is this thing **worth building, and can it be built at all** |
+| The people | Requester · Developer · Reviewer · Maintainer | Requester · **Researcher** · Supervisor |
+| The unit | `T-####`, a deliverable, assigned by the Reviewer | `R-####`, a **question**, 🔴 **opened, ordered and closed by the Researcher itself**; it ends in "answered / cannot be done / dropped" |
+| The workspace | `src/` `ai/tasks/` `ai/specs/` … | 🔴 **`ai/RandD/` only** |
+| The end | shipping | **graduation**: nine criteria green → Supervisor verifies → Requester settles → Supervisor migrates |
+
+🔴 **The Researcher has a seat but not one of the powers.** Until the Supervisor has verified it, its output carries the
+weight of "I reckon" — which is exactly where the existing order of authority puts it
+(`the Requester settles it > a fact the Reviewer verified > the Supervisor's opinion > anyone's "I reckon"`).
+So **the four-power split, Four-Role and the four edges of the frame do not change by a word**; what checks the Researcher
+is **the Requester** and **falsifiable experiments**. **It also does not disturb the running development flow**: the two
+lines run in parallel, and the R&D line keeps running long after the product has entered development.
+
+**On this line the Supervisor has three write extensions** (different from §3, because **this line has no Reviewer** —
+there is no spec to check against and no implementation to review): ① it reviews the Researcher's converged output
+directly; ② it agrees graduation directly with the Requester; ③ it **performs the graduation migration** and the FRAME
+initialization of a new repository. **Beyond those it only reads.**
+
+**Why graduation is a gate**: debt taken on during R&D surfaces mid-development as "nobody ever verified this", and by
+then the fix costs ten times as much. So 🔴 **no graduating first and filling the gaps later**; the two heaviest of the
+nine criteria are **every irreversible decision is listed** and **every technology choice is one of "verified / has a
+precedent / openly a bet"** — **there is no fourth option called "should be fine"**.
+
+🔴 **The north star: at graduation the whole process can be reconstructed.** Every number, index, three-axis cross-reference
+and same-round append exists for that one thing. The test is a single sentence: **can a brand-new session, with nothing but
+these files, write the graduation output?**
 
 ---
 

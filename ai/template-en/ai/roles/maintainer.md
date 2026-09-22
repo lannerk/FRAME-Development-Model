@@ -56,6 +56,20 @@ What to do for each pair at sync time is written in `ai/template/SYNC.md`.
 **The two templates' directories and file names must match exactly** (`diff <(cd ai/template && find . -type f | sort) <(cd ai/template-en && find . -type f | sort)` should be empty).
 Only the content language differs. **Once the paths diverge, `check-template-sync.sh` and the init checklist both stop working.**
 
+### 🔴 Two more sweeps when what changed is FRAME itself
+
+**Adding a seat is not adding one handbook**, and **changing FRAME is not only changing the rules**:
+
+| Sweep | What to go through | Why |
+|---|---|---|
+| **The guards that enumerate seats** | the ownership table in `layout.md` §7 · `commit-round.sh` (its seat table and `--seat`) · `check-mail.sh` (drop-boxes, archive names) · any other script with a seat list in it | Measured 2026-09-22: without the ownership row, `commit-round.sh` calls the new seat's files "unregistered" and **it cannot commit anything at all** |
+| **The four front-door documents** | `ai/template/FRAME-Development-Model.md` · `ai/template-en/…` · `ai/template/README.md` · `ai/template-en/README.md` | Otherwise the spec says it exists and the introduction never mentions it; the open-source repo's root files are projected from these four |
+
+🔴 **When to touch the READMEs** (the Requester 2026-09-22: "rules that do not affect the introduction do not need it"):
+a **seat / line / top-level directory / command word** was added or removed, or a **new guard script** appeared → change them.
+**Criteria, thresholds, steps inside a flow, ownership rows, wording** → do not.
+The one-line test: 🔴 **would a new reader following the README walk into something it never mentions?**
+
 **Two closing criteria, and missing either one means it is not done**:
 
 1. `bash ops/verify/check-template-sync.sh` prints `TEMPLATE-SYNC-OK`.
@@ -184,6 +198,13 @@ Set by the Requester (his own words, 2026-09-15):
    **Changing the rules without committing means the next person who clones still gets the old rules.**
 9. Mark this entry done in the maintenance log, with the verification output written out.
 
+### 🔴 The command word "sync FRAME"
+
+Bring this project's FRAME into line with the source repo (`home=` in `ai/frame-repo.conf`). **The whole procedure is in `docs/guide/frame-sync.md`**; four things to remember:
+① **only committed FRAME counts** — commit first if it is dirty; ② **it reports and writes nothing by default**, `--sync --apply` must be explicit;
+③ **if anything needs a human, nothing at all is written** — say the word again once it is handled; ④ 🔴 **the fingerprint is for the machine, the version is yours to bump** — forget the bump and the old looks new.
+**The first run is all "no baseline"** (inherent): `--diff` file by file, or `--adopt` once you are sure one side is right; **write down which one you took**.
+
 ## 5. Verifying that the three seats work to the latest rules
 
 Changing the rules is not the same as them taking effect. **You have to be able to verify it**:
@@ -217,5 +238,4 @@ for an existing project, also use `ai/frame-manifest.txt` to sort things into th
   **Say both sentences** (`ai/rules/investigate.md`, "the two sentences of a reverse assertion"): **this test really reached the code under test**, and breaking it is what turned it red — proving only the second may mean the compiler bit, or nothing did.
 - **A stale template is a stale model**: while `check-template-sync.sh` is red the maintenance is not done (see the ⛔ at the top), and **that counts for both copies, Chinese and English**.
 - **After changing, let the running sessions know**: the 🔔 line in `now.md` + having the Requester say `reload rules`. **A change nobody knows about is not a change.**
-- **A leftover red is not passed on by word of mouth**: reds you could not finish this round, or that belong to another seat, **can simply stay in the guard output** — line (4) of `reload rules` requires every seat to run `check-all.sh` itself and report
-  "which of them point at my files" (`CLAUDE.md` §2). The log still records **which reds and whose seat**, but **never again count on the Requester to be the messenger**.
+- **A leftover red is not passed on by word of mouth**: reds you could not finish this round, or that belong to another seat, **can simply stay in the guard output** — line (4) of `reload rules` requires every seat to run `check-all.sh` itself and report "which of them point at my files" (`CLAUDE.md` §2). The log still records **which reds and whose seat**, but **never again count on the Requester to be the messenger**.

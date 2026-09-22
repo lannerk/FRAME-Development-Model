@@ -70,8 +70,24 @@ done < <(find . -maxdepth 3 \( -path ./.git -o -path ./archive -o -path ./tmp -o
 SINCE="${ROOTRULES_SINCE:-2026-09-16}"
 added_at() { git log --diff-filter=A --format=%cI -- "$1" 2>/dev/null | tail -1 | cut -c1-10; }
 note(){ echo "  ·  $* (pre-existing, no retroactive effect per §3c)"; }
+# [Only the four seats + shared may sit directly under claude-outputs] The table in `claude-outputs/README.md` is the list.
+# Measured 2026-09-18: an extra top-level group had appeared (12 numbered chapters + a README) — **the content was fine,
+# the position was not**: the scratch area is split by seat so that "who wrote it, who may change it" is answerable
+# (nobody may touch the Supervisor seat's copy). Report **one** red, not one per file inside.
+for e in claude-outputs/*; do
+  [ -e "$e" ] || continue
+  b=$(basename "$e")
+  case "$b" in developer|reviewer|supervisor|maintainer|shared|README.md|index.md) continue;; esac
+  allowed "$e" && continue
+  skip "$e" && continue
+  echo "  x  only the four seats + shared may sit directly under claude-outputs (see claude-outputs/README.md): found $e"
+  echo "     move it under the seat that wrote it, or have the Maintainer seat change that table -- do not leave it somewhere nobody owns"
+  bad=$((bad+1))
+done
+
 for d in claude-outputs/*/; do
   [ -d "$d" ] || continue
+  case "$(basename "$d")" in developer|reviewer|supervisor|maintainer) ;; *) continue;; esac
   case "$d" in claude-outputs/shared/) continue;; esac   # shared/ 下是固定三个子目录，单独看
   for e in "$d"*; do
     [ -e "$e" ] || continue
@@ -79,6 +95,11 @@ for d in claude-outputs/*/; do
     case "$b" in README.md|index.md) continue;; esac
     allowed "$e" && continue
     printf '%s' "$b" | grep -qE '^[0-9]{4}-[0-9]{2}-[0-9]{2}-' && continue
+    # [Why a grouped directory with a README is allowed] The criterion judges "can it be found and explained",
+    # not "does the name contain a date". A numbered chapter series is content in its own right, and forcing a date
+    # prefix onto it would mean renaming a dozen files just to turn the guard green.
+    # So: **a first-level entry that is a directory containing `README.md` counts as compliant**, and its files are not date-checked.
+    [ -d "$e" ] && [ -f "$e/README.md" ] && continue
     a=$(added_at "$e")
     if [ -n "$a" ] && [ "$a" \< "$SINCE" ]; then note "$e 命名不带日期（$a 入库）"; continue; fi
     echo "  x  scratch-area name breaks the rule (it must be <date>-<one line>): $e"; bad=$((bad+1))

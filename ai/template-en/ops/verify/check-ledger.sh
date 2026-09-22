@@ -93,10 +93,46 @@ for pair in "ai/tasks:T" "ai/bugs:B" "ai/specs:AD"; do
             | sed -E "s#.*/(${pre}-[0-9]{4})-.*#\1#" | LC_ALL=C sort | uniq -d)
 done
 
+# ---- (3d) a task pushed to `in review` must carry a build reconciliation ----
+# [Why this exists] Measured 2026-09-22: a whole app's front end plus three routes existed **only on the test machine,
+# never in the repo** (the binary running there could not be built from the repo at all), while **the delivery self-check
+# and the real-machine acceptance were both green** — the repo still compiled (nothing referenced the missing files) and
+# the machine was running what had been pushed to it.
+# **Per-file hash reconciliation only bites the files someone remembered to write back**; what bites the whole class of
+# "forgot to write it back" is **rebuilding the whole tree and comparing the binary's hash**.
+# What is judged: whether the task file carries that reconciliation. Not retroactive (§3c): only tasks added on or after the gate date.
+SINCE_BUILD="${BUILDRECON_SINCE:-2026-09-22}"
+if git rev-parse --git-dir >/dev/null 2>&1; then
+  for f in ai/tasks/T-*.md; do
+    [ -f "$f" ] || continue
+    st=$(grep -m1 '^status:' "$f" | sed 's/^status:[[:space:]]*//;s/[[:space:]].*$//')
+    case "$st" in "in"*|review*|passed*) ;; *) continue;; esac
+    a=$(git log --diff-filter=A --format=%cI -- "$f" 2>/dev/null | tail -1 | cut -c1-10)
+    [ -n "$a" ] && [ "$a" \< "$SINCE_BUILD" ] && continue
+    grep -qiE 'sha256|build reconciliation' "$f" || say "$f was pushed to \"$st\" without a **build reconciliation** (hash of a full rebuild from the repo == hash of what runs on the test machine): see the \"self-test\" section in ai/rules/workflow.md"
+  done
+fi
+
+# ---- (3c) the memory archive may only grow ----
+# [Why this exists] When `ai/memory.md` hits its cap, the answer is **splitting it into volumes** — not deleting rows and not
+# raising the cap (the Developer seat reported "the memory file is full" on 2026-09-18 and refused to delete other seats' rows,
+# which was right). Once split, the volume is the only place those rows live, so it gets the same criterion as the mail archive:
+# **append only, never delete a row.**
+if git rev-parse --git-dir >/dev/null 2>&1; then
+  for f in ai/memory-archive/*.md; do
+    [ -f "$f" ] || continue
+    cur=$(grep -cE '^\|[[:space:]]*[0-9A-Za-z]' "$f" || true)
+    if git cat-file -e "HEAD:$f" 2>/dev/null; then
+      old=$(git show "HEAD:$f" 2>/dev/null | grep -cE '^\|[[:space:]]*[0-9A-Za-z]' || true)
+      [ "$cur" -lt "$old" ] && say "$f lost entries (HEAD $old -> now $cur): the memory archive may only grow (git show HEAD:$f)"
+    fi
+  done
+fi
+
 # ---- (4) loose files in the ai/ root ----
 while IFS= read -r f; do
   case "$(basename "$f")" in
-    index.md|memory.md|check-links.sh|.linkcheck-ignore|glossary.md|frame-manifest.txt) ;;
+    index.md|memory.md|check-links.sh|.linkcheck-ignore|glossary.md|frame-manifest.txt|frame-repo.conf|FRAME-VERSION) ;;
     *) say "one loose file too many in the ai/ root: $f (\`ai/rules/layout.md\` §2: ai/ holds subdirectories plus those few files only)";;
   esac
 done < <(find ai -maxdepth 1 -type f)

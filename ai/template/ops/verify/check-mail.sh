@@ -31,6 +31,10 @@ CAP="${MAIL_CAP:-12}"
 FLOOD="${MAIL_FLOOD:-3}"
 TYPES="建议 转告 通知 请求 答复"
 SEATS="developer reviewer supervisor maintainer"
+# 【R&D 线的编外座位】研究席**只和监督席通信**（`ai/roles/researcher.md`：它写只在 `ai/RandD/`，
+# 要动别的目录得请监督席）。所以它**不进四席的投递口矩阵**——那会凭空多出 6 份没人用的文件，
+# 而**没人用的投递口比没有更坏**：它会让人以为可以往那儿发。只认下面这一对。
+RND_SEAT="${RND_SEAT:-researcher}"; RND_PEER="${RND_PEER:-supervisor}"
 bad=0
 today=$(date +%s)
 
@@ -38,6 +42,11 @@ for f in "$D"/to-*/from-*.md; do
   [ -f "$f" ] || continue
   recv=$(basename "$(dirname "$f")"); recv=${recv#to-}
   sender=$(basename "$f" .md); sender=${sender#from-}
+  # 研究席的投递口只许配监督席
+  if [ "$recv" = "$RND_SEAT" ] || [ "$sender" = "$RND_SEAT" ]; then
+    other="$sender"; [ "$sender" = "$RND_SEAT" ] && other="$recv"
+    [ "$other" = "$RND_PEER" ] || { echo "  ✗  $f —— 研究席只和监督席通信（见 ai/roles/researcher.md），这份投递口不该存在"; bad=$((bad+1)); }
+  fi
   [ "$recv" = "$sender" ] && { echo "  ✗  $f —— 自己给自己发信，这份不该存在"; bad=$((bad+1)); }
   n=$(wc -l < "$f")
   [ "$n" -gt "$CAP" ] && { echo "  ✗  $f  $n 行 / 上限 $CAP —— 满了不是加大上限，是没人读或者发信太碎"; bad=$((bad+1)); }
@@ -108,6 +117,11 @@ for f in "$D"/to-*/from-*.md; do
       # 它会把中文文件名当中的字节也一起换掉，**把路径截断成一个不存在的名字，报出假红**
       #（监督席 2026-09-15 实测报来：`2026-09-15-信箱迁移丢失已处置归档.md` 被截成 `…-信箱`）。**用 sed 按字符换。**
       for pth in $(printf '%s' "$where" | sed 's/[`·、,，]/ /g' | grep -oE '[A-Za-z0-9_./-]+/[^[:space:]]+' || true); do
+        # 【判文件在不在，不判后面挂了什么】信里常写 `ai/rules/laws.md:33` 指到行——
+        # 要保的那件事是**那个文件还在不在**，行号不是路径的一部分。不去掉的话这种写法一律假红，
+        # 而假红的唯一修法是把行号删掉＝**让规矩逼着人写得更含糊**。
+        pth="${pth%%:*}"
+        [ -z "$pth" ] && continue
         [ -e "$pth" ] || { echo "  ✗  $tag —— 细节路径指不到：$pth"; bad=$((bad+1)); }
       done
     fi
@@ -188,7 +202,7 @@ fi
 for f in "$D"/archive/*.md; do
   [ -f "$f" ] || continue
   bn=$(basename "$f")
-  if ! printf '%s' "$bn" | grep -qE '^(developer|reviewer|supervisor|maintainer)-[0-9]{4}-[0-9]{2}\.md$'; then
+  if ! printf '%s' "$bn" | grep -qE "^(developer|reviewer|supervisor|maintainer|$RND_SEAT)-[0-9]{4}-[0-9]{2}\.md$"; then
     echo "  ✗  $f —— 归档文件名要「一席一月一份」：<席>-<YYYY-MM>.md（共用一份必然 git 冲突）"; bad=$((bad+1))
   fi
   while IFS= read -r line; do
@@ -207,6 +221,11 @@ for r in $SEATS; do
     [ "$r" = "$s" ] && continue
     [ -f "$D/to-$r/from-$s.md" ] || { echo "  ✗  缺 $D/to-$r/from-$s.md —— $s 递不进信给 $r"; bad=$((bad+1)); }
   done
+done
+
+# ⑪ 研究席↔监督席那一对投递口也得在（R&D 线用它，见 ai/rules/layout.md §二 RandD/）
+for pair in "to-$RND_SEAT/from-$RND_PEER.md" "to-$RND_PEER/from-$RND_SEAT.md"; do
+  [ -f "$D/$pair" ] || { echo "  ✗  缺 $D/$pair —— 研究席与监督席之间递不进信"; bad=$((bad+1)); }
 done
 
 if [ "$bad" -gt 0 ]; then

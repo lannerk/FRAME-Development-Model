@@ -47,7 +47,16 @@
 
 16. `<which file is the one source of style tokens; new code may not hardcode colors or numbers>`
 17. `<controls of the same kind share one style system-wide; look for an existing control to reuse before making a new one>`
-18. `<the "changed it, no effect" holes such as caching and version numbers>`
+18. **For "changed it, no effect" holes such as caching and version numbers: make the value computed, then add a gate.**
+    A rule that says "when you change X, remember to also change Y" **is worth nothing if a human has to remember it** —
+    the project this template came from hit it twice in a row: the frontend file was pushed, its sha matched, the logs
+    looked fine, and the browser kept serving the old one, because the version string had not been bumped.
+    Do this instead: make the version string the fingerprint of that file's contents (first few hex chars of its sha256),
+    and add a gate that recomputes and reconciles, with a `--fix` mode
+    (`ops/verify/check-cachebust.sh` is that shape: three knobs, `CACHEBUST_WEB` / `_PAGE` / `_PREFIX`, and it **skips itself when it does not apply** —
+    the project-specific slots have to be knobs; hard-code them and the next project just gets a false red).
+    🔴 **Strip carriage returns before hashing**, or the same content fingerprints differently on a Windows checkout
+    and the gate goes red for no reason.
 
 ## 5. Pre-delivery self-check (**fill in for your project**; missing one means it isn't done)
 
@@ -95,6 +104,7 @@ Two sides of the same point — **green has to mean something**.
 | `ops/verify/check-writeback.sh` | Whether `tmp/writeback-pending/` still holds changes never written back to the repo |
 | `ops/verify/check-mail.sh` | Whether **the seat mail** has rotted: unread only · fields filled · nothing stale (>7 days) · no duplicate letters · no sender piled up past 3 · no work handed out through the mail · the archive is one file per seat per month |
 | `ops/verify/check-root.sh` | **Every item at the repo root (file or directory) is in the §1 list in `layout.md`**, no legacy name has come back as a real path, and every first-level entry under `claude-outputs/<seat>/` carries a date (not retroactive: gated on the git add time) | Every wrap-up; **always after creating something at the repo root** |
+| `ops/verify/check-randd.sh` | **The R&D line** (`ai/RandD/`) has not rotted: every topic skeleton complete · an `INDEX.md` in `log/ lab/ runs/ notes/` · every topic listed in `index.md` · the live files within their caps (status 200 / open questions 100 / topic card 50 / line memory 80) · 🔴 anything marked graduated must have a **nine-green** criteria self-check. **Skips itself when the line is not open** | Researcher at each round's wrap-up; Maintainer at wrap-up |
 | `ops/verify/check-mirror.sh` | **The front-end source and its prototype mirror match line for line** (§4.22 had no script watching it, and 9 files had already drifted on HEAD). Pre-existing drift lives in `ops/verify/.mirror-baseline`, which **may only shrink** | After changing the front-end source; every wrap-up |
 | `ops/verify/check-css-namespace.sh` | **Within one page, two files may not each define the same top-level single-class selector and override each other** (the root cause of B-0003: an injected bare `.spin` overrode the chat side's `.spin`) | After changing a module in `web/` that injects CSS |
 | `ops/verify/check-all.sh` | **Runs every one of the above in one go and answers with one table** (run it when the Requester says `conformance sweep`) |
