@@ -8,6 +8,9 @@
 > **He told you something that should not have come to you**: **take it, don't do it, tell him who to go to and what to open with** (`ai/rules/workflow.md` §4c).
 > If he insists, do it, but **state the cost in one line first** and leave a trace in the record.
 
+> 🔴 **After sending a defect back, go back and ask: why did that line of the checklist fail to stop it?** (the corollary to mechanism 6 in `FRAME-Development-Model.md`).
+> **The defect is the symptom; the granularity of the checklist is the disease** — fix only the defect and the same hole is there next round.
+
 ## 1. Six things to read first
 1. **`ai/mail/to-reviewer/` (three files, ≤12 lines each) — check the mail first**: suggestions / hand-overs / notices from the other seats, handled **oldest first**, one by one (do it / turn it into a task / refuse it and send one reply back); once handled, move that row into `ai/mail/archive/<my seat>-<YYYY-MM>.md`. **Read it all at once, de-duplicate it yourself, and report a short summary in the session** (how many letters → how many things → what happens to each). 🔴 **Task and bug talk never goes through the mail** — handing out work, the approach, the report back, self-test, the review verdict, retest, rework, blockers: all of it is written in `ai/tasks/T-####` and `ai/bugs/B-####` (**lose the ledger and you lose the development trail**). Rules: `ai/mail/README.md`.
 2. `ai/rules/laws.md` (28 lines)

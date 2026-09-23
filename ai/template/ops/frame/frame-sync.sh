@@ -143,7 +143,7 @@ foreign_dirty() { # foreign_dirty <仓库> <基线文件（忽略，见下）> <
   # 🔴 判「是不是我们自己写的」要看**这个仓库对的全部基线**，不是当前这一份：
   # 一次同步可能分两份模板跑（中文、英文），先跑的那一份写进去的文件，在后跑的那一份眼里
   # 会变成「别人改的」——实测：英文那轮把中文那轮刚推的 21 份 ＋ 4 份根文件全报成别人的。
-  local R="$1" _ignored="$2" PFX="$3" line st f rel cur out="" blf sfx pfx2
+  local R="$1" _ignored="$2" PFX="$3" line st f rel cur out="" blf sfx pfx2 k
   [ -d "$R/.git" ] || return 1
   declare -A B=()
   for blf in "$SRC"/ops/frame/.baseline*; do
@@ -156,7 +156,14 @@ foreign_dirty() { # foreign_dirty <仓库> <基线文件（忽略，见下）> <
     else pfx2="$(conf_get "$R" template)"; pfx2="${pfx2:-ai/template}"; fi
     while read -r a b; do
       case "$a" in ''|'#'*) continue;; esac
-      case "$b" in ROOT:*) B["${b#ROOT:}"]="$a";; *) B["$pfx2/$b"]="$a";; esac
+      # 🔴 **同一条路径可能在几份基线里各有一个哈希**（根文件在中英两份基线里都记了一次）：
+      # 用「最后一份覆盖前一份」会让**刚更新过的那一份反而对不上**，于是自己写的东西被判成别人的（实测）。
+      # 所以按**集合**存：只要命中其中任意一个，就算我们写的。
+      case "$b" in
+        ROOT:*) k="${b#ROOT:}";;
+        *) k="$pfx2/$b";;
+      esac
+      B["$k"]="${B[$k]:-} $a"
     done < "$blf"
   done
   while IFS= read -r line; do
@@ -169,7 +176,7 @@ foreign_dirty() { # foreign_dirty <仓库> <基线文件（忽略，见下）> <
     case "$f" in */ai/FRAME-VERSION|ai/FRAME-VERSION) continue;; esac
     f="${f%\"}"; f="${f#\"}"
     cur="$(h "$R/$f")"
-    [ -n "${B[$f]:-}" ] && [ "${B[$f]}" = "$cur" ] && continue   # 就是我们（某一轮）写进去的那一份
+    case " ${B[$f]:-} " in *" $cur "*) continue;; esac   # 命中任意一份基线 = 我们（某一轮）写进去的
     out="$out $f"
   done < <(cd "$R" && git status --porcelain 2>/dev/null)
   [ -n "$out" ] && { echo "$out"; return 0; }

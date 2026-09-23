@@ -112,7 +112,7 @@ A Reviewer that gets overturned owns it in the review record.
 
 ---
 
-## 4. Five core mechanisms
+## 4. Six core mechanisms
 
 ### 1. The task state machine — you always know "where it is stuck"
 
@@ -164,6 +164,44 @@ This is not ceremony. It is the step in this method that is easiest to skip and 
 4. Write one line of commit message (what this stage changed + which decisions it corresponds to)
 
 **Miss one of the four and whoever picks up the next stage has to dig through the code to rebuild the current state — which costs far more than writing those four.**
+
+🔴 **A "stage" can hold several tickets.** Pushing one task to "in review" is **handing it over**, not the end of the stage —
+open the next ticket; **review is asynchronous**. These four are done **once per stage**, when you actually stop.
+
+*Why this sentence is here*: without it, "at every stage's wrap-up … push the task to in review" reads as
+"handing one ticket over = the stage is over", so the tickets queued behind it never move — and that reading is
+**entirely faithful to the words** (it happened: one ticket pushed, wrap-up done, three more left untouched).
+
+### 6. The acceptance checklist is the only exam paper — its granularity sets the floor on defects
+
+The checklist is **both the specification and the exam paper**: the builder works from it, the reviewer checks against it.
+So wherever the checklist is silent, **neither side can catch it**, and it surfaces only when the user clicks on it.
+No amount of "be careful" helps — **what has to change is how the checklist is written**.
+
+**(1) One requirement per line.** A line may carry one requirement; two means numbered sub-items. The report must
+**answer sub-item by sub-item**, and a missing one is grounds to send it back.
+*Why*: write "list only A; and the button is called B, expands in place, does not navigate away" on one line, and a
+builder who did A and measured only A can report "measured every item" — **while the reviewer, checking that same
+line, cannot catch it**.
+
+**(2) The mockup is not the specification, the checklist is.** Anything drawn in the design but absent from the
+checklist **was never required**. So when a design is finalized, do one **design ↔ checklist** reconciliation:
+whatever is in the picture either goes into the checklist or comes out of the picture.
+*Why*: when two artifacts say different things, the builder follows the checklist and the reviewer checks the
+checklist — **nobody owns the part that only exists in the picture**.
+
+**(3) If the process was required, the criteria must test the process.** Whenever the spec says "asynchronous /
+goes through the task system / shows progress / done in steps", the criteria may not test the end state alone.
+*Why*: "after installing, X works" is satisfied **by doing it all synchronously in one shot**. Same end state,
+missing process — the easiest kind to pass.
+
+**(4) A move/refactor task must state what still will not work afterwards.** For refactors, relocations and
+platform swaps, the delivery says which features are still sitting in other tasks, undone.
+*Why*: the user sees the screen appear and tries it as a finished thing, so **the "defect" they report is really
+an unscheduled feature** — a wasted round trip, and it spends trust.
+
+🔴 **A corollary, for the Reviewer seat**: after sending a defect back, besides fixing it, go back and ask —
+**why did that line of the checklist fail to stop it?** **The defect is the symptom; the granularity is the disease.**
 
 ---
 

@@ -148,39 +148,44 @@ git_dirty() { [ -d "$1/.git" ] || return 1
 # last sync wrote -- that is ours, not someone else's.
 # 【Why】The first sync is two steps (write the template, then project the root files); after step one the target is dirty,
 # and a repo-wide check locks the second half out of its own repository (hit twice in practice).
-foreign_dirty() { # foreign_dirty <仓库> <基线文件（忽略，见下）> <该仓库里 FRAME 的前缀>
-  # 🔴 判「是不是我们自己写的」要看**这个仓库对的全部基线**，不是当前这一份：
-  # 一次同步可能分两份模板跑（中文、英文），先跑的那一份写进去的文件，在后跑的那一份眼里
-  # 会变成「别人改的」——实测：英文那轮把中文那轮刚推的 21 份 ＋ 4 份根文件全报成别人的。
-  local R="$1" _ignored="$2" PFX="$3" line st f rel cur out="" blf sfx pfx2
+foreign_dirty() { # foreign_dirty <repo> <baseline file (ignored, see below)> <the FRAME prefix in that repo>
+  # 🔴 Deciding "did we write this" must look at **every baseline for this repo pair**, not just the current one:
+  # one sync may run per template (Chinese, English), and what the first run wrote looks, to the second run,
+  # like someone else's change -- measured: the English run reported all 21 files plus 4 root files the Chinese run had just pushed.
+  local R="$1" _ignored="$2" PFX="$3" line st f rel cur out="" blf sfx pfx2 k
   [ -d "$R/.git" ] || return 1
   declare -A B=()
   for blf in "$SRC"/ops/frame/.baseline*; do
     [ -f "$blf" ] || continue
     sfx="${blf##*/.baseline}"                       # "" 或 "-template-en"
-    # 🔴 没后缀那一份记的是**默认模板**（conf 里的 template=），不是「当前这一轮的模板」——
-    # 按当前这一轮算前缀，会把中文那轮写的文件全对不上，于是又变成「别人的」（实测）。
+    # 🔴 The unsuffixed baseline belongs to the **default template** (`template=` in the conf), not to the current run --
+    # computing its prefix from the current run makes every file the other run wrote mismatch, so it becomes "someone else's" (measured).
     if [ -n "$sfx" ]; then pfx2="ai/${sfx#-}"
     elif [ "$(role_of "$R")" = consumer ]; then pfx2=""
     else pfx2="$(conf_get "$R" template)"; pfx2="${pfx2:-ai/template}"; fi
     while read -r a b; do
       case "$a" in ''|'#'*) continue;; esac
-      case "$b" in ROOT:*) B["${b#ROOT:}"]="$a";; *) B["$pfx2/$b"]="$a";; esac
+      # 🔴 **One path may carry a different hash in several baselines** (root files are recorded in both):
+      # "last one wins" makes **the freshly updated one mismatch**, so our own writes are judged someone else's (measured).
+      # So store them as a **set**: matching any one of them means we wrote it.
+      case "$b" in
+        ROOT:*) k="${b#ROOT:}";;
+        *) k="$pfx2/$b";;
+      esac
+      B["$k"]="${B[$k]:-} $a"
     done < "$blf"
   done
   while IFS= read -r line; do
     [ -n "$line" ] || continue
     st="${line:0:2}"; f="${line:3}"
     case "$st" in '??') continue;; esac
-    # 🔴 `ai/FRAME-VERSION` is written by this mechanism itself (the file says "never hand-edit"). It is a seed
-    # file and never enters the baseline, so it cannot be recognized as ours; counting it as someone else's work
-    # would block the next sync, and hand-edits to it are meaningless -- the next `--stamp` overwrites it anyway.
+    # 🔴 `ai/FRAME-VERSION` is written by this mechanism itself (the file says "never hand-edit"),
+    # it is a seed file that never enters the baseline, so it cannot be recognized as ours; counting it as someone
+    # else's would block the next sync, and hand-edits to it are pointless -- the next `--stamp` overwrites it.
     case "$f" in */ai/FRAME-VERSION|ai/FRAME-VERSION) continue;; esac
     f="${f%\"}"; f="${f#\"}"
-    rel="$f"; [ -n "$PFX" ] && rel="${f#$PFX/}"
     cur="$(h "$R/$f")"
-    [ -n "${B[$rel]:-}" ] && [ "${B[$rel]}" = "$cur" ] && continue   # exactly what we wrote last time
-    [ -n "${B[ROOT:$f]:-}" ] && [ "${B[ROOT:$f]}" = "$cur" ] && continue
+    case " ${B[$f]:-} " in *" $cur "*) continue;; esac   # matches any baseline = written by us in some run
     out="$out $f"
   done < <(cd "$R" && git status --porcelain 2>/dev/null)
   [ -n "$out" ] && { echo "$out"; return 0; }

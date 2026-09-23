@@ -61,11 +61,20 @@ One or two sentences on the goal and the boundary; no implementation detail.
 The approach and evidence the Reviewer gives. **The Developer may do it differently**, but must write down why below.
 
 ## Acceptance (Reviewer writes, Developer works against it)
+> 🔴 **The checklist is both the specification and the exam paper** (`FRAME-Development-Model.md`, mechanism 6):
+> **wherever it is silent, neither the builder nor the reviewer can catch it**.
+- [ ] **One requirement per line**: two means numbered sub-items ((1) (2) (3))
 - [ ] Checkable and verifiable; every line provable with a command or a screenshot
 - [ ] No unverifiable wording like "the feature works"
+- [ ] **If it is in the mockup it goes in here**: anything drawn but not written was never required (reconcile design ↔ checklist when the design is finalized)
+- [ ] **If the process was required, test the process**: with "asynchronous / via the task system / with progress / in steps", the criteria may not test the end state alone
+- [ ] **A move/refactor task states what still will not work afterwards**: which features are still sitting in other tasks
 
 ## Developer report
-- **What was done**:
+> 🔴 **The report is a table, not prose**: **checklist line number -> result per sub-item**; as many answers as the
+> line has requirements, and **a missing one is grounds to send it back** (mechanism 6, rule 1).
+
+- **What was done**: — **answered sub-item by sub-item** (`acceptance (1)/(2)/(3)` -> result + evidence)
 - **Evidence**: source line numbers / official docs / measured numbers (pick one of the three, never empty)
 - **Measured**: how it was verified on the real machine and what came out
 - **Self-check output**: results of the self-check list (`ai/rules/conventions.md` §5; how many checks is up to your project), pasted as the file name under `claude-outputs/developer/`
