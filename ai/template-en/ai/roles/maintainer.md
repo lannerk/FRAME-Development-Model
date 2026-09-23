@@ -96,6 +96,7 @@ The one-line test: 🔴 **would a new reader following the README walk into some
 4. `ai/roles/{developer,reviewer,supervisor}.md` — the other three seats' handbooks, also yours to maintain.
 5. `FRAME-Development-Model.md` in the root — the outward-facing description of this model.
 6. **`ai/memory.md`** — **project memory**: things he handed over that hold from then on, plus **the fixes you worked out yourself**. **All four seats read it, all four may write it.**
+> 🔴 Also: **read `ai/memory-archive/seat-<your seat>.md` if it exists** (≤30 lines, only you read it — memory only one seat needs lives there; see "when it is full" in `ai/memory.md`).
 
 **You do not read the task queue, the inbox, or the current state.** That is the other three seats' business.
 

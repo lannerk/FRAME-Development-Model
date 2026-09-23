@@ -20,7 +20,11 @@ set -u
 ROOT="$(cd "$(dirname "$0")/../.." && pwd)"; cd "$ROOT" || exit 2
 WEB="${CSSNS_WEB:-src/inos/web}"
 PAGE="${CSSNS_PAGE:-index.html}"
-[ -d "$WEB" ] || { echo "找不到 $WEB"; exit 2; }
+# 【新项目怎么办】没有这个前端目录就**跳过**，不是报错——三条可选检查要一个样子
+# （`check-mirror` 与 `check-cachebust` 都是 SKIP；只有这一条报红，新项目开局就带一处假红，
+#  监督席首次分发到两个消费项目时实测）。
+[ -d "$WEB" ] || { echo "CSS-NS-SKIP（没有 $WEB；用 CSSNS_WEB / CSSNS_PAGE 指定）"; exit 0; }
+[ -f "$WEB/$PAGE" ] || { echo "CSS-NS-SKIP（$WEB 下没有 $PAGE）"; exit 0; }
 command -v node >/dev/null 2>&1 || { echo "没有 node，跳过（CI 上要装）"; exit 0; }
 
 node - "$WEB" "$PAGE" <<'JS'

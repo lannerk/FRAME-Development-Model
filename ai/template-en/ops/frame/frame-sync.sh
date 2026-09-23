@@ -100,12 +100,21 @@ fp_of() { local R="$1" RO="$2" b rel
 ver_file() { echo "$(base_of "$1" "$2")/ai/FRAME-VERSION"; }
 ver_read() { local f; f="$(ver_file "$1" "$2")"
   [ -f "$f" ] && grep -E '^version:' "$f" | head -1 | awk '{print $2}' || echo "0.0.0"; }
-ver_write() { local R="$1" RO="$2" V="$3" FROM="$4" f; f="$(ver_file "$R" "$RO")"
+ver_write() { local R="$1" RO="$2" V="$3" FROM="$4" FFP="${5:-}" f; f="$(ver_file "$R" "$RO")"
+  # 🔴 Three rules, every one of them measured:
+  #  (1) `fingerprint` records **what this repo computes for itself**, never a copy of someone else's -- a
+  #      consumer's set differs by construction (the role-qualified files are not follow for it), so a copied
+  #      value makes the file lie, with no symptom; (2) hence `role`: **fingerprints compare only within a role**;
+  #  (3) `synced_with` records **the repo name, not an absolute path** -- a cloud session mount path carries a
+  #      session id that is meaningless once it ends, and it gets committed into a public repo (happened once).
   mkdir -p "$(dirname "$f")"
-  { echo "version: $V"; echo "date: $(date +%F)"; echo "fingerprint: $(fp_of "$R" "$RO")"
-    echo "synced_with: $FROM"
+  { echo "version: $V"; echo "date: $(date +%F)"; echo "role: $RO"
+    echo "fingerprint: $(fp_of "$R" "$RO")"
+    [ -n "$FFP" ] && echo "source_fingerprint: $FFP"
+    echo "synced_with: $(basename "$(printf '%s' "$FROM" | tr '\\' '/' | sed 's#/*$##')")"
     echo "# version is bumped by the Maintainer: structure/roles=major · rule semantics=minor · wording=patch"
-    echo "# 🔴 the fingerprint is computed; never edit it by hand -- it is the only test of whether two sides are the same FRAME"
+    echo "# 🔴 The fingerprint is computed, never hand-edited, and **compares only with repos of the same role**;"
+    echo "#    to know whether you kept up with the source, compare source_fingerprint with the source's own fingerprint."
   } > "$f"; }
 
 SROLE="$(role_of "$SRC")"
@@ -163,6 +172,10 @@ foreign_dirty() { # foreign_dirty <仓库> <基线文件（忽略，见下）> <
     [ -n "$line" ] || continue
     st="${line:0:2}"; f="${line:3}"
     case "$st" in '??') continue;; esac
+    # 🔴 `ai/FRAME-VERSION` is written by this mechanism itself (the file says "never hand-edit"). It is a seed
+    # file and never enters the baseline, so it cannot be recognized as ours; counting it as someone else's work
+    # would block the next sync, and hand-edits to it are meaningless -- the next `--stamp` overwrites it anyway.
+    case "$f" in */ai/FRAME-VERSION|ai/FRAME-VERSION) continue;; esac
     f="${f%\"}"; f="${f#\"}"
     rel="$f"; [ -n "$PFX" ] && rel="${f#$PFX/}"
     cur="$(h "$R/$f")"
@@ -225,8 +238,8 @@ if [ "$MODE" = stamp ]; then
     alt="$HOME/mnt/$(basename "$(printf '%s' "$HOME_REPO" | tr '\\' '/')")"; [ -d "$alt" ] && HOME_REPO="$alt"; fi
   [ -d "$HOME_REPO" ] || { echo "🔴 cannot find the source FRAME repo"; exit 2; }
   HROLE="$(role_of "$HOME_REPO")"
-  ver_write "$SRC" "$SROLE" "$STAMP_V" "$(conf_get "$SRC" home)"
-  ver_write "$HOME_REPO" "$HROLE" "$STAMP_V" "$SRC"
+  ver_write "$SRC" "$SROLE" "$STAMP_V" "$(conf_get "$SRC" home)" "$(fp_of "$HOME_REPO" "$HROLE")"
+  ver_write "$HOME_REPO" "$HROLE" "$STAMP_V" "$SRC" "$(fp_of "$SRC" "$SROLE")"
   echo "✅ both sides stamped $STAMP_V: this project $(fp_of "$SRC" "$SROLE")   source $(fp_of "$HOME_REPO" "$HROLE")"
   echo "   (template: ${FRAME_TEMPLATE:-$(conf_get "$SRC" template)}; the other template needs its own run)"
   exit 0
@@ -377,8 +390,13 @@ for T in "${TARGETS[@]}"; do
   BL="$T/ops/frame/.baseline$BLSFX"
   echo "══════════════════════════════════════════════"
   echo "target: $T   role: $TROLE   FRAME lands in: ${TBASE#$T/}"
-  if [ "$APPLY" = 1 ] && git_dirty "$T"; then
-    echo "🔴 the target working tree has uncommitted changes -- refusing to write."; rc=1; continue; fi
+  # 🔴 Same reasoning as the source side (fixed there twice): the test is "**are there someone else's
+  #    uncommitted changes**", not "is the tree clean". What the last distribution wrote is in the baseline,
+  #    so it is not someone else's -- a repo-wide check deadlocks: write -> guards red -> commit refused ->
+  #    the next distribution blocked by "dirty".
+  FOREIGN_T="$(foreign_dirty "$T" "$BL" "${TBASE#$T/}" || true)"
+  if [ "$APPLY" = 1 ] && [ -n "$FOREIGN_T" ]; then
+    echo "🔴 the target has **someone else's** uncommitted changes, refusing to write:$FOREIGN_T"; rc=1; continue; fi
   declare -A TB=()
   [ -f "$BL" ] && while read -r a b; do case "$a" in ''|'#'*) continue;; *) TB["$b"]="$a";; esac; done < "$BL"
   nC=0; nU=0; nS=0; nSeed=0; nSkip=0; nConf=0; nGone=0; C=(); U=(); K=(); G=()
@@ -457,6 +475,12 @@ for T in "${TARGETS[@]}"; do
       echo "# one line each: <content sha256> <relative path>; ROOT:<name> is a root-file mapping"
       LC_ALL=C sort -u "$TMP"; } > "$BL"
     echo "  ✅ baseline recorded: ${BL#$T/}"
+    if [ "$APPLY" = 1 ]; then
+      # 🔴 The target's FRAME-VERSION is stamped here: the version follows the source, **the fingerprint is
+      #    the target's own** (FRAME-VERSION is seed and never copied; a copied value would make it lie).
+      ver_write "$T" "$TROLE" "$(ver_read "$SRC" "$SROLE")" "$SRC" "$(fp_of "$SRC" "$SROLE")"
+      echo "  ✅ target stamped $(ver_read "$SRC" "$SROLE") (fingerprint $(fp_of "$T" "$TROLE"), its own set)"
+    fi
   else
     echo "  (dry-run: nothing written. To write: --apply. First baseline: --adopt)"
   fi

@@ -15,6 +15,7 @@
 4. `ai/tasks/index.md` (≤80 lines) — find the item with status `todo`, highest priority, assigned to the Developer.
 5. **That task file itself** (≤150 lines) — it says what to do, how it is suggested you do it, and what counts as passing.
 6. **`ai/memory.md`** — **project memory**: things he handed over that hold from then on, plus **the fixes you worked out yourself**. **All four seats read it, all four may write it.**
+> 🔴 Also: **read `ai/memory-archive/seat-<your seat>.md` if it exists** (≤30 lines, only you read it — memory only one seat needs lives there; see "when it is full" in `ai/memory.md`).
 
 > 🔴 **Which browser to debug the real machine with: read `docs/ops/realmachine.md` §1b first** (the AI's built-in browser pane often allows only the first document load on a private network, so **the page can never log in** — do not mistake that for a broken machine).
 

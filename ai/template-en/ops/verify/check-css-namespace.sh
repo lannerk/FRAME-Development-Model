@@ -20,7 +20,11 @@ set -u
 ROOT="$(cd "$(dirname "$0")/../.." && pwd)"; cd "$ROOT" || exit 2
 WEB="${CSSNS_WEB:-src/inos/web}"
 PAGE="${CSSNS_PAGE:-index.html}"
-[ -d "$WEB" ] || { echo "cannot find $WEB"; exit 2; }
+# 【New project】No front-end directory means **skip**, not an error -- the three optional checks must behave
+# the same way (`check-mirror` and `check-cachebust` both SKIP; this one alone went red, so every new project
+# started with a false red; measured on the first distribution to two consumer projects).
+[ -d "$WEB" ] || { echo "CSS-NS-SKIP (no $WEB; set CSSNS_WEB / CSSNS_PAGE)"; exit 0; }
+[ -f "$WEB/$PAGE" ] || { echo "CSS-NS-SKIP ($WEB has no $PAGE)"; exit 0; }
 command -v node >/dev/null 2>&1 || { echo "node is missing, skipping (install it in CI)"; exit 0; }
 
 node - "$WEB" "$PAGE" <<'JS'

@@ -96,6 +96,7 @@
 4. `ai/roles/{developer,reviewer,supervisor}.md`——另外三席的手册，也是你维护的。
 5. 根目录 `FRAME-Development-Model.md`——这套模式的对外说明。
 6. **`ai/memory.md`**——**项目记忆**：他交代过、以后都算数的事，以及**你自己摸索出来的解法**。**四席都读，四席都能写。**
+> 🔴 另外：**`ai/memory-archive/seat-<你这一席>.md` 在就读它**（≤30 行，只有你读——只有一席用得上的记忆放那儿；`ai/memory.md`《满了怎么办》）。
 
 **你不读任务队列，不读收件簿，不读现状。** 那是另外三席的事。
 

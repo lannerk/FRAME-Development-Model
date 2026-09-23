@@ -26,7 +26,17 @@ while IFS= read -r f; do
     # 模板占位跳过
     case "$p" in *'<'*|*'>'*|*'*'*|*xxx*|*XXX*|*'》'*|*'《'*|*'–'*|*'~'*|*'####'*) continue;; esac
     # 白名单：ai/.linkcheck-ignore，一行一条完整路径，# 开头是注释
-    if [ -f "ai/.linkcheck-ignore" ] && grep -qxF "$p" ai/.linkcheck-ignore; then continue; fi
+    # 白名单两种写法：**整条路径**，或**以 `/` 结尾的前缀**（整段忽略）。
+    # 🔴 前缀那种是实测换来的：`ai/roles/maintainer.md` 每加一条 `ai/template/...` 引用，
+    #    逐条列的白名单就漏一条，而**症状只出现在消费项目里**（那边没有模板目录），本仓库永远是绿的。
+    if [ -f "ai/.linkcheck-ignore" ]; then
+      grep -qxF "$p" ai/.linkcheck-ignore && continue
+      skip_pref=0
+      while IFS= read -r ig; do
+        case "$ig" in ''|'#'*) continue;; */) case "$p" in "$ig"*) skip_pref=1; break;; esac;; esac
+      done < ai/.linkcheck-ignore
+      [ "$skip_pref" = 1 ] && continue
+    fi
     d="$(dirname "$f")"
     # 一个引用在这三种基准下任意一处存在就算指得到：
     #  ① 仓库根（文档里最常见）②源码根 src/（web/… internal/… 这类）③引用它的文件自己所在目录

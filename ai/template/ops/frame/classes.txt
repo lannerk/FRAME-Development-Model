@@ -78,3 +78,9 @@ follow@home  SYNC.md
 follow@host  SYNC.md
 follow@home  gitignore.template
 follow@host  gitignore.template
+# 🔴 反过来也要说死：目标是 consumer 时，这三份落的是**项目根**——
+# `README.md` 是那个项目自己的门面，`SYNC.md` 与 `gitignore.template` 是 FRAME 的打包件，
+# 根本不该出现在消费项目根上（首次分发实测：它们被当成 seed **创建**了出去，还顺带让 check-root 报红）。
+skip@consumer  README.md
+skip@consumer  SYNC.md
+skip@consumer  gitignore.template

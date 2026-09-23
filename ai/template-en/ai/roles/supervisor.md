@@ -14,6 +14,7 @@
 3. `ai/state/now.md` (<=200 lines)
 4. **The specific question the Requester hands you**
 5. **`ai/memory.md`** — **project memory**: things he handed over that hold from then on, plus **the fixes you worked out yourself**. **All four seats read it, all four may write it.**
+> 🔴 Also: **read `ai/memory-archive/seat-<your seat>.md` if it exists** (≤30 lines, only you read it — memory only one seat needs lives there; see "when it is full" in `ai/memory.md`).
 
 > 🔴 **Which browser to debug the real machine with: read `docs/ops/realmachine.md` §1b first** (the AI's built-in browser pane often allows only the first document load on a private network, so **the page can never log in** — do not mistake that for a broken machine).
 

@@ -27,7 +27,18 @@ while IFS= read -r f; do
     # skip template placeholders
     case "$p" in *'<'*|*'>'*|*'*'*|*xxx*|*XXX*|*'》'*|*'《'*|*'–'*|*'~'*|*'####'*) continue;; esac
     # Allowlist: ai/.linkcheck-ignore, one full path per line, # starts a comment
-    if [ -f "ai/.linkcheck-ignore" ] && grep -qxF "$p" ai/.linkcheck-ignore; then continue; fi
+    # Two forms in the list: a **full path**, or a **prefix ending in `/`** (ignore that whole subtree).
+    # 🔴 The prefix form was bought with an incident: every new `ai/template/...` reference added to
+    #    `ai/roles/maintainer.md` slipped past a per-path list, and **the symptom only shows in consumer
+    #    projects** (which have no template directory) -- this repo stays green forever.
+    if [ -f "ai/.linkcheck-ignore" ]; then
+      grep -qxF "$p" ai/.linkcheck-ignore && continue
+      skip_pref=0
+      while IFS= read -r ig; do
+        case "$ig" in ''|'#'*) continue;; */) case "$p" in "$ig"*) skip_pref=1; break;; esac;; esac
+      done < ai/.linkcheck-ignore
+      [ "$skip_pref" = 1 ] && continue
+    fi
     d="$(dirname "$f")"
     # A reference resolves if it exists under any of these bases:
     #  (1) the repo root (most common in docs) (2) the source root src/ (3) the directory of the referencing file

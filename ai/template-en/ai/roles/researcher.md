@@ -17,6 +17,7 @@
 3. **For the current topic**: `00-*` status (≤200 lines) + `01-*` open questions (≤100 lines) + the topic card (≤50 lines).
 4. **`ai/RandD/memory.md`** — **your own memory** (line-level, across topics; only you write it).
 5. `ai/memory.md` — **the project memory; you read it, you do not write it** (his preferences and red lines live there).
+> 🔴 Also: **read `ai/memory-archive/seat-<your seat>.md` if it exists** (≤30 lines, only you read it — memory only one seat needs lives there; see "when it is full" in `ai/memory.md`).
 
 > 🔴 **You do not need `ai/tasks/`, `ai/bugs/` or the body of `ai/state/now.md`**: that is the development queue, running in parallel with you.
 > You may read the whole repo to understand where things stand, but **you read to research, not to schedule**.

@@ -7,7 +7,9 @@
 # This project was copied out of the template, so there is no ai/template/ in its root and
 # neither of the two template-maintenance guards is here. The Maintainer handbook mentions
 # them to explain who owns the rules themselves, not to send you looking for these files.
-ai/template/SYNC.md
-ai/template/docs/guide/project-init.md
+# 🔴 **整段前缀忽略**（以 / 结尾）：逐条列的话，维护席手册每加一条 `ai/template/...` 引用就漏一条，
+# 而症状只在消费项目里出现（那边没有模板目录），拥有模板的仓库永远是绿的——监督席首次分发时实测 3 条断链。
+ai/template/
+ai/template-en/
 ops/verify/check-template-sync.sh
 ops/verify/gen-frame-manifest.sh

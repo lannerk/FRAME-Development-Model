@@ -37,7 +37,9 @@ fi
 for t in "$D"/*/; do
   [ -d "$t" ] || continue
   b=$(basename "$t")
-  case "$b" in archive|drafts) continue;; esac
+  # 🔴 `NN-topic` 是**模板带过来的占位骨架**，不是真话题：它落到新项目里会被判「没登记进 index.md」，
+  #    于是每个新项目开局就带一处红，而那处红是**模板自己造成的**（监督席首次分发时实测）。
+  case "$b" in archive|drafts|NN-topic) continue;; esac
   topics=$((topics+1))
 
   # ① 骨架齐全

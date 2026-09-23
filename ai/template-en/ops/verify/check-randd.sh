@@ -37,7 +37,10 @@ fi
 for t in "$D"/*/; do
   [ -d "$t" ] || continue
   b=$(basename "$t")
-  case "$b" in archive|drafts) continue;; esac
+  # 🔴 `NN-topic` is the **placeholder skeleton shipped with the template**, not a real topic: in a new project it
+  #    would be reported as "not listed in index.md", so every new project starts with one red that the template
+  #    itself caused (measured during the first distribution).
+  case "$b" in archive|drafts|NN-topic) continue;; esac
   topics=$((topics+1))
 
   # ① 骨架齐全

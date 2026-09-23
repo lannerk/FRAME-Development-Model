@@ -1,6 +1,9 @@
-version: 1.0.0
+version: 1.1.0
 date: 2026-09-22
-fingerprint: 19cb4ca2e8ffb02c
-synced_with: /sessions/rcw-01fdvmbjtpdsxr8qua9c2q42/mnt/INOS
+role: home
+fingerprint: adf0e9076d589ee4
+source_fingerprint: adf0e9076d589ee4
+synced_with: INOS
 # version 由维护席 bump：结构/角色变=major · 规矩语义变=minor · 措辞=patch
-# 🔴 fingerprint 自动算，别手改——它是「两边是不是同一套 FRAME」的唯一判据
+# 🔴 fingerprint 自动算、别手改，且**只和同 role 的仓库比**；
+#    要知道「我是不是跟上了源」，比的是 source_fingerprint 与源那边自己的 fingerprint。

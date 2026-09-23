@@ -93,12 +93,21 @@ fp_of() { local R="$1" RO="$2" b rel
 ver_file() { echo "$(base_of "$1" "$2")/ai/FRAME-VERSION"; }
 ver_read() { local f; f="$(ver_file "$1" "$2")"
   [ -f "$f" ] && grep -E '^version:' "$f" | head -1 | awk '{print $2}' || echo "0.0.0"; }
-ver_write() { local R="$1" RO="$2" V="$3" FROM="$4" f; f="$(ver_file "$R" "$RO")"
+ver_write() { local R="$1" RO="$2" V="$3" FROM="$4" FFP="${5:-}" f; f="$(ver_file "$R" "$RO")"
+  # 🔴 三条判据，都是实测换来的：
+  #  ① `fingerprint` 记**这个仓库自己算出来的**，不许拷别人的——消费项目的集合天生不同
+  #    （`follow@home`/`follow@host` 那几份对它不是 follow），拷过去那份文件就是在撒谎，而且没有症状；
+  #  ② 所以要记 `role`：**指纹只在同角色之间可比**；
+  #  ③ `synced_with` 记**仓库名不记绝对路径**——云端会话的挂载路径带着会话 id，
+  #    一结束就没有意义，而它会被提交进公开仓库（已经发生过一次）。
   mkdir -p "$(dirname "$f")"
-  { echo "version: $V"; echo "date: $(date +%F)"; echo "fingerprint: $(fp_of "$R" "$RO")"
-    echo "synced_with: $FROM"
+  { echo "version: $V"; echo "date: $(date +%F)"; echo "role: $RO"
+    echo "fingerprint: $(fp_of "$R" "$RO")"
+    [ -n "$FFP" ] && echo "source_fingerprint: $FFP"
+    echo "synced_with: $(basename "$(printf '%s' "$FROM" | tr '\\' '/' | sed 's#/*$##')")"
     echo "# version 由维护席 bump：结构/角色变=major · 规矩语义变=minor · 措辞=patch"
-    echo "# 🔴 fingerprint 自动算，别手改——它是「两边是不是同一套 FRAME」的唯一判据"
+    echo "# 🔴 fingerprint 自动算、别手改，且**只和同 role 的仓库比**；"
+    echo "#    要知道「我是不是跟上了源」，比的是 source_fingerprint 与源那边自己的 fingerprint。"
   } > "$f"; }
 
 SROLE="$(role_of "$SRC")"
@@ -154,6 +163,10 @@ foreign_dirty() { # foreign_dirty <仓库> <基线文件（忽略，见下）> <
     [ -n "$line" ] || continue
     st="${line:0:2}"; f="${line:3}"
     case "$st" in '??') continue;; esac
+    # 🔴 `ai/FRAME-VERSION` 这一份**是这套机制自己写的**（文件里就写着「别手改」），
+    # 它是 seed 类、不进基线，所以认不出来是我们写的；把它算成「别人的改动」会拦住下一次同步，
+    # 而人手改了它也没有意义——下一次 `--stamp` 本来就会盖掉。
+    case "$f" in */ai/FRAME-VERSION|ai/FRAME-VERSION) continue;; esac
     f="${f%\"}"; f="${f#\"}"
     cur="$(h "$R/$f")"
     [ -n "${B[$f]:-}" ] && [ "${B[$f]}" = "$cur" ] && continue   # 就是我们（某一轮）写进去的那一份
@@ -213,8 +226,8 @@ if [ "$MODE" = stamp ]; then
     alt="$HOME/mnt/$(basename "$(printf '%s' "$HOME_REPO" | tr '\\' '/')")"; [ -d "$alt" ] && HOME_REPO="$alt"; fi
   [ -d "$HOME_REPO" ] || { echo "🔴 找不到源 FRAME 仓库"; exit 2; }
   HROLE="$(role_of "$HOME_REPO")"
-  ver_write "$SRC" "$SROLE" "$STAMP_V" "$(conf_get "$SRC" home)"
-  ver_write "$HOME_REPO" "$HROLE" "$STAMP_V" "$SRC"
+  ver_write "$SRC" "$SROLE" "$STAMP_V" "$(conf_get "$SRC" home)" "$(fp_of "$HOME_REPO" "$HROLE")"
+  ver_write "$HOME_REPO" "$HROLE" "$STAMP_V" "$SRC" "$(fp_of "$SRC" "$SROLE")"
   echo "✅ 两边都盖上 $STAMP_V：本项目指纹 $(fp_of "$SRC" "$SROLE")   源 $(fp_of "$HOME_REPO" "$HROLE")"
   echo "   （模板：${FRAME_TEMPLATE:-$(conf_get "$SRC" template)}；另一份模板要另跑一次）"
   exit 0
@@ -362,8 +375,12 @@ for T in "${TARGETS[@]}"; do
   BL="$T/ops/frame/.baseline$BLSFX"
   echo "══════════════════════════════════════════════"
   echo "目标：$T   角色：$TROLE   落点：${TBASE#$T/}"
-  if [ "$APPLY" = 1 ] && git_dirty "$T"; then
-    echo "🔴 目标工作区有未提交改动——拒绝写。"; rc=1; continue; fi
+  # 🔴 同一条道理（源那一侧已经修过两次）：判的是「**有没有别人的未提交改动**」，
+  #    不是「工作区干不干净」。上一次分发写进去的那些，基线里有，不算别人的——
+  #    用整仓判定会成死结：分发写脏 → 守门红 → 提交被拒 → 下一次分发又被「脏」拦住。
+  FOREIGN_T="$(foreign_dirty "$T" "$BL" "${TBASE#$T/}" || true)"
+  if [ "$APPLY" = 1 ] && [ -n "$FOREIGN_T" ]; then
+    echo "🔴 目标里有**别人**的未提交改动，拒绝写：$FOREIGN_T"; rc=1; continue; fi
   declare -A TB=()
   [ -f "$BL" ] && while read -r a b; do case "$a" in ''|'#'*) continue;; *) TB["$b"]="$a";; esac; done < "$BL"
   nC=0; nU=0; nS=0; nSeed=0; nSkip=0; nConf=0; nGone=0; C=(); U=(); K=(); G=()
@@ -441,6 +458,12 @@ for T in "${TARGETS[@]}"; do
       echo "# 一行：<内容sha256> <相对路径>；ROOT:<名> 是根文件映射"
       LC_ALL=C sort -u "$TMP"; } > "$BL"
     echo "  ✅ 基线已记：${BL#$T/}"
+    if [ "$APPLY" = 1 ]; then
+      # 🔴 目标那份 FRAME-VERSION 由这里盖：版本跟着源走，**指纹是目标自己算的**
+      #    （FRAME-VERSION 是 seed，不跟着拷；拷过去就会写着别人的指纹，那份文件就在撒谎）。
+      ver_write "$T" "$TROLE" "$(ver_read "$SRC" "$SROLE")" "$SRC" "$(fp_of "$SRC" "$SROLE")"
+      echo "  ✅ 目标已盖版本 $(ver_read "$SRC" "$SROLE")（指纹 $(fp_of "$T" "$TROLE")，它自己这一套）"
+    fi
   else
     echo "  （dry-run，没写任何东西。要写：--apply；首次建基线：--adopt）"
   fi
