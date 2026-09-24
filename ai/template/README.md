@@ -305,6 +305,44 @@ Maven 就 `src/main/java`，前端就按脚手架生成的那套。**这套模�
 每一次改动连同**需求方的原话**记在 `ai/rules/maintenance-log.md` 里——
 三个月后想知道「这条规矩为什么存在」，答案在那儿。
 
+## 十二、从 GitHub 拿这套的人：怎么跟上源仓库的更新
+
+你手上这套是**从源仓库的 `ai/template/` 复制出来的**，源仓库以后还会改规矩，
+而**你没有它的提交权**——所以同步只有一个方向：**源 → 你的项目**。
+你复制过来的那份里**已经带着 `ops/frame/frame-sync.sh`**，不用另外装什么。三步装好：
+
+```
+# ① 把源克隆到你项目的**同级目录**
+cd <你的项目的上一层> && git clone https://github.com/<源仓库>/FRAME-Development-Model.git
+# ② 你项目的 ai/frame-repo.conf 写三行：
+#    role=consumer  /  home=../FRAME-Development-Model  /  push=no
+# ③ 立第一份基线（记「你自己现在这样」，所以以后源那边的变化都算「源改的」→ 拉回来）
+bash ops/frame/frame-sync.sh --adopt-mine
+```
+
+以后每次跟进：
+
+```
+cd ../FRAME-Development-Model && git pull && cd -   # pull 在源那边跑，它和你的项目是两个仓库
+bash ops/frame/frame-sync.sh --sync                # 只报不改
+bash ops/frame/frame-sync.sh --sync --apply        # 看懂了再写
+bash ops/verify/check-all.sh                       # 规矩变了，守门也跟着变了
+```
+
+两条别忘：
+
+- 🔴 `push=no` 一定要写。不写它，同步会试着把你的改动写回源仓库——你推不上去，
+  只会把那边的工作区搞脏，而你以为同步成功了。
+- 🔴 **自己的补充写成新文件**（`ai/rules/ours-xxx.md`），别改 FRAME 自带的那几份：
+  新文件机制认得出是你的、永远不管它；改了自带的那几份，每轮都要处理一次 🔶。
+
+**好几个项目怎么办**：源仓库**克隆一份就够**，每个项目各填一份 `ai/frame-repo.conf`
+（都指向那一份克隆）、各立一份基线，以后一个项目跑一次同步。
+
+细节在 `docs/guide/frame-sync.md` §五：首次没基线怎么走 · 分叉的三条路 ·
+英文模板起的项目每条命令要加 `FRAME_TEMPLATE=ai/template-en` · 怎么判断自己跟上了 ·
+为什么源仓库那边 `push=yes`、你这边 `push=no` 却不用任何开关（那份 conf **同步永不碰**）。
+
 ---
 
 **完整设计说明**：根目录 `FRAME-Development-Model.md`

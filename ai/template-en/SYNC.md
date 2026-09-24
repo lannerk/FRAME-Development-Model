@@ -45,9 +45,9 @@ replace project-specific names with placeholders, boil the incident details down
 | `ai/RandD/` (the whole tree) | `ai/template/ai/RandD/` | **an empty skeleton**: `README.md` (the rules + the nine criteria) · an empty `index.md` · an empty `memory.md` · one `NN-topic/` skeleton (an `INDEX.md` in each of the four archive dirs). 🔴 **Neutral file names, content in the project's language** — the two templates' paths must match character for character |
 | `ai/mail/to-researcher/from-supervisor.md` · `ai/mail/to-supervisor/from-researcher.md` | same paths | **empty mailboxes** (the Researcher exchanges letters only with the Supervisor; the gate reds any other pairing) |
 | `ops/frame/frame-sync.sh` · `ops/frame/classes.txt` | same paths | **as-is** (the tool behind "sync FRAME" and its classes table; repositories differ only through their own `ai/frame-repo.conf`, **no repo name is hard-coded**) |
-| `docs/guide/frame-sync.md` | `ai/template/docs/guide/frame-sync.md` | **as-is** (the ten steps and the five iron rules are generic) |
+| `docs/guide/frame-sync.md` | `ai/template/docs/guide/frame-sync.md` | **as-is** (the ten steps, the five iron rules and the open-source one-way-pull section are all generic) |
 | `ai/FRAME-VERSION` | `ai/template/ai/FRAME-VERSION` | **the version travels with FRAME**; `fingerprint` is computed by the script, never filled in by hand |
-| `ai/frame-repo.conf` | `ai/template/ai/frame-repo.conf` | **a blank sample**: `role=consumer` plus a `home=<absolute path>` placeholder, filled in at initialization. 🔴 **Sync never overwrites it** (it is on the skip list) |
+| `ai/frame-repo.conf` | `ai/template/ai/frame-repo.conf` | **a blank sample**: `role=consumer` plus a `home=<absolute path or ../the-source>` placeholder plus `push=no` (open-source users pull one way), filled in at initialization. 🔴 **Sync never overwrites it** (it is on the skip list) |
 | `ai/decisions/index.md` | `ai/template/ai/decisions/index.md` | reset numbering to AD1; drop the section on this project's known numbering problems |
 | `ai/tasks/index.md` | `ai/template/ai/tasks/index.md` | empty the table; reset the task number to T-0001 |
 | `ai/specs/index.md` | `ai/template/ai/specs/index.md` | empty the table, keep only the file-header rules |

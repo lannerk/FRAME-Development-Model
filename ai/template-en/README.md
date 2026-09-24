@@ -334,6 +334,49 @@ one test:
 Every change is recorded in `ai/rules/maintenance-log.md` **together with the Requester's own
 words** — so that three months later, "why does this rule exist" has an answer.
 
+## 12. Took this from GitHub? How to keep up with the source
+
+What you hold was **copied out of the source repository's `ai/template/`**, the source will keep
+changing the rules, and **you have no commit rights on it** — so syncing has exactly one direction:
+**source → your project**. The copy you took **already contains `ops/frame/frame-sync.sh`**; there is
+nothing else to install. Three steps to set it up:
+
+```
+# (1) clone the source **next to your project**, in the same parent directory
+cd <the directory above your project> && git clone https://github.com/<the source>/FRAME-Development-Model.git
+# (2) write three lines into your project's ai/frame-repo.conf:
+#     role=consumer  /  home=../FRAME-Development-Model  /  push=no
+# (3) record the first baseline (your side as it is now, so later source changes count as
+#     "the source changed it" -> they get pulled in)
+bash ops/frame/frame-sync.sh --adopt-mine
+```
+
+Every time you catch up afterwards:
+
+```
+cd ../FRAME-Development-Model && git pull && cd -   # pull runs over there: it is a separate repo
+bash ops/frame/frame-sync.sh --sync                # reports, writes nothing
+bash ops/frame/frame-sync.sh --sync --apply        # write only once you understand it
+bash ops/verify/check-all.sh                       # the rules changed, so the guards changed too
+```
+
+Two things not to forget:
+
+- 🔴 Write `push=no`. Without it a sync tries to write your changes back into the source
+  repository — you cannot push them, so all it does is leave that working tree dirty while you
+  believe the sync succeeded.
+- 🔴 **Put your own additions in new files** (`ai/rules/ours-xxx.md`); do not edit the ones FRAME
+  ships. The mechanism recognizes a new file as yours and never touches it; edit a shipped file and
+  you handle one 🔶 every round.
+
+**Several projects**: **one clone of the source is enough** — give each project its own
+`ai/frame-repo.conf` (all pointing at that clone) and its own baseline, then sync each project separately.
+
+The details are in `docs/guide/frame-sync.md` §5: the first sync with no baseline · the three ways
+out of a fork · projects started from the English template prefix every command with
+`FRAME_TEMPLATE=ai/template-en` · how to tell whether you are current · why the source has `push=yes`
+and you have `push=no` with no switch anywhere (that conf is **never touched by a sync**).
+
 ---
 
 **Full design write-up**: `FRAME-Development-Model.md` at the root

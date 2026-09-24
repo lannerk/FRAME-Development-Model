@@ -254,6 +254,7 @@ git show HEAD:<那个文件>   # 把原件原样捞回来
 | 7 | `ai/rules/conventions.md` §五 | **交付前自检清单**：你的项目跑什么命令才算「做完了」 |
 | 8 | **占位目录改名** | 把 `product/design/prototype/_PROJECT_/` 改成项目名；按需建 `src/<项目名>/`。**新名字不许含 `<>:"\|?*`**——那几个字符在 Windows 上建不出来（`ops/verify/check-filenames.sh` 会拦） |
 | 9 | **删掉 `SYNC.md`** | 它是维护模板用的，不是项目的一部分 |
+| 10 | `ai/frame-repo.conf` | **以后怎么跟上 FRAME 的更新，全靠这一份**：`role=`（不带模板的项目写 `consumer`）· `home=`（FRAME 源仓库在这台机器上的路径；**源与本项目同级**时写 `../FRAME-Development-Model` 即可）· `push=`（**拿不到源仓库提交权就写 `no`**＝单向拉回；不写时按角色默认，consumer=no）。填完**立一份基线**：`bash ops/frame/frame-sync.sh --adopt-mine`（记「本项目现在这样」，以后源那边的变化都算「源改的」→ 拉回来）。这一步省了，以后源更新就只能手工逐份比对——走法见 `docs/guide/frame-sync.md` §五 |
 
 剩下的（`ai/roles/*`、`ai/rules/{workflow,layout}.md`、各目录 README）**不用改就能用**。
 
@@ -288,7 +289,10 @@ git show HEAD:<那个文件>   # 把原件原样捞回来
    > **那条只对拥有模板的仓库算数**，你这个项目里根本没有那个脚本，**跳过它**
    > （`ai/roles/maintainer.md` 开头那条 ⛔ 说明了原因）。
 5. **旧项目多一件**：把「归档目录里什么可以删」的清单交给需求方确认。**你不替他删。**
-6. 告诉需求方**接下来怎么用**：开三个会话，各说一句 `你是开发者` / `你是审查者` / `你是监督者`；
+6. **同步装好了**：`ai/frame-repo.conf` 三行填完、`ops/frame/.baseline` 已生成，
+   跑一次 `bash ops/frame/frame-sync.sh --status` 看角色/版本/指纹都对得上
+   （**这一步是为了以后**：FRAME 源仓库更新时，`--sync` → `--sync --apply` 就能把更新并进来）。
+7. 告诉需求方**接下来怎么用**：开三个会话，各说一句 `你是开发者` / `你是审查者` / `你是监督者`；
    有事只跟审查席说；要测就说「审查并测试」；规矩改了对在跑的会话说「重载规范」。
 
 ## 附：四个角色是干什么的

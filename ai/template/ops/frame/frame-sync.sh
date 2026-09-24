@@ -6,6 +6,8 @@
 #   bash ops/frame/frame-sync.sh --sync                    双向对账（**只报不写**）
 #   bash ops/frame/frame-sync.sh --sync --apply            确认之后才写两边
 #   bash ops/frame/frame-sync.sh --adopt <仓库>            把「现在两边这样」收为基线（首次用，先看过再认）
+#   bash ops/frame/frame-sync.sh --adopt-mine              同上，但基线记**本项目这一份**
+#                                                          （从 GitHub 拿这套的人首次用这个：以后源那边的变化都算「源改的」→ 拉回来）
 #   bash ops/frame/frame-sync.sh --diff <仓库> <相对路径>   某一份到底差在哪
 #   bash ops/frame/frame-sync.sh --dry-run|--apply <目标…>  从本仓库**分发**给别的项目（home/host 才有意义）
 # 退出码 0 = 已对齐或报告完；1 = 有要人处理的；2 = 结构/参数不对。
@@ -61,6 +63,25 @@ base_of() { if [ "$2" = consumer ]; then echo "$1"; else
   local t; t="${FRAME_TEMPLATE:-$(conf_get "$1" template)}"; echo "$1/${t:-ai/template}"; fi; }
 
 # ── 分类：<模式>[@角色] <glob>，**最后匹配的那条胜出** ────────────────
+# 【home= 可以写相对路径】开源用户把源仓库克隆在项目的**同级目录**，`home=../FRAME-Development-Model`
+# 是最省事的写法（换一台机器也不用改）。相对路径**按本项目根解析，不按当前工作目录**——
+# 否则换个目录跑一次就「找不到源 FRAME 仓库」，而症状里看不出是 cwd 的问题。
+home_resolve() { # home_resolve <conf 里的 home=>  → 这台机器上的真实路径
+  local p="$1" alt
+  [ -n "$p" ] || { printf ''; return 0; }
+  case "$p" in
+    /*|[A-Za-z]:[\\/]*) ;;                                  # 绝对路径：原样
+    *) [ -d "$SRC/$p" ] && p="$(cd "$SRC/$p" && pwd)" ;;     # 相对路径：相对本项目根
+  esac
+  # 【同一份 conf 要在两种机器上都能用】`home=` 写的是需求方那台机器上的真实路径（Windows 的 D:\…），
+  # 同一个仓库在云端会话里是挂载进来的，路径不一样。**不为此改 conf**（那份 conf 是给人看的真相），
+  # 改成：配置的路径不存在时，按**同名挂载点**再找一次，找到了就说明白用的是哪一个。
+  if [ ! -d "$p" ]; then
+    alt="$HOME/mnt/$(basename "$(printf '%s' "$p" | tr '\\' '/')")"
+    [ -d "$alt" ] && { echo "ℹ️  conf 里的 home= 在这台机器上不存在，改用同名挂载点：$alt" >&2; p="$alt"; }
+  fi
+  printf '%s' "$p"
+}
 class_of() { local p="$1" role="$2" m=seed mode pat mrole
   while read -r mode pat; do
     case "$mode" in ''|'#'*) continue;; esac
@@ -110,7 +131,22 @@ ver_write() { local R="$1" RO="$2" V="$3" FROM="$4" FFP="${5:-}" f; f="$(ver_fil
     echo "#    要知道「我是不是跟上了源」，比的是 source_fingerprint 与源那边自己的 fingerprint。"
   } > "$f"; }
 
+# 🔴 **能不能往上游写**：`ai/frame-repo.conf` 的 `push=`。
+# 开源用户把 FRAME 源 clone 到项目旁边，**他没有那个仓库的提交权**——对他来说这套机制只能**单向拉回**。
+# 写成 `push=no` 之后：拉回照做，本地改过的那几份**只报告不写上游**（写了也推不上去，只会把他的 clone 弄脏，
+# 还让他以为改动进了上游）。**判的是「他能不能真的推上去」，不是「脚本能不能写那个目录」。**
+#
+# 🔴 **为什么「我这边是 yes、别人那边是 no」不用任何开关**：`ai/frame-repo.conf` 是**每个仓库自己一份**，
+# 而且在 `classes.txt` 的 **skip** 名单里——**同步永远不碰它**。所以源仓库维护者那份 `push=yes` 传不出去，
+# 开源用户那份 `push=no` 也传不回来；模板里发出去的样板写的就是 `role=consumer` ＋ `push=no`。
+# 🔴 **没写 `push=` 时按角色定**：`consumer` 默认 **no**，`home`/`host` 默认 **yes**。
+# 默认值要让**漏填的那一方安全**：模板最常见的读者是没有提交权的人，他忘了写那一行，
+# 老的「一律默认 yes」会去写上游；反过来漏填只是少推一次，报告里还写着。显式写的永远压过默认。
 SROLE="$(role_of "$SRC")"
+PUSH_OK="$(conf_get "$SRC" push)"
+if [ -z "$PUSH_OK" ]; then
+  if [ "$SROLE" = consumer ]; then PUSH_OK=no; else PUSH_OK=yes; fi
+fi
 SBASE="$(base_of "$SRC" "$SROLE")"
 [ -d "$SBASE" ] || { echo "🔴 本仓库找不到 FRAME 落点：$SBASE"; exit 2; }
 
@@ -122,6 +158,7 @@ case "$MODE" in
     echo "FRAME 在: ${SBASE#$SRC/}（$(list_files "$SRC" "$SROLE" | grep -c . ) 个文件）"
     echo "版本    : $(ver_read "$SRC" "$SROLE")   指纹 $(fp_of "$SRC" "$SROLE")"
     echo "源仓库  : $(conf_get "$SRC" home)"
+    echo "能推上游: $PUSH_OK（push= 写 no 就是单向拉回，开源用户用这个；没写时按角色定：consumer=no，home/host=yes）"
     exit 0;;
   diff)
     [ -n "$DIFF_T" ] && [ -n "$DIFF_P" ] || { echo "用法：--diff <仓库> <相对路径>"; exit 2; }
@@ -228,29 +265,29 @@ roots_project() { # roots_project <源FRAME仓库> <要不要写>
 # 指纹各自现算（两边应当相同）。版本文件自己不进指纹，所以盖完指纹不变。
 if [ "$MODE" = stamp ]; then
   [ -n "$STAMP_V" ] || { echo "用法：--stamp <版本号>（结构/角色变=major · 规矩语义变=minor · 措辞=patch）"; exit 2; }
-  HOME_REPO="${TARGETS[0]:-$(conf_get "$SRC" home)}"
-  if [ -n "$HOME_REPO" ] && [ ! -d "$HOME_REPO" ]; then
-    alt="$HOME/mnt/$(basename "$(printf '%s' "$HOME_REPO" | tr '\\' '/')")"; [ -d "$alt" ] && HOME_REPO="$alt"; fi
+  HOME_REPO="$(home_resolve "${TARGETS[0]:-$(conf_get "$SRC" home)}")"
   [ -d "$HOME_REPO" ] || { echo "🔴 找不到源 FRAME 仓库"; exit 2; }
   HROLE="$(role_of "$HOME_REPO")"
   ver_write "$SRC" "$SROLE" "$STAMP_V" "$(conf_get "$SRC" home)" "$(fp_of "$HOME_REPO" "$HROLE")"
-  ver_write "$HOME_REPO" "$HROLE" "$STAMP_V" "$SRC" "$(fp_of "$SRC" "$SROLE")"
-  echo "✅ 两边都盖上 $STAMP_V：本项目指纹 $(fp_of "$SRC" "$SROLE")   源 $(fp_of "$HOME_REPO" "$HROLE")"
-  echo "   （模板：${FRAME_TEMPLATE:-$(conf_get "$SRC" template)}；另一份模板要另跑一次）"
+  # push=no：上游那份版本文件不是我们的，别动
+  [ "$PUSH_OK" = no ] || ver_write "$HOME_REPO" "$HROLE" "$STAMP_V" "$SRC" "$(fp_of "$SRC" "$SROLE")"
+  # 🔴 **说出来的必须是真做了的**：push=no 时上游那份没盖，还说「两边都盖上」就是在撒谎，
+  # 而人下一步会按这句话以为源仓库也到位了。
+  if [ "$PUSH_OK" = no ]; then
+    echo "✅ 本项目盖上 $STAMP_V（push=no：源那份版本文件没动）：指纹 $(fp_of "$SRC" "$SROLE")"
+    echo "   source_fingerprint 记的是源那边现在的指纹 $(fp_of "$HOME_REPO" "$HROLE")"
+  else
+    echo "✅ 两边都盖上 $STAMP_V：本项目指纹 $(fp_of "$SRC" "$SROLE")   源 $(fp_of "$HOME_REPO" "$HROLE")"
+  fi
+  # consumer 没有模板目录，这一句对它是空的（实测印出「模板：」后面什么都没有）
+  [ "$SROLE" = consumer ] || echo "   （模板：${FRAME_TEMPLATE:-$(conf_get "$SRC" template)}；另一份模板要另跑一次）"
   exit 0
 fi
 
 # 🔴 `--adopt` 默认走的是**与源仓库双向对账**那一侧；要给别的项目立基线，得显式 `--dist --adopt <目标>`。
 # （第一版没有这个开关，`--adopt <目标>` 被当成「拿这个目标当源」，基线写进了本仓库，**目标那边一条都没记**。）
 if [ "$DIST" != 1 ] && { [ "$MODE" = sync ] || [ "$MODE" = adopt ]; }; then
-  HOME_REPO="${TARGETS[0]:-$(conf_get "$SRC" home)}"
-  # 【同一份 conf 要在两种机器上都能用】`home=` 写的是需求方那台机器上的真实路径（Windows 的 D:\…）。
-  # 同一个仓库在云端会话里是挂载进来的，路径不一样。**不为此改 conf**（那份 conf 是给人看的真相），
-  # 改成：配置的路径不存在时，按**同名挂载点**再找一次，找到了就说明白用的是哪一个。
-  if [ -n "$HOME_REPO" ] && [ ! -d "$HOME_REPO" ]; then
-    alt="$HOME/mnt/$(basename "$(printf '%s' "$HOME_REPO" | tr '\\' '/')")"
-    [ -d "$alt" ] && { echo "ℹ️  conf 里的 home= 在这台机器上不存在，改用同名挂载点：$alt"; HOME_REPO="$alt"; }
-  fi
+  HOME_REPO="$(home_resolve "${TARGETS[0]:-$(conf_get "$SRC" home)}")"
   [ -n "$HOME_REPO" ] && [ -d "$HOME_REPO" ] || { echo "🔴 找不到源 FRAME 仓库（ai/frame-repo.conf 的 home=，或命令行给一个）"; exit 2; }
   HROLE="$(role_of "$HOME_REPO")"; HBASE="$(base_of "$HOME_REPO" "$HROLE")"
   SFP="$(fp_of "$SRC" "$SROLE")"; HFP="$(fp_of "$HOME_REPO" "$HROLE")"
@@ -258,7 +295,7 @@ if [ "$DIST" != 1 ] && { [ "$MODE" = sync ] || [ "$MODE" = adopt ]; }; then
   echo "源FRAME: $HOME_REPO   角色 $HROLE   版本 $(ver_read "$HOME_REPO" "$HROLE")   指纹 $HFP"
   # 指纹一样也要看一眼根文件（它们不进指纹，但属于这一套 FRAME）
   if [ "$SFP" = "$HFP" ] && [ "$MODE" = sync ]; then
-    roots_project "$HOME_REPO" "$APPLY"
+    [ "$PUSH_OK" = no ] || roots_project "$HOME_REPO" "$APPLY"
     echo "✅ 两边指纹相同 —— 已经是同一套 FRAME，无需同步（一个文件都没动）。"; exit 0; fi
 
 # 🔴 **一份模板一份基线**：两份模板的相对路径是一样的（`ai/rules/laws.md` 在中英两边都叫这个名），
@@ -268,7 +305,7 @@ if [ "$DIST" != 1 ] && { [ "$MODE" = sync ] || [ "$MODE" = adopt ]; }; then
   declare -A BASE=()
   [ -f "$BL" ] && while read -r a b; do case "$a" in ''|'#'*) continue;; *) BASE["$b"]="$a";; esac; done < "$BL"
 
-  PULL=(); PUSH=(); CONF=(); GONE=(); SAME=0; SEEDN=0; SKIPN=0; UNK=0
+  PULL=(); PUSH=(); CONF=(); GONE=(); SAME=0; SEEDN=0; SKIPN=0; UNK=0; LOCALN=0
   TMPBL="$(mktemp)"
   ALL="$( { list_files "$SRC" "$SROLE"; list_files "$HOME_REPO" "$HROLE"; } | LC_ALL=C sort -u )"
   while IFS= read -r rel; do
@@ -277,6 +314,10 @@ if [ "$DIST" != 1 ] && { [ "$MODE" = sync ] || [ "$MODE" = adopt ]; }; then
     if [ "$cs" = skip ] || [ "$ch" = skip ]; then SKIPN=$((SKIPN+1)); continue; fi
     sh="$(h "$SBASE/$rel")"; hh="$(h "$HBASE/$rel")"; bh="${BASE[$rel]:--}"
     if [ "$sh" = "$hh" ]; then SAME=$((SAME+1)); echo "$sh $rel" >> "$TMPBL"; continue; fi
+    # 🔴 push=no 且**上游根本没有这份**：这是本项目自己加的文件，上游永远不会有它。
+    # 既不能报「推出」（推不了），也不能报「源删了它」（源从来没有过）——数一笔，基线记本项目这份。
+    if [ "$PUSH_OK" = no ] && [ "$hh" = "-" ] && [ "$sh" != "-" ]; then
+      LOCALN=$((LOCALN+1)); echo "$sh $rel" >> "$TMPBL"; continue; fi
     # 🔴 seed 类永远不参与双向覆盖：项目里填过内容，push 回源会把项目内容带进 FRAME
     if [ "$cs" = seed ] || [ "$ch" = seed ]; then
       if   [ "$sh" = "-" ]; then PULL+=("$rel  (骨架·新建)")
@@ -308,13 +349,28 @@ if [ "$DIST" != 1 ] && { [ "$MODE" = sync ] || [ "$MODE" = adopt ]; }; then
   echo "──────────────────────────────────────────"
   printf '  ← 拉回本项目 %-4s  → 推到源 %-4s  一致 %-4s  seed各留各的 %-4s  跳过 %-4s\n' ${#PULL[@]} ${#PUSH[@]} $SAME $SEEDN $SKIPN
   printf '  🔴 要人处理 %-4s（其中「没有基线」%s 条）\n' ${#CONF[@]} $UNK
+  [ "$LOCALN" -gt 0 ] && echo "  本项目自己加的 $LOCALN 份（上游没有这几份，push=no 时不管它们）"
   [ ${#PULL[@]} -gt 0 ] && { echo "  ── ← 拉回 ──"; printf '    %s\n' "${PULL[@]}" | head -30; }
-  [ ${#PUSH[@]} -gt 0 ] && { echo "  ── → 推出 ──"; printf '    %s\n' "${PUSH[@]}" | head -30; }
+  if [ ${#PUSH[@]} -gt 0 ]; then
+    if [ "$PUSH_OK" = no ]; then
+      echo "  ── 🔶 本地改过 FRAME（**不推上游**，你没有源仓库的提交权）──"; printf '    %s\n' "${PUSH[@]}" | head -30
+      echo "    三条路：①留成本地分叉（每轮都会这样报一次；基线记的是**上游那份**，所以它不会被悄悄盖掉——"
+      echo "               上游以后也改了这一份，就升级成 🔴 要人处理）"
+      echo "            ②放弃本地改法、采用上游那份（把它从这里删掉，再跑一次就会拉回来）"
+      echo "            ③想让上游也有：去源仓库提 issue / PR（这套机制不替你推）"
+    else
+      echo "  ── → 推出 ──"; printf '    %s\n' "${PUSH[@]}" | head -30
+    fi
+  fi
   [ ${#GONE[@]} -gt 0 ] && { echo "  ── 一边删了（🔴 从不自动删，自己确认）──"; printf '    ? %s\n' "${GONE[@]}" | head -20; }
   [ ${#CONF[@]} -gt 0 ] && { echo "  ── 🔴 要人处理（只报不改）──"; printf '    ! %s\n' "${CONF[@]}" | head -30
     echo "    看差异：bash ops/frame/frame-sync.sh --diff \"$HOME_REPO\" <上面的路径>"; }
   if [ ${#PUSH[@]} -eq 0 ] && [ ${#CONF[@]} -eq 0 ] && [ ${#PULL[@]} -gt 0 ]; then
     echo "  ℹ️  本项目没改过 FRAME —— 这一次就是**单向从源拉回来**（含版本号）。"; fi
+  # 🔴 「一份都不用动」也要说出来：指纹不同不等于没跟上——本项目自己加的文件永远会让指纹不同，
+  # 而那不是差异。不说这一句，消费者每轮看到「指纹不同」都会以为自己落后了。
+  if [ ${#PULL[@]} -eq 0 ] && [ ${#PUSH[@]} -eq 0 ] && [ ${#CONF[@]} -eq 0 ] && [ ${#GONE[@]} -eq 0 ]; then
+    echo "  ✅ 和上游一致 —— 不用同步（本项目自己加的文件不算差异，指纹不同是它们造成的）。"; fi
 
   if [ "$MODE" = adopt ]; then
     mkdir -p "$(dirname "$BL")"
@@ -334,7 +390,8 @@ if [ "$DIST" != 1 ] && { [ "$MODE" = sync ] || [ "$MODE" = adopt ]; }; then
   # 🔴 拿**本项目的基线**去判源仓库的脏：基线记的就是「上次两边一致的那份内容」，
   #    源仓库里内容等于它的那几份，正是上一轮同步自己写进去的。用源仓库自己那份分发基线会判错
   #    （那一份记的是「分发之前目标长什么样」）。
-  FOREIGN="$(foreign_dirty "$HOME_REPO" "$BL" "${HBASE#$HOME_REPO/}" || true)"
+  FOREIGN=""
+  [ "$PUSH_OK" = no ] || FOREIGN="$(foreign_dirty "$HOME_REPO" "$BL" "${HBASE#$HOME_REPO/}" || true)"
   if [ -n "$FOREIGN" ]; then
     echo "🔴 源仓库里有**别人**的未提交改动，拒绝写（冲突会和它们搅在一起）：$FOREIGN"; rm -f "$TMPBL"; exit 1; fi
   # ── 铁律：有冲突一律不写 ──
@@ -343,14 +400,31 @@ if [ "$DIST" != 1 ] && { [ "$MODE" = sync ] || [ "$MODE" = adopt ]; }; then
 
   for e in "${PULL[@]}"; do rel="${e%%  (*}"; rel="${rel% }"
     mkdir -p "$(dirname "$SBASE/$rel")"; cpn "$HBASE/$rel" "$SBASE/$rel"; done
-  for e in "${PUSH[@]}"; do rel="${e%%  (*}"; rel="${rel% }"
-    mkdir -p "$(dirname "$HBASE/$rel")"; cpn "$SBASE/$rel" "$HBASE/$rel"; done
-  echo "  ✅ 写完：拉回 ${#PULL[@]} · 推出 ${#PUSH[@]}（🔴 从不删除：源删了只在上面报告）"
-  roots_project "$HOME_REPO" 1
+  if [ "$PUSH_OK" = no ]; then
+    [ ${#PUSH[@]} -gt 0 ] && echo "  🔶 ${#PUSH[@]} 份本地改动**没有推上游**（push=no）——见上面那三条路"
+  else
+    for e in "${PUSH[@]}"; do rel="${e%%  (*}"; rel="${rel% }"
+      mkdir -p "$(dirname "$HBASE/$rel")"; cpn "$SBASE/$rel" "$HBASE/$rel"; done
+  fi
+  if [ "$PUSH_OK" = no ]; then
+    echo "  ✅ 写完：拉回 ${#PULL[@]} · 推出 0（push=no：上游一个字都没写）"
+  else
+    echo "  ✅ 写完：拉回 ${#PULL[@]} · 推出 ${#PUSH[@]}（🔴 从不删除：源删了只在上面报告）"
+  fi
+  # 🔴 根文件投影是往上游写，push=no 就不做（那是源仓库维护者的活）
+  [ "$PUSH_OK" = no ] || roots_project "$HOME_REPO" 1
   NFP="$(fp_of "$SRC" "$SROLE")"; NHFP="$(fp_of "$HOME_REPO" "$HROLE")"
   echo "  重算指纹：本项目 $NFP   源 $NHFP"
-  [ "$NFP" = "$NHFP" ] || echo "  ⚠️ 两边指纹仍不同——多半是 seed 类各留各的（正常），或还有没处理的差异。"
-  echo "  下一步（人做）：bump 版本 → 两边写 ai/FRAME-VERSION → 各记一行维护记录 → 源仓库提交并推 GitHub。"
+  if [ "$PUSH_OK" = no ]; then
+    # 🔴 push=no 时指纹**本来就不会相等**（本地分叉 ＋ seed 各留各的），别让它显示成一句警告：
+    # 每轮都亮一次的警告，看三次就不看了。
+    [ "$NFP" = "$NHFP" ] || echo "  ℹ️ 两边指纹不同是正常的：push=no 下本地分叉与 seed 类各留各的，指纹不会再相等。"
+    echo "  下一步（人做）：--stamp <源那边的版本号>（push=no 只写本项目这份）→ 记一行维护记录 →"
+    echo "                  bash ops/verify/check-all.sh → 跟 AI 说一句「重载规范」。"
+  else
+    [ "$NFP" = "$NHFP" ] || echo "  ⚠️ 两边指纹仍不同——多半是 seed 类各留各的（正常），或还有没处理的差异。"
+    echo "  下一步（人做）：bump 版本 → 两边写 ai/FRAME-VERSION → 各记一行维护记录 → 源仓库提交并推 GitHub。"
+  fi
   # 铁律 5：重记基线
   { echo "# apply 之后重记  $(date +%F)  源=$HOME_REPO"
     # 🔴 根文件也要记进基线：不记的话，下一轮判「这几份是谁改的」就没有依据，
@@ -362,7 +436,14 @@ if [ "$DIST" != 1 ] && { [ "$MODE" = sync ] || [ "$MODE" = adopt ]; }; then
     done < <(conf_all "$HOME_REPO" map)
     while IFS= read -r rel; do [ -n "$rel" ] || continue
       cs="$(class_of "$rel" "$SROLE")"; [ "$cs" = skip ] && continue
-      printf '%s %s\n' "$(h "$SBASE/$rel")" "$rel"
+      # 🔴 push=no 的本地分叉：基线记**上游那份**，不记自己这份。
+      # 记自己这份的后果是：下一轮上游的原版会被判成「源改了」，**下一次 --apply 就把分叉悄悄盖掉**
+      # （沙盒实测过）。记上游那份，分叉每轮被报一次 🔶 而不被动；上游哪天也改了这一份，
+      # 才升级成真正的「两边都改了」要人处理。
+      hhb="$(h "$HBASE/$rel")"; shb="$(h "$SBASE/$rel")"
+      if [ "$PUSH_OK" = no ] && [ "$hhb" != "-" ] && [ "$shb" != "$hhb" ]; then
+        printf '%s %s\n' "$hhb" "$rel"
+      else printf '%s %s\n' "$shb" "$rel"; fi
     done <<< "$ALL"; } > "$BL"
   echo "  ✅ 基线已重记：${BL#$SRC/}"
   rm -f "$TMPBL"; exit 0

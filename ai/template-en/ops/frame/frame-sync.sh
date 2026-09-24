@@ -7,6 +7,8 @@
 #   bash ops/frame/frame-sync.sh --sync                     reconcile both ways (**report only, writes nothing**)
 #   bash ops/frame/frame-sync.sh --sync --apply             write both sides, once you have read the report
 #   bash ops/frame/frame-sync.sh --adopt <repo>             take "what both sides look like now" as the baseline (first run; look before you adopt)
+#   bash ops/frame/frame-sync.sh --adopt-mine               the same, but the baseline records **this project's copy**
+#                                                           (whoever took this from GitHub uses this on the first run: later source changes count as "the source changed it" -> pulled in)
 #   bash ops/frame/frame-sync.sh --diff <repo> <rel-path>   what exactly differs in one file
 #   bash ops/frame/frame-sync.sh --dry-run|--apply <target…>  **distribute** from this repo to other projects (home/host only)
 # Exit codes: 0 = aligned, or the report is done; 1 = something needs a human; 2 = wrong structure or arguments.
@@ -67,6 +69,28 @@ base_of() { if [ "$2" = consumer ]; then echo "$1"; else
   local t; t="${FRAME_TEMPLATE:-$(conf_get "$1" template)}"; echo "$1/${t:-ai/template}"; fi; }
 
 # -- Classes: <mode>[@role] <glob>; **the last match wins** ----------------
+# 【home= may be relative】Open-source users clone the source repo **next to their project**, so
+# `home=../FRAME-Development-Model` is the least trouble (it survives moving to another machine).
+# A relative path is resolved **against this project's root, not the current working directory** —
+# otherwise running it from another directory says "cannot find the source FRAME repo", and the
+# symptom says nothing about cwd.
+home_resolve() { # home_resolve <home= from the conf>  -> the real path on this machine
+  local p="$1" alt
+  [ -n "$p" ] || { printf ''; return 0; }
+  case "$p" in
+    /*|[A-Za-z]:[\\/]*) ;;                                  # absolute: as written
+    *) [ -d "$SRC/$p" ] && p="$(cd "$SRC/$p" && pwd)" ;;     # relative: to this project's root
+  esac
+  # 【One conf has to work on two machines】`home=` holds the real path on the Requester's machine
+  # (a Windows `D:\…`). The same repo is mounted at a different path inside a cloud session.
+  # **Do not edit the conf for that** (the conf is the truth as people see it); instead, when the
+  # configured path does not exist, look for a mount point of the same name and say which one is used.
+  if [ ! -d "$p" ]; then
+    alt="$HOME/mnt/$(basename "$(printf '%s' "$p" | tr '\\' '/')")"
+    [ -d "$alt" ] && { echo "ℹ️  home= from the conf does not exist on this machine; using the mount point of the same name: $alt" >&2; p="$alt"; }
+  fi
+  printf '%s' "$p"
+}
 class_of() { local p="$1" role="$2" m=seed mode pat mrole
   while read -r mode pat; do
     case "$mode" in ''|'#'*) continue;; esac
@@ -117,7 +141,25 @@ ver_write() { local R="$1" RO="$2" V="$3" FROM="$4" FFP="${5:-}" f; f="$(ver_fil
     echo "#    to know whether you kept up with the source, compare source_fingerprint with the source's own fingerprint."
   } > "$f"; }
 
+# 🔴 **Whether we may write upstream**: `push=` in `ai/frame-repo.conf`.
+# An open-source user clones the FRAME source next to their project and **has no commit rights on it** --
+# for them this mechanism can only **pull**. With `push=no`: pulling works as usual, and anything they changed
+# locally is **reported, never written upstream** (writing it would only dirty their clone and make them think
+# the change went upstream). **The test is whether they can actually push, not whether the script can write.**
+#
+# 🔴 **Why "yes here, no over there" needs no switch at all**: `ai/frame-repo.conf` is **one per repository**
+# and sits on the **skip** list in `classes.txt` -- **a sync never touches it**. So the source maintainer's
+# `push=yes` never travels out, an open-source user's `push=no` never travels back, and the sample shipped
+# in the template already says `role=consumer` plus `push=no`.
+# 🔴 **With no `push=` line, the role decides**: `consumer` defaults to **no**, `home`/`host` to **yes**.
+# A default must make **the side that forgets it** safe: the template's most common reader has no commit
+# rights, and the old "always default yes" would write upstream for them; the other way round, forgetting it
+# only skips a push that the report still lists. An explicit value always wins over the default.
 SROLE="$(role_of "$SRC")"
+PUSH_OK="$(conf_get "$SRC" push)"
+if [ -z "$PUSH_OK" ]; then
+  if [ "$SROLE" = consumer ]; then PUSH_OK=no; else PUSH_OK=yes; fi
+fi
 SBASE="$(base_of "$SRC" "$SROLE")"
 [ -d "$SBASE" ] || { echo "🔴 this repo has no FRAME root: $SBASE"; exit 2; }
 
@@ -129,6 +171,7 @@ case "$MODE" in
     echo "FRAME lives: ${SBASE#$SRC/} ($(list_files "$SRC" "$SROLE" | grep -c . ) files)"
     echo "version    : $(ver_read "$SRC" "$SROLE")   fingerprint $(fp_of "$SRC" "$SROLE")"
     echo "source repo: $(conf_get "$SRC" home)"
+    echo "may push   : $PUSH_OK (push=no means pull-only, what an open-source user sets; with no push= line the role decides: consumer=no, home/host=yes)"
     exit 0;;
   diff)
     [ -n "$DIFF_T" ] && [ -n "$DIFF_P" ] || { echo "usage: --diff <repo> <relative path>"; exit 2; }
@@ -238,15 +281,22 @@ roots_project() { # roots_project <source FRAME repo> <write or not>
 # The version file itself is outside the fingerprint, so stamping does not change it.
 if [ "$MODE" = stamp ]; then
   [ -n "$STAMP_V" ] || { echo "usage: --stamp <version> (structure/roles=major · rule semantics=minor · wording=patch)"; exit 2; }
-  HOME_REPO="${TARGETS[0]:-$(conf_get "$SRC" home)}"
-  if [ -n "$HOME_REPO" ] && [ ! -d "$HOME_REPO" ]; then
-    alt="$HOME/mnt/$(basename "$(printf '%s' "$HOME_REPO" | tr '\\' '/')")"; [ -d "$alt" ] && HOME_REPO="$alt"; fi
+  HOME_REPO="$(home_resolve "${TARGETS[0]:-$(conf_get "$SRC" home)}")"
   [ -d "$HOME_REPO" ] || { echo "🔴 cannot find the source FRAME repo"; exit 2; }
   HROLE="$(role_of "$HOME_REPO")"
   ver_write "$SRC" "$SROLE" "$STAMP_V" "$(conf_get "$SRC" home)" "$(fp_of "$HOME_REPO" "$HROLE")"
-  ver_write "$HOME_REPO" "$HROLE" "$STAMP_V" "$SRC" "$(fp_of "$SRC" "$SROLE")"
-  echo "✅ both sides stamped $STAMP_V: this project $(fp_of "$SRC" "$SROLE")   source $(fp_of "$HOME_REPO" "$HROLE")"
-  echo "   (template: ${FRAME_TEMPLATE:-$(conf_get "$SRC" template)}; the other template needs its own run)"
+  # push=no: the upstream version file is not ours to touch
+  [ "$PUSH_OK" = no ] || ver_write "$HOME_REPO" "$HROLE" "$STAMP_V" "$SRC" "$(fp_of "$SRC" "$SROLE")"
+  # 🔴 **Only say what was actually done**: with push=no the upstream file was not stamped, and
+  # saying "both sides stamped" is a lie the reader then acts on, believing the source is in order.
+  if [ "$PUSH_OK" = no ]; then
+    echo "✅ this project stamped $STAMP_V (push=no: the source's version file was not touched): fingerprint $(fp_of "$SRC" "$SROLE")"
+    echo "   source_fingerprint holds the source's current fingerprint $(fp_of "$HOME_REPO" "$HROLE")"
+  else
+    echo "✅ both sides stamped $STAMP_V: this project $(fp_of "$SRC" "$SROLE")   source $(fp_of "$HOME_REPO" "$HROLE")"
+  fi
+  # A consumer has no template directory, so that line comes out empty for it (measured)
+  [ "$SROLE" = consumer ] || echo "   (template: ${FRAME_TEMPLATE:-$(conf_get "$SRC" template)}; the other template needs its own run)"
   exit 0
 fi
 
@@ -254,14 +304,7 @@ fi
 # `--dist --adopt <target>` explicitly. (Without this switch, `--adopt <target>` was read as "treat this target as the
 # source", and the baseline went into this repo while the target got nothing.)
 if [ "$DIST" != 1 ] && { [ "$MODE" = sync ] || [ "$MODE" = adopt ]; }; then
-  HOME_REPO="${TARGETS[0]:-$(conf_get "$SRC" home)}"
-  # 【One conf, two kinds of machine】`home=` holds the real path on the owner's machine (a Windows D:\… path).
-  # The same repository is mounted elsewhere in a cloud session. **Do not edit the conf for that** (it states the truth);
-  # instead, when the configured path does not exist, look for a mount point of the same name and say which one is used.
-  if [ -n "$HOME_REPO" ] && [ ! -d "$HOME_REPO" ]; then
-    alt="$HOME/mnt/$(basename "$(printf '%s' "$HOME_REPO" | tr '\\' '/')")"
-    [ -d "$alt" ] && { echo "ℹ️  home= from the conf does not exist on this machine; using the mount point of the same name: $alt"; HOME_REPO="$alt"; }
-  fi
+  HOME_REPO="$(home_resolve "${TARGETS[0]:-$(conf_get "$SRC" home)}")"
   [ -n "$HOME_REPO" ] && [ -d "$HOME_REPO" ] || { echo "🔴 cannot find the source FRAME repo (home= in ai/frame-repo.conf, or pass one on the command line)"; exit 2; }
   HROLE="$(role_of "$HOME_REPO")"; HBASE="$(base_of "$HOME_REPO" "$HROLE")"
   SFP="$(fp_of "$SRC" "$SROLE")"; HFP="$(fp_of "$HOME_REPO" "$HROLE")"
@@ -269,7 +312,7 @@ if [ "$DIST" != 1 ] && { [ "$MODE" = sync ] || [ "$MODE" = adopt ]; }; then
   echo "source FRAME: $HOME_REPO   role $HROLE   version $(ver_read "$HOME_REPO" "$HROLE")   fingerprint $HFP"
   # Even with equal fingerprints, check the root files (they are outside the fingerprint but part of this FRAME)
   if [ "$SFP" = "$HFP" ] && [ "$MODE" = sync ]; then
-    roots_project "$HOME_REPO" "$APPLY"
+    [ "$PUSH_OK" = no ] || roots_project "$HOME_REPO" "$APPLY"
     echo "✅ identical fingerprints -- already the same FRAME; nothing to sync (not one file touched)."; exit 0; fi
 
 # 🔴 **One baseline per template**: the two templates use identical relative paths (`ai/rules/laws.md` exists in
@@ -280,7 +323,7 @@ if [ "$DIST" != 1 ] && { [ "$MODE" = sync ] || [ "$MODE" = adopt ]; }; then
   declare -A BASE=()
   [ -f "$BL" ] && while read -r a b; do case "$a" in ''|'#'*) continue;; *) BASE["$b"]="$a";; esac; done < "$BL"
 
-  PULL=(); PUSH=(); CONF=(); GONE=(); SAME=0; SEEDN=0; SKIPN=0; UNK=0
+  PULL=(); PUSH=(); CONF=(); GONE=(); SAME=0; SEEDN=0; SKIPN=0; UNK=0; LOCALN=0
   TMPBL="$(mktemp)"
   ALL="$( { list_files "$SRC" "$SROLE"; list_files "$HOME_REPO" "$HROLE"; } | LC_ALL=C sort -u )"
   while IFS= read -r rel; do
@@ -289,6 +332,11 @@ if [ "$DIST" != 1 ] && { [ "$MODE" = sync ] || [ "$MODE" = adopt ]; }; then
     if [ "$cs" = skip ] || [ "$ch" = skip ]; then SKIPN=$((SKIPN+1)); continue; fi
     sh="$(h "$SBASE/$rel")"; hh="$(h "$HBASE/$rel")"; bh="${BASE[$rel]:--}"
     if [ "$sh" = "$hh" ]; then SAME=$((SAME+1)); echo "$sh $rel" >> "$TMPBL"; continue; fi
+    # 🔴 push=no and **upstream does not have this file at all**: it is this project's own file and
+    # upstream never will have it. It is neither "push out" (impossible) nor "the source deleted it"
+    # (the source never had it) -- just count it, and record this project's copy in the baseline.
+    if [ "$PUSH_OK" = no ] && [ "$hh" = "-" ] && [ "$sh" != "-" ]; then
+      LOCALN=$((LOCALN+1)); echo "$sh $rel" >> "$TMPBL"; continue; fi
     # 🔴 seed files never take part in two-way overwriting: a project fills them in, and pushing them back would carry project content into FRAME
     if [ "$cs" = seed ] || [ "$ch" = seed ]; then
       if   [ "$sh" = "-" ]; then PULL+=("$rel  (skeleton, created)")
@@ -321,13 +369,30 @@ if [ "$DIST" != 1 ] && { [ "$MODE" = sync ] || [ "$MODE" = adopt ]; }; then
   echo "──────────────────────────────────────────"
   printf '  <- pull in %-4s  -> push out %-4s  same %-4s  seed kept as-is %-4s  skipped %-4s\n' ${#PULL[@]} ${#PUSH[@]} $SAME $SEEDN $SKIPN
   printf '  🔴 needs a human %-4s (of which %s are "no baseline")\n' ${#CONF[@]} $UNK
+  [ "$LOCALN" -gt 0 ] && echo "  $LOCALN files are this project's own (upstream has none of them; with push=no they are left alone)"
   [ ${#PULL[@]} -gt 0 ] && { echo "  -- <- pull in --"; printf '    %s\n' "${PULL[@]}" | head -30; }
-  [ ${#PUSH[@]} -gt 0 ] && { echo "  -- -> push out --"; printf '    %s\n' "${PUSH[@]}" | head -30; }
+  if [ ${#PUSH[@]} -gt 0 ]; then
+    if [ "$PUSH_OK" = no ]; then
+      echo "  -- 🔶 changed locally (**not pushed upstream**; you have no commit rights on the source) --"; printf '    %s\n' "${PUSH[@]}" | head -30
+      echo "    Three ways: (1) keep it as a local fork (reported like this every round; the baseline records **upstream's**"
+      echo "                    copy, so your fork is never silently overwritten -- and if upstream later changes the same"
+      echo "                    file, it becomes a 🔴 needs-a-human conflict)"
+      echo "                (2) drop your version and take upstream's (delete yours here and run again to pull it back)"
+      echo "                (3) want it upstream: open an issue / PR on the source repo (this mechanism will not push for you)"
+    else
+      echo "  -- -> push out --"; printf '    %s\n' "${PUSH[@]}" | head -30
+    fi
+  fi
   [ ${#GONE[@]} -gt 0 ] && { echo "  -- one side deleted it (🔴 never deleted automatically; confirm yourself) --"; printf '    ? %s\n' "${GONE[@]}" | head -20; }
   [ ${#CONF[@]} -gt 0 ] && { echo "  -- 🔴 needs a human (reported, nothing written) --"; printf '    ! %s\n' "${CONF[@]}" | head -30
     echo "    see the difference: bash ops/frame/frame-sync.sh --diff \"$HOME_REPO\" <path from above>"; }
   if [ ${#PUSH[@]} -eq 0 ] && [ ${#CONF[@]} -eq 0 ] && [ ${#PULL[@]} -gt 0 ]; then
     echo "  ℹ️  this project has not changed FRAME -- so this run is simply **a one-way pull from the source** (version number included)."; fi
+  # 🔴 Say "nothing to do" out loud too: differing fingerprints do not mean being behind -- this
+  # project's own files always keep the fingerprints apart, and that is not a difference. Without
+  # this line a consumer sees "fingerprints differ" every round and assumes they are behind.
+  if [ ${#PULL[@]} -eq 0 ] && [ ${#PUSH[@]} -eq 0 ] && [ ${#CONF[@]} -eq 0 ] && [ ${#GONE[@]} -eq 0 ]; then
+    echo "  ✅ in line with upstream -- nothing to sync (this project's own files are not a difference; they are why the fingerprints differ)."; fi
 
   if [ "$MODE" = adopt ]; then
     mkdir -p "$(dirname "$BL")"
@@ -347,7 +412,8 @@ if [ "$DIST" != 1 ] && { [ "$MODE" = sync ] || [ "$MODE" = adopt ]; }; then
   # 🔴 Judge the source repo's dirt against **this project's baseline**: it holds "the content both sides last
   #    agreed on", so anything in the source matching it is exactly what the last sync wrote. The source's own
   #    distribution baseline would judge it wrong (that one records what the target looked like *before* a push).
-  FOREIGN="$(foreign_dirty "$HOME_REPO" "$BL" "${HBASE#$HOME_REPO/}" || true)"
+  FOREIGN=""
+  [ "$PUSH_OK" = no ] || FOREIGN="$(foreign_dirty "$HOME_REPO" "$BL" "${HBASE#$HOME_REPO/}" || true)"
   if [ -n "$FOREIGN" ]; then
     echo "🔴 the source repo has **someone else's** uncommitted changes -- refusing to write:$FOREIGN"; rm -f "$TMPBL"; exit 1; fi
   # -- iron rule: with conflicts, nothing is written --
@@ -356,14 +422,31 @@ if [ "$DIST" != 1 ] && { [ "$MODE" = sync ] || [ "$MODE" = adopt ]; }; then
 
   for e in "${PULL[@]}"; do rel="${e%%  (*}"; rel="${rel% }"
     mkdir -p "$(dirname "$SBASE/$rel")"; cpn "$HBASE/$rel" "$SBASE/$rel"; done
-  for e in "${PUSH[@]}"; do rel="${e%%  (*}"; rel="${rel% }"
-    mkdir -p "$(dirname "$HBASE/$rel")"; cpn "$SBASE/$rel" "$HBASE/$rel"; done
-  echo "  ✅ written: pulled in ${#PULL[@]} · pushed out ${#PUSH[@]} (🔴 never deletes: a file dropped in the source is only reported above)"
-  roots_project "$HOME_REPO" 1
+  if [ "$PUSH_OK" = no ]; then
+    [ ${#PUSH[@]} -gt 0 ] && echo "  🔶 ${#PUSH[@]} local changes were **not pushed upstream** (push=no) -- see the three ways above"
+  else
+    for e in "${PUSH[@]}"; do rel="${e%%  (*}"; rel="${rel% }"
+      mkdir -p "$(dirname "$HBASE/$rel")"; cpn "$SBASE/$rel" "$HBASE/$rel"; done
+  fi
+  if [ "$PUSH_OK" = no ]; then
+    echo "  ✅ written: pulled in ${#PULL[@]} · pushed out 0 (push=no: not one byte went upstream)"
+  else
+    echo "  ✅ written: pulled in ${#PULL[@]} · pushed out ${#PUSH[@]} (🔴 never deletes: a file dropped in the source is only reported above)"
+  fi
+  # 🔴 Projecting root files writes upstream, so push=no skips it (that is the source maintainer's job)
+  [ "$PUSH_OK" = no ] || roots_project "$HOME_REPO" 1
   NFP="$(fp_of "$SRC" "$SROLE")"; NHFP="$(fp_of "$HOME_REPO" "$HROLE")"
   echo "  fingerprints recomputed: this project $NFP   source $NHFP"
-  [ "$NFP" = "$NHFP" ] || echo "  ⚠️ the fingerprints still differ -- usually seed files kept as-is (normal), or a difference nobody handled."
-  echo "  next (for a human): bump the version -> write ai/FRAME-VERSION on both sides -> one maintenance-log line each -> commit the source repo and push it to GitHub."
+  if [ "$PUSH_OK" = no ]; then
+    # 🔴 With push=no the fingerprints **cannot** become equal (local forks + seed files kept as-is),
+    # so do not print that as a warning: a warning that lights up every round stops being read.
+    [ "$NFP" = "$NHFP" ] || echo "  ℹ️ differing fingerprints are normal here: with push=no, local forks and seed files keep the two sides apart."
+    echo "  next (for a human): --stamp <the source's version> (push=no writes only this project's file) -> one maintenance-log line ->"
+    echo "                      bash ops/verify/check-all.sh -> tell the AI \"reload the rules\"."
+  else
+    [ "$NFP" = "$NHFP" ] || echo "  ⚠️ the fingerprints still differ -- usually seed files kept as-is (normal), or a difference nobody handled."
+    echo "  next (for a human): bump the version -> write ai/FRAME-VERSION on both sides -> one maintenance-log line each -> commit the source repo and push it to GitHub."
+  fi
   # 铁律 5：重记基线
   { echo "# re-recorded after apply  $(date +%F)  source=$HOME_REPO"
     # 🔴 Root files go into the baseline too: without them the next run has nothing to judge "who changed these"
@@ -375,7 +458,15 @@ if [ "$DIST" != 1 ] && { [ "$MODE" = sync ] || [ "$MODE" = adopt ]; }; then
     done < <(conf_all "$HOME_REPO" map)
     while IFS= read -r rel; do [ -n "$rel" ] || continue
       cs="$(class_of "$rel" "$SROLE")"; [ "$cs" = skip ] && continue
-      printf '%s %s\n' "$(h "$SBASE/$rel")" "$rel"
+      # 🔴 A local fork under push=no: the baseline records **upstream's** copy, not yours.
+      # Record yours and the next round judges upstream's original as "the source changed it", so the
+      # **next --apply silently overwrites your fork** (measured in a sandbox). With upstream's copy
+      # recorded, the fork is reported 🔶 every round and never touched; and once upstream changes the
+      # same file too, it becomes a real "both sides changed" conflict for a human.
+      hhb="$(h "$HBASE/$rel")"; shb="$(h "$SBASE/$rel")"
+      if [ "$PUSH_OK" = no ] && [ "$hhb" != "-" ] && [ "$shb" != "$hhb" ]; then
+        printf '%s %s\n' "$hhb" "$rel"
+      else printf '%s %s\n' "$shb" "$rel"; fi
     done <<< "$ALL"; } > "$BL"
   echo "  ✅ baseline re-recorded: ${BL#$SRC/}"
   rm -f "$TMPBL"; exit 0

@@ -254,6 +254,7 @@ Produce a **migration mapping table**: **old path → new path**, or "not migrat
 | 7 | `ai/rules/conventions.md` §5 | **The pre-delivery self-check list**: which commands your project has to run before it counts as "done" |
 | 8 | **Rename the placeholder directory** | Rename `product/design/prototype/_PROJECT_/` to the project name; create `src/<project name>/` as needed. **The new name may not contain `<>:"\|?*`** -- Windows cannot create those (`ops/verify/check-filenames.sh` catches it) |
 | 9 | **Delete `SYNC.md`** | It is for maintaining the template, not a part of the project |
+| 10 | `ai/frame-repo.conf` | **This one file is how the project keeps up with FRAME later**: `role=` (`consumer` for a project that carries no templates) · `home=` (where the FRAME source repo sits on this machine; when it sits **next to** this project, `../FRAME-Development-Model` is enough) · `push=` (**write `no` if you have no commit rights on the source** = pull-only; with no line the role decides, consumer=no). Then record a baseline: `bash ops/frame/frame-sync.sh --adopt-mine` (it records "this project as it is now", so later source changes count as "the source changed it" → they get pulled in). Skip this and catching up later means comparing files by hand — the procedure is in `docs/guide/frame-sync.md` §5 |
 
 Everything else (`ai/roles/*`, `ai/rules/{workflow,layout}.md`, each directory's README) **works without being changed**.
 
@@ -288,7 +289,11 @@ The old project brings a `.gitignore` of its own, and the template tells you to 
    > **that one only counts for the repo that owns the template**; this project of yours doesn't have that script at all, **skip it**
    > (the ⛔ at the top of `ai/roles/maintainer.md` explains why).
 5. **One extra for an old project**: hand the Requester the "what in the archive directory can be deleted" list to confirm. **You do not delete it for him.**
-6. Tell the Requester **how to use it from here**: open three sessions and say one line in each — `developer` / `reviewer` / `supervisor`;
+6. **Syncing is set up**: `ai/frame-repo.conf` is filled in, `ops/frame/.baseline` exists, and
+   `bash ops/frame/frame-sync.sh --status` shows a role, a version and a fingerprint that add up
+   (**this step is for later**: when the FRAME source repo moves, `--sync` → `--sync --apply` brings
+   the updates in).
+7. Tell the Requester **how to use it from here**: open three sessions and say one line in each — `developer` / `reviewer` / `supervisor`;
    take everything to the Reviewer seat only; to get it tested, say "review and test"; when the rules change, say "reload rules" to the running sessions.
 
 ## Appendix: what the four seats do
