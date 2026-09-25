@@ -22,6 +22,13 @@
 #   **开发席↔审查席之间不许拿信箱谈任务/bug**（丢了台账就丢了开发追踪）·
 #   这一对**类型只许「请求」「通知」、未处置最多 1 封**（需求方：它们基本上不需要互相发信）。
 set -u
+# 🔴 **只读的 git 调用一律不许建 index.lock**（监督席 2026-09-24 报的根因，实测过两次）：
+# Cowork 本机工作区默认**没有删除权限**，而 `git status` / `git diff` 这类只读调用会顺手刷新索引、
+# **建得出 `.git/index.lock` 却删不掉**——于是守门跑一次就在需求方的仓库里留一把死锁，
+# 下一次提交（包括他自己在 SourceTree 里的）全被挡住。判的是「**别在别人的仓库里留锁**」，
+# 不是「脚本能不能跑通」。`GIT_OPTIONAL_LOCKS=0` 让 git 跳过这类可选的锁；真正要写的 `add`/`commit`
+# 照常拿它自己的锁，不受影响。
+export GIT_OPTIONAL_LOCKS=0
 ROOT="$(cd "$(dirname "$0")/../.." && pwd)"; cd "$ROOT" || exit 2
 D="${MAIL_DIR:-ai/mail}"
 [ -d "$D" ] || { echo "找不到 $D"; exit 2; }
@@ -31,10 +38,17 @@ CAP="${MAIL_CAP:-12}"
 FLOOD="${MAIL_FLOOD:-3}"
 TYPES="建议 转告 通知 请求 答复"
 SEATS="developer reviewer supervisor maintainer"
-# 【R&D 线的编外座位】研究席**只和监督席通信**（`ai/roles/researcher.md`：它写只在 `ai/RandD/`，
-# 要动别的目录得请监督席）。所以它**不进四席的投递口矩阵**——那会凭空多出 6 份没人用的文件，
-# 而**没人用的投递口比没有更坏**：它会让人以为可以往那儿发。只认下面这一对。
-RND_SEAT="${RND_SEAT:-researcher}"; RND_PEER="${RND_PEER:-supervisor}"
+# 【R&D 线的编外座位】研究席**只和监督席、审查席通信**（`ai/roles/researcher.md`：它写只在 `ai/RandD/`，
+# 要动别的目录得请监督席）。所以它**不进四席的投递口矩阵**——全连会凭空多出没人用的文件，
+# 而**没人用的投递口比没有更坏**：它会让人以为可以往那儿发。只认下面这两对。
+# 🔴 **审查席这一对是需求方 2026-09-25 拍板加的**（原话：「研究员和监督和审查都可以互通信，
+# 有时候是做一些项目内研究需要」）。起因是 Takiro 实测：审查席请监督席转达给研究席，
+# 监督席 8.5 小时后才转、而且两封都是「转达即可」的**纯转发零核实**，研究席其实早自己读到了
+# （它有权读整个仓库）。**这一道把关本来就被审查席自己的验证义务覆盖了**，留着只剩延迟。
+# 🔴 **仍然不开的两条**：研究席 → 开发席（开发只从审查席接活，这条分权不绕）·
+# 研究席 → 维护席（维护只管规矩）。**通信放开 ≠ 写权限放开**：研究席写 `ai/memory.md`、
+# 动 `ai/RandD/` 以外的目录，照旧要请监督席。
+RND_SEAT="${RND_SEAT:-researcher}"; RND_PEERS="${RND_PEERS:-supervisor reviewer}"
 bad=0
 today=$(date +%s)
 
@@ -45,7 +59,10 @@ for f in "$D"/to-*/from-*.md; do
   # 研究席的投递口只许配监督席
   if [ "$recv" = "$RND_SEAT" ] || [ "$sender" = "$RND_SEAT" ]; then
     other="$sender"; [ "$sender" = "$RND_SEAT" ] && other="$recv"
-    [ "$other" = "$RND_PEER" ] || { echo "  ✗  $f —— 研究席只和监督席通信（见 ai/roles/researcher.md），这份投递口不该存在"; bad=$((bad+1)); }
+    case " $RND_PEERS " in
+      *" $other "*) : ;;
+      *) echo "  ✗  $f —— 研究席只和这几席通信：$RND_PEERS（见 ai/roles/researcher.md），这份投递口不该存在"; bad=$((bad+1)) ;;
+    esac
   fi
   [ "$recv" = "$sender" ] && { echo "  ✗  $f —— 自己给自己发信，这份不该存在"; bad=$((bad+1)); }
   n=$(wc -l < "$f")
@@ -223,9 +240,11 @@ for r in $SEATS; do
   done
 done
 
-# ⑪ 研究席↔监督席那一对投递口也得在（R&D 线用它，见 ai/rules/layout.md §二 RandD/）
-for pair in "to-$RND_SEAT/from-$RND_PEER.md" "to-$RND_PEER/from-$RND_SEAT.md"; do
-  [ -f "$D/$pair" ] || { echo "  ✗  缺 $D/$pair —— 研究席与监督席之间递不进信"; bad=$((bad+1)); }
+# ⑪ 研究席与它每一个对端之间的两份投递口都得在（R&D 线用它，见 ai/rules/layout.md §二 RandD/）
+for peer in $RND_PEERS; do
+  for pair in "to-$RND_SEAT/from-$peer.md" "to-$peer/from-$RND_SEAT.md"; do
+    [ -f "$D/$pair" ] || { echo "  ✗  缺 $D/$pair —— 研究席与 $peer 之间递不进信"; bad=$((bad+1)); }
+  done
 done
 
 if [ "$bad" -gt 0 ]; then

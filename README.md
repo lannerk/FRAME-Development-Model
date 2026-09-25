@@ -85,7 +85,7 @@ whoever is blocked by it fixes it on the spot.)
 ### An extra seat: the Researcher (the R&D line)
 
 🔴 **The four-power structure is unchanged — the Researcher has a seat but not one of the powers**:
-until the Supervisor has verified it, its output carries the weight of "I think" and sits at the **very bottom**
+until the Supervisor or the Reviewer has verified it, its output carries the weight of "I think" and sits at the **very bottom**
 of the order of precedence above. It is not part of the checks and balances; what checks it is **the Requester**
 and **falsifiable experiments**.
 

@@ -43,7 +43,7 @@
 | `ops/verify/check-randd.sh` | `ai/template/ops/verify/check-randd.sh` | **原样**（没开 R&D 线的项目它会自己跳过；判据按 `00-` `01-` `02-` 前缀认，**不按语言认**） |
 | `ai/roles/researcher.md` | `ai/template/ai/roles/researcher.md` | **原样**（研究席的边界与每轮四件是通用的） |
 | `ai/RandD/`（整棵） | `ai/template/ai/RandD/` | **空骨架**：`README.md`（规矩＋九条判据）· `index.md` 空表 · `memory.md` 空表 · `NN-topic/` 一份话题骨架（四个归档目录各一份 `INDEX.md`）。🔴 **文件名中性、内容按项目语言**——两份模板路径必须一字不差 |
-| `ai/mail/to-researcher/from-supervisor.md` · `ai/mail/to-supervisor/from-researcher.md` | 同路径 | **空信箱**（研究席只和监督席通信，守门会把别的配对报红） |
+| `ai/mail/to-researcher/from-{supervisor,reviewer}.md` · `ai/mail/to-{supervisor,reviewer}/from-researcher.md` | 同路径 | **空信箱**（研究席只和监督席、审查席通信——2026-09-25 拍板开通审查席那一对；守门会把别的配对报红） |
 | `ops/frame/frame-sync.sh` · `ops/frame/classes.txt` | 同路径 | **原样**（口令「同步 FRAME」的工具与分类表；不同仓库靠各自的 `ai/frame-repo.conf` 区分，**脚本里不写死仓库名**） |
 | `docs/guide/frame-sync.md` | `ai/template/docs/guide/frame-sync.md` | **原样**（十步走法、五条铁律、开源用户单向拉回那一节都是通用的） |
 | `ai/FRAME-VERSION` | `ai/template/ai/FRAME-VERSION` | **版本号跟着 FRAME 走**；`fingerprint` 由脚本自动算，别手填 |

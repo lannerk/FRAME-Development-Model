@@ -47,9 +47,11 @@ ai/mail/to-developer/from-supervisor.md
 ai/mail/to-maintainer/from-developer.md
 ai/mail/to-maintainer/from-reviewer.md
 ai/mail/to-maintainer/from-supervisor.md
+ai/mail/to-researcher/from-reviewer.md
 ai/mail/to-researcher/from-supervisor.md
 ai/mail/to-reviewer/from-developer.md
 ai/mail/to-reviewer/from-maintainer.md
+ai/mail/to-reviewer/from-researcher.md
 ai/mail/to-reviewer/from-supervisor.md
 ai/mail/to-supervisor/from-developer.md
 ai/mail/to-supervisor/from-maintainer.md

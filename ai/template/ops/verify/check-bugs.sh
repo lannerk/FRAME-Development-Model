@@ -11,7 +11,29 @@
 set -u
 ROOT="$(cd "$(dirname "$0")/../.." && pwd)"
 cd "$ROOT" || exit 2
-D="ai/bugs"
+# 【BUGS_DIR 旋钮】反向断言要在**拷贝**上造错，不许在活 bug 文件上造（项目记忆第 11、13 条：
+# 上一次在真信箱上造错，删掉了两封真信）。默认仍是 ai/bugs。
+D="${BUGS_DIR:-ai/bugs}"
+# 🔴 **挂起（⏸）：把「等外部条件」和「没人复测」分开**（审查席 2026-09-23 提，实测发作过）。
+# 旧判据是「只要有 `修复待复测` 就报红」。它保的那件事没错——**修好的东西不许没人复测就躺着**——
+# 但真机类 bug 等的是「装机盘真装一次」「需求方插第二根网线」这种**审查席无权解决的外部条件**，
+# 于是这条红永远在，而**永远在的红等于没有红**：久了谁都不看它，连真的断口也一起看不见了。
+# 新判据：写全 `阻塞于:` 与 `解除人:` 两行的 `修复待复测` **不计断口，但单独列出来**；
+# 🔴 **挂起不是归档**——超过 $BLOCKED_MAX 天没动照样报红（防止它变成新的垃圾桶，这是审查席自己提的防线）。
+# 「没动」判的是 **git 最近一次提交时间**（§三之三 同一条判据：mtime 一次 clone 就全变了）。
+BLOCKED_MAX="${BUG_BLOCKED_MAX_DAYS:-21}"
+days_since() {  # 这个文件最近一次 git 提交到今天几天；没进过 git 就算 0（新建的不算陈）
+  local iso ts now
+  iso=$(git -C "$ROOT" log -1 --format=%cI -- "$1" 2>/dev/null)
+  [ -n "$iso" ] || { echo 0; return; }
+  ts=$(date -d "$iso" +%s 2>/dev/null) || { echo 0; return; }
+  now=$(date +%s); echo $(( (now - ts) / 86400 ))
+}
+fld() {  # fld <文件> <字段名>：读表头一行，— 和 无 都算空
+  local v; v=$(grep -m1 "^$2:" "$1" | sed "s/^$2:[[:space:]]*//; s/[[:space:]]*#.*//; s/[[:space:]]*$//")
+  case "$v" in —|-|无|N/A) v="";; esac; printf '%s' "$v"
+}
+held=0
 [ -d "$D" ] || { echo "找不到 $D"; exit 2; }
 
 bad=0
@@ -47,9 +69,30 @@ for f in $files; do
       fi
       ;;
   esac
+  blk="$(fld "$f" 阻塞于)"; who="$(fld "$f" 解除人)"
   if [ "$st" = "修复待复测" ]; then
-    echo "  ⟳  $f —— 状态「修复待复测」：开发说修好了，**审查席还没复测**。"
-    echo "     复测不挂在口令上，本轮就要做（ai/rules/workflow.md §三之二）。"
+    if [ -n "$blk" ] && [ -n "$who" ]; then
+      held=$((held+1)); d="$(days_since "$f")"
+      if [ "$d" -gt "$BLOCKED_MAX" ]; then
+        echo "  ✗  $f —— 挂起 $d 天没动（上限 $BLOCKED_MAX 天）：等「$blk」，解除人 $who。"
+        echo "     挂起不是归档：条件到了就复测，没到就去催解除人，催不动就改判它不修并写清理由。"
+        bad=$((bad+1))
+      else
+        echo "  ⏸  $f —— 挂起 $d 天：等「$blk」（解除人：$who）—— 等的是外部条件，不计断口。"
+      fi
+    elif [ -n "$blk" ] || [ -n "$who" ]; then
+      echo "  ✗  $f —— 挂起要两行写全：阻塞于 = 等什么外部条件 · 解除人 = 谁能把它变出来。"
+      echo "     只写一半的挂起是无主的，没人知道该去催谁——那正是它会烂在那儿的原因。"
+      bad=$((bad+1))
+    else
+      echo "  ⟳  $f —— 状态「修复待复测」：开发说修好了，**审查席还没复测**。"
+      echo "     复测不挂在口令上，本轮就要做（ai/bugs/README.md）。"
+      echo "     真的在等外部条件（真机、硬件、需求方的动作），就写上「阻塞于:」与「解除人:」两行。"
+      bad=$((bad+1))
+    fi
+  elif [ -n "$blk" ]; then
+    echo "  ✗  $f（状态 $st）—— 只有「修复待复测」能挂起。"
+    echo "     别的状态写「阻塞于:」等于给自己开豁免：待修就是还没修，待复现就是还没复现。"
     bad=$((bad+1))
   fi
   # ④ 「定位」节三小标题（状态 ≥ 已复现 才要求）——监督席体检提的
@@ -94,7 +137,7 @@ done
 
 if [ "$bad" -gt 0 ]; then
   echo
-  echo "BUGS-FAIL（$bad 处断口）"
+  echo "BUGS-FAIL（$bad 处断口；⏸ 另有 $held 条挂起等外部条件，不计在内）"
   exit 1
 fi
-echo "BUGS-OK（$(echo "$files" | wc -l) 条 bug，闭环没断）"
+echo "BUGS-OK（$(echo "$files" | wc -l) 条 bug，闭环没断；⏸ 挂起 $held 条等外部条件）"

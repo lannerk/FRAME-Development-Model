@@ -8,6 +8,14 @@
 #  (2) **retired directory names** -- nobody rescans the scripts after a rename; every reorg leaves that debt.
 #      Put this project's retired names into BAD_SCRIPT and this guard stops it happening twice.
 set -u
+# 🔴 **A read-only git call must never create an index.lock** (root cause reported by the Supervisor
+# 2026-09-24, hit twice for real): the local Cowork workspace has **no delete permission by default**,
+# while `git status` / `git diff` refresh the index as a side effect and **can create `.git/index.lock`
+# without being able to remove it** -- so one guard run leaves a deadlock in the Requester's repository
+# and every later commit (including his own in SourceTree) is blocked. The test is **"leave no lock in
+# someone else's repo"**, not "does the script run". `GIT_OPTIONAL_LOCKS=0` makes git skip those optional
+# locks; a real `add`/`commit` still takes its own lock and is unaffected.
+export GIT_OPTIONAL_LOCKS=0
 ROOT="$(cd "$(dirname "$0")/../.." && pwd)"
 cd "$ROOT" || exit 2
 

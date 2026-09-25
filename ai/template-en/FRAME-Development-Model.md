@@ -374,7 +374,7 @@ criteria first". So there is a second, permanent line **running alongside develo
 | The workspace | `src/` `ai/tasks/` `ai/specs/` … | 🔴 **`ai/RandD/` only** |
 | The end | shipping | **graduation**: nine criteria green → Supervisor verifies → Requester settles → Supervisor migrates |
 
-🔴 **The Researcher has a seat but not one of the powers.** Until the Supervisor has verified it, its output carries the
+🔴 **The Researcher has a seat but not one of the powers.** Until the Supervisor or the Reviewer has verified it, its output carries the
 weight of "I reckon" — which is exactly where the existing order of authority puts it
 (`the Requester settles it > a fact the Reviewer verified > the Supervisor's opinion > anyone's "I reckon"`).
 So **the four-power split, Four-Role and the four edges of the frame do not change by a word**; what checks the Researcher

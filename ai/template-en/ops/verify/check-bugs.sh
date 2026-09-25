@@ -11,7 +11,33 @@
 set -u
 ROOT="$(cd "$(dirname "$0")/../.." && pwd)"
 cd "$ROOT" || exit 2
-D="ai/bugs"
+# [BUGS_DIR knob] Reverse assertions are made on a **copy**, never on live bug files (project memory
+# 11 and 13: the last time errors were staged in a live mailbox, two real letters were deleted).
+D="${BUGS_DIR:-ai/bugs}"
+# 🔴 **On hold (⏸): tell "waiting on an external condition" apart from "nobody retested"**
+# (raised by the Reviewer seat 2026-09-23, after it bit us). The old test was "any `fixed, awaiting
+# retest` goes red". What it protects is right -- **something fixed may not sit unretested** -- but
+# real-machine bugs wait on "actually install from the disk once" or "the Requester plugs in a second
+# cable": **external conditions the Reviewer cannot produce**. So that red became permanent, and
+# **a permanent red is no red at all**: nobody reads it any more, and the real breaks hide behind it.
+# New test: a `fixed, awaiting retest` that fills in **both** `Blocked on:` and `Cleared by:` is **not
+# counted as a break, but is listed on its own**; 🔴 **on hold is not an archive** -- more than
+# $BLOCKED_MAX days without movement goes red anyway (the Reviewer proposed this guard against it
+# turning into a new dumping ground). "Without movement" is judged by **the last git commit time**
+# (same test as 3c: mtime is reset by a single clone).
+BLOCKED_MAX="${BUG_BLOCKED_MAX_DAYS:-21}"
+days_since() {  # days from this file's last git commit until today; never committed counts as 0
+  local iso ts now
+  iso=$(git -C "$ROOT" log -1 --format=%cI -- "$1" 2>/dev/null)
+  [ -n "$iso" ] || { echo 0; return; }
+  ts=$(date -d "$iso" +%s 2>/dev/null) || { echo 0; return; }
+  now=$(date +%s); echo $(( (now - ts) / 86400 ))
+}
+fld() {  # fld <file> <field>: read one header line; "--" and "none" count as empty
+  local v; v=$(grep -m1 "^$2:" "$1" | sed "s/^$2:[[:space:]]*//; s/[[:space:]]*#.*//; s/[[:space:]]*$//")
+  case "$v" in —|-|--|none|None|N/A) v="";; esac; printf '%s' "$v"
+}
+held=0
 [ -d "$D" ] || { echo "cannot find $D"; exit 2; }
 
 bad=0
@@ -46,9 +72,30 @@ for f in $files; do
       fi
       ;;
   esac
+  blk="$(fld "$f" "blocked on")"; who="$(fld "$f" "cleared by")"
   if [ "$st" = "fixed, awaiting retest" ]; then
-    echo "  ~  $f -- status \"fixed, awaiting retest\": development says it is fixed, **the Reviewer seat has not retested**."
-    echo "     The retest does not hang on a command word; do it this round (ai/rules/workflow.md 3b)."
+    if [ -n "$blk" ] && [ -n "$who" ]; then
+      held=$((held+1)); d="$(days_since "$f")"
+      if [ "$d" -gt "$BLOCKED_MAX" ]; then
+        echo "  x  $f -- on hold for $d days with no movement (limit $BLOCKED_MAX): waiting on \"$blk\", cleared by $who."
+        echo "     On hold is not an archive: retest once the condition arrives, chase the person who can produce it, or rule it will not be fixed and say why."
+        bad=$((bad+1))
+      else
+        echo "  ⏸  $f -- on hold $d days: waiting on \"$blk\" (cleared by: $who) -- an external condition, not counted as a break."
+      fi
+    elif [ -n "$blk" ] || [ -n "$who" ]; then
+      echo "  x  $f -- putting it on hold takes both lines: blocked on = which external condition, cleared by = who can produce it."
+      echo "     Half a hold has no owner, so nobody knows who to chase -- which is exactly how it rots there."
+      bad=$((bad+1))
+    else
+      echo "  ~  $f -- status \"fixed, awaiting retest\": development says it is fixed, **the Reviewer seat has not retested**."
+      echo "     The retest does not hang on a command word; do it this round (ai/bugs/README.md)."
+      echo "     If it really is waiting on an external condition (a real machine, hardware, the Requester), add the \"blocked on:\" and \"cleared by:\" lines."
+      bad=$((bad+1))
+    fi
+  elif [ -n "$blk" ]; then
+    echo "  x  $f (status $st) -- only \"fixed, awaiting retest\" may be put on hold."
+    echo "     Writing \"blocked on:\" in another status is granting yourself an exemption: to fix means not fixed yet, to reproduce means not reproduced yet."
     bad=$((bad+1))
   fi
   # (4) the three "Localization" subheadings (required only from status reproduced onward) -- raised by the Supervisor seat's audit
@@ -93,7 +140,7 @@ done
 
 if [ "$bad" -gt 0 ]; then
   echo
-  echo "BUGS-FAIL ($bad breaks)"
+  echo "BUGS-FAIL ($bad breaks; ⏸ $held more on hold on external conditions, not counted)"
   exit 1
 fi
-echo "BUGS-OK ($(echo "$files" | wc -l) bugs, loop intact)"
+echo "BUGS-OK ($(echo "$files" | wc -l) bugs, loop intact; ⏸ $held on hold waiting on external conditions)"

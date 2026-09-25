@@ -138,19 +138,31 @@ There are only three ways to handle a letter, and **when you are done you move t
 (that is exactly how the inbox rotted once). The archive exists so that later you can answer "did anyone ever deal with this letter, and how".
 
 
-## 🔴 The Researcher writes only to the Supervisor (the R&D line)
+## 🔴 The Researcher writes only to the Supervisor and the Reviewer (the R&D line)
 
 The Researcher on the R&D line is an **extra seat** (`ai/roles/researcher.md`): it **reads the whole repo and writes only
 under `ai/RandD/`**, so anything outside that has to go **through the Supervisor**. It therefore **stays out of the four-seat
-drop-box matrix**; there is exactly one pair:
+drop-box matrix**; there are exactly two pairs:
 
 | Drop-box | Who writes it | What goes in |
 |---|---|---|
 | `to-supervisor/from-researcher.md` | Researcher | asking for something outside `ai/RandD/` to be changed · asking for a cross-topic fact to be recorded in `ai/memory.md` (the Researcher cannot write it) · notice of a graduation request |
 | `to-researcher/from-supervisor.md` | Supervisor | opinions · reminders · notices. 🔴 **Exploration is never sent back**; only converged output is, against the criteria, naming the one that failed |
+| `to-reviewer/from-researcher.md` | Researcher | material and conclusions from in-project research (the Reviewer verifies them itself under hard law 4 before adopting) |
+| `to-researcher/from-reviewer.md` | Reviewer | the question to look at, and feedback. 🔴 **Not an assignment** — work is assigned only through `ai/tasks/`, and the Researcher takes no development tickets |
+
+🔴 **The Reviewer pair was added by the Requester's ruling of 2026-09-25** ("the researcher and the supervisor and the
+reviewer may all exchange letters; sometimes in-project research needs it"). It came out of a measured case: the Reviewer
+asked the Supervisor to pass material to the Researcher; **the Supervisor relayed it 8.5 hours later, and both letters said
+"just pass it on" — pure forwarding, zero verification** — while the Researcher had already read it itself (it may read the
+whole repo). **That checkpoint was already covered by the Reviewer's own duty to verify**; all it added was delay.
+🔴 **Still closed**: Researcher → Developer (**development only takes work from the Reviewer**; that split is not routed
+around) and Researcher → Maintainer (the Maintainer only owns the rules).
+🔴 **Opening a channel is not opening write access**: writing `ai/memory.md` or touching anything outside `ai/RandD/`
+**still goes through the Supervisor**.
 
 **A drop-box nobody uses is worse than none** (it makes people think they may post there), so the gate reds both
-`to-researcher/from-<anyone but the Supervisor>` and `to-<anyone but the Supervisor>/from-researcher`. Its archive is `archive/researcher-<YYYY-MM>.md`.
+`to-researcher/from-<anyone but the Supervisor or the Reviewer>` and `to-<anyone but those two>/from-researcher`. Its archive is `archive/researcher-<YYYY-MM>.md`.
 🔴 **When its letter needs a long body, it points into `ai/RandD/<topic>/`** — `claude-outputs/` is the four development seats' scratch area; the Researcher does not write there.
 
 ## One boundary you have to know

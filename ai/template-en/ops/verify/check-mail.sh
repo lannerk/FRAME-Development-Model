@@ -22,6 +22,14 @@
 #   all three drop-boxes exist for each of the four seats .
 #   the archive is one file per seat per month and every row states the outcome (one shared file guarantees git conflicts).
 set -u
+# 🔴 **A read-only git call must never create an index.lock** (root cause reported by the Supervisor
+# 2026-09-24, hit twice for real): the local Cowork workspace has **no delete permission by default**,
+# while `git status` / `git diff` refresh the index as a side effect and **can create `.git/index.lock`
+# without being able to remove it** -- so one guard run leaves a deadlock in the Requester's repository
+# and every later commit (including his own in SourceTree) is blocked. The test is **"leave no lock in
+# someone else's repo"**, not "does the script run". `GIT_OPTIONAL_LOCKS=0` makes git skip those optional
+# locks; a real `add`/`commit` still takes its own lock and is unaffected.
+export GIT_OPTIONAL_LOCKS=0
 ROOT="$(cd "$(dirname "$0")/../.." && pwd)"; cd "$ROOT" || exit 2
 D="${MAIL_DIR:-ai/mail}"
 [ -d "$D" ] || { echo "cannot find $D"; exit 2; }
@@ -32,10 +40,22 @@ CAP="${MAIL_CAP:-12}"
 FLOOD="${MAIL_FLOOD:-3}"
 TYPES="suggestion hand-over notice request reply"
 SEATS="developer reviewer supervisor maintainer"
-# 【R&D 线的编外座位】研究席**只和监督席通信**（`ai/roles/researcher.md`：它写只在 `ai/RandD/`，
-# 要动别的目录得请监督席）。所以它**不进四席的投递口矩阵**——那会凭空多出 6 份没人用的文件，
-# 而**没人用的投递口比没有更坏**：它会让人以为可以往那儿发。只认下面这一对。
-RND_SEAT="${RND_SEAT:-researcher}"; RND_PEER="${RND_PEER:-supervisor}"
+# [The extra seat on the R&D line] The Researcher exchanges letters **only with the Supervisor and the
+# Reviewer** (`ai/roles/researcher.md`: it writes only under `ai/RandD/`, and anything else goes through
+# the Supervisor). So it **stays out of the four-seat drop-box matrix** -- wiring it to everyone would
+# conjure up files nobody uses, and **a drop-box nobody uses is worse than none**: it makes people think
+# they may post there. Only the pairs below are recognized.
+# 🔴 **The Reviewer pair was added by the Requester's ruling of 2026-09-25** ("the researcher and the
+# supervisor and the reviewer may all exchange letters; sometimes in-project research needs it").
+# It came out of a measured case: the Reviewer asked the Supervisor to pass material to the Researcher;
+# the Supervisor relayed it 8.5 hours later and both letters said "just pass it on" -- **pure forwarding,
+# zero verification** -- while the Researcher had already read it itself (it may read the whole repo).
+# **That checkpoint was already covered by the Reviewer's own duty to verify**; all it added was delay.
+# 🔴 **Still closed**: Researcher -> Developer (development only takes work from the Reviewer; that split
+# is not routed around) and Researcher -> Maintainer (the Maintainer only owns the rules).
+# **Opening a channel is not opening write access**: writing `ai/memory.md` or touching anything outside
+# `ai/RandD/` still goes through the Supervisor.
+RND_SEAT="${RND_SEAT:-researcher}"; RND_PEERS="${RND_PEERS:-supervisor reviewer}"
 bad=0
 today=$(date +%s)
 
@@ -46,7 +66,10 @@ for f in "$D"/to-*/from-*.md; do
   # 研究席的投递口只许配监督席
   if [ "$recv" = "$RND_SEAT" ] || [ "$sender" = "$RND_SEAT" ]; then
     other="$sender"; [ "$sender" = "$RND_SEAT" ] && other="$recv"
-    [ "$other" = "$RND_PEER" ] || { echo "  x  $f -- the Researcher seat only exchanges letters with the $RND_PEER seat (see ai/roles/researcher.md); this drop-box should not exist"; bad=$((bad+1)); }
+    case " $RND_PEERS " in
+      *" $other "*) : ;;
+      *) echo "  x  $f -- the Researcher seat only exchanges letters with: $RND_PEERS (see ai/roles/researcher.md); this drop-box should not exist"; bad=$((bad+1)) ;;
+    esac
   fi
   [ "$recv" = "$sender" ] && { echo "  x  $f -- a seat sending itself mail; this file should not exist"; bad=$((bad+1)); }
   n=$(wc -l < "$f")
@@ -202,9 +225,12 @@ for r in $SEATS; do
   done
 done
 
-# ⑪ 研究席↔监督席那一对投递口也得在（R&D 线用它，见 ai/rules/layout.md §二 RandD/）
-for pair in "to-$RND_SEAT/from-$RND_PEER.md" "to-$RND_PEER/from-$RND_SEAT.md"; do
-  [ -f "$D/$pair" ] || { echo "  x  missing $D/$pair -- the Researcher and the Supervisor cannot post letters to each other"; bad=$((bad+1)); }
+# (11) Both drop-boxes must exist between the Researcher and each of its peers
+# (the R&D line uses them; see ai/rules/layout.md 2, RandD/)
+for peer in $RND_PEERS; do
+  for pair in "to-$RND_SEAT/from-$peer.md" "to-$peer/from-$RND_SEAT.md"; do
+    [ -f "$D/$pair" ] || { echo "  x  missing $D/$pair -- the Researcher and the $peer cannot post letters to each other"; bad=$((bad+1)); }
+  done
 done
 
 if [ "$bad" -gt 0 ]; then

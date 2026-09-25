@@ -16,6 +16,13 @@
 #   ③ **`claude-outputs/<席>/` 下的一级条目必须以 `YYYY-MM-DD-` 开头**（`claude-outputs/README.md` 的命名规矩，
 #      原来只写在文档里没人守）。豁免写在 `ops/verify/.rootcheck-allow`，一行一条，**显式豁免，不用「以后注意」**。
 set -u
+# 🔴 **只读的 git 调用一律不许建 index.lock**（监督席 2026-09-24 报的根因，实测过两次）：
+# Cowork 本机工作区默认**没有删除权限**，而 `git status` / `git diff` 这类只读调用会顺手刷新索引、
+# **建得出 `.git/index.lock` 却删不掉**——于是守门跑一次就在需求方的仓库里留一把死锁，
+# 下一次提交（包括他自己在 SourceTree 里的）全被挡住。判的是「**别在别人的仓库里留锁**」，
+# 不是「脚本能不能跑通」。`GIT_OPTIONAL_LOCKS=0` 让 git 跳过这类可选的锁；真正要写的 `add`/`commit`
+# 照常拿它自己的锁，不受影响。
+export GIT_OPTIONAL_LOCKS=0
 ROOT="$(cd "$(dirname "$0")/../.." && pwd)"; cd "$ROOT" || exit 2
 L="ai/rules/layout.md"
 [ -f "$L" ] || { echo "找不到 $L（顶层清单在那儿）"; exit 2; }

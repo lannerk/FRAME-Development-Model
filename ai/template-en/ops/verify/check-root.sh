@@ -16,6 +16,14 @@
 #   ③ **`claude-outputs/<席>/` 下的一级条目必须以 `YYYY-MM-DD-` 开头**（`claude-outputs/README.md` 的命名规矩，
 #      原来只写在文档里没人守）。豁免写在 `ops/verify/.rootcheck-allow`，一行一条，**显式豁免，不用「以后注意」**。
 set -u
+# 🔴 **A read-only git call must never create an index.lock** (root cause reported by the Supervisor
+# 2026-09-24, hit twice for real): the local Cowork workspace has **no delete permission by default**,
+# while `git status` / `git diff` refresh the index as a side effect and **can create `.git/index.lock`
+# without being able to remove it** -- so one guard run leaves a deadlock in the Requester's repository
+# and every later commit (including his own in SourceTree) is blocked. The test is **"leave no lock in
+# someone else's repo"**, not "does the script run". `GIT_OPTIONAL_LOCKS=0` makes git skip those optional
+# locks; a real `add`/`commit` still takes its own lock and is unaffected.
+export GIT_OPTIONAL_LOCKS=0
 ROOT="$(cd "$(dirname "$0")/../.." && pwd)"; cd "$ROOT" || exit 2
 L="ai/rules/layout.md"
 [ -f "$L" ] || { echo "cannot find $L (the top-level list lives there)"; exit 2; }

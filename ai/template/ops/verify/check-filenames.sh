@@ -17,6 +17,13 @@
 # 不是判「有没有人在文档里写过占位符」——文档正文里写 `<project>` 是对的，那是占位说明；
 # 只有**真的建成目录或文件**才是问题。
 set -u
+# 🔴 **只读的 git 调用一律不许建 index.lock**（监督席 2026-09-24 报的根因，实测过两次）：
+# Cowork 本机工作区默认**没有删除权限**，而 `git status` / `git diff` 这类只读调用会顺手刷新索引、
+# **建得出 `.git/index.lock` 却删不掉**——于是守门跑一次就在需求方的仓库里留一把死锁，
+# 下一次提交（包括他自己在 SourceTree 里的）全被挡住。判的是「**别在别人的仓库里留锁**」，
+# 不是「脚本能不能跑通」。`GIT_OPTIONAL_LOCKS=0` 让 git 跳过这类可选的锁；真正要写的 `add`/`commit`
+# 照常拿它自己的锁，不受影响。
+export GIT_OPTIONAL_LOCKS=0
 ROOT="$(cd "$(dirname "$0")/../.." && pwd)"; cd "$ROOT" || exit 2
 bad=0
 list() { find . -path ./.git -prune -o -print 2>/dev/null | sed 's|^\./||' | grep -v '^\.$'; }

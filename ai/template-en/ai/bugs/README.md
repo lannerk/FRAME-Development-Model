@@ -22,6 +22,8 @@ status: reproduced                # to reproduce/reproduced/to fix/fixed, awaiti
 task: T-0042           # write — if there is none
 found: 2026-09-15
 closed: —
+blocked on: —          # only "fixed, awaiting retest" may use it; which **external condition** it waits on
+cleared by: —          # who can produce that condition. Write both lines or neither
 ---
 
 ## Reproduction (**missing one of the four and it may not go to development**)
@@ -70,6 +72,34 @@ Once it's fixed, push that bug to `fixed, awaiting retest`; **never mark it `clo
 **As long as "Bugs fixed" in the development report is not `none`, the Reviewer seat must retest those this round** —
 rerun the original steps in the B file; **the Requester does not need to say "review and test"**.
 Only after the retest passes do you push the bug to `closed` and record it in the ledger's "closed" table; if it fails, send it back to `to fix` and append another round in the same B file.
+
+### 🔴 When the retest genuinely cannot happen: put it on hold, do not let it drag
+
+Some `fixed, awaiting retest` bugs wait on **an external condition the Reviewer cannot produce** --
+"actually install from the disk once", "the Requester plugs in a second cable". Then fill in both
+header lines:
+
+```
+blocked on: an actual install from the disk
+cleared by: the Requester
+```
+
+The guard then lists it as **⏸ on hold and does not count it as a break**, instead of mixing it into
+the same red as "nobody retested". **Why separate them**: under the old test that red was permanent,
+and **a permanent red is no red at all** -- nobody reads it any more and the real breaks hide behind it
+(measured by the Reviewer seat on 2026-09-23: all 14 remaining ones waited on real hardware, and that
+one red it could not clear was blocking even its own `--seat` commit).
+
+**Three boundaries; drop one and this becomes the new dumping ground:**
+
+1. **Write both lines or neither.** "blocked on" alone is a hold with no owner, so nobody knows who to
+   chase -- which is exactly how it rots there.
+2. **Only "fixed, awaiting retest" may be put on hold.** "to fix" means not fixed yet and "to reproduce"
+   means not reproduced yet; writing "blocked on" there is granting yourself an exemption.
+3. 🔴 **On hold is not an archive**: more than **21 days** without movement goes red anyway
+   (`BUG_BLOCKED_MAX_DAYS` is the knob), and "without movement" is judged by **the last git commit time**
+   (mtime is reset by a single clone). When it expires, pick one: retest because the condition arrived ·
+   chase the person who can produce it · or rule it "won't fix" and write down why.
 
 > **Why the retest isn't tied to a command word**: the command word governs "whether to test broadly",
 > while "is the thing that was fixed actually fixed" is **something you must know every round**.
