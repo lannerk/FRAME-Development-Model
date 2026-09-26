@@ -1,15 +1,25 @@
-# Link-check allowlist: one full path per line, matched exactly.
-# Only for "this really should not exist, but that reference is correct" (e.g. a record of a past
-# event that mentions a file since deleted).
-# Before adding one, ask: should the reference itself be fixed instead? Usually, yes.
+# The link-integrity allowlist: one full path per line, matched exactly; a line ending in `/` ignores that whole prefix.
+# Only put in cases where the path really should not exist but the reference is correct (a historical note mentioning
+# a file that has since been deleted, for instance).
+# Before adding a line, ask once: should that reference be fixed instead? Usually it should.
+#
+# 🔴 **This file is project content (class seed, never overwritten by a sync)**: what it lists are **your project's own**
+# historical paths, none of which hold on another project -- syncing it as part of FRAME would push one project's
+# history onto every project.
+#
+# The three common kinds (add your own as needed):
+#  . a path relative to a language package (`ai/xxx.go` and the like, really living in some package under `src/`)
+#  . paths that only exist on a real machine or runtime (`tmp/...`, `ops/....py`)
+#  . archived old documents (historical prose is kept as written, so the reference is not changed)
 
-# -- these exist only in the repo that OWNS the method --
-# This project was copied out of the template, so there is no ai/template/ in its root and
-# neither of the two template-maintenance guards is here. The Maintainer handbook mentions
-# them to explain who owns the rules themselves, not to send you looking for these files.
-# 🔴 **整段前缀忽略**（以 / 结尾）：逐条列的话，维护席手册每加一条 `ai/template/...` 引用就漏一条，
-# 而症状只在消费项目里出现（那边没有模板目录），拥有模板的仓库永远是绿的——监督席首次分发时实测 3 条断链。
+# -- "paths inside the template" mentioned in the Maintainer handbook (only a repo owning the templates has these) --
+# These two exist only inside ai/template/ and ai/template-en/ (they travel with the template to a new project),
+# so not resolving from the repo root is normal.
+ai/glossary.md
+ai/frame-manifest.txt
+
+# -- ignore a whole prefix (ending in /) --
+# Listed one by one, every new `ai/template/...` reference in the Maintainer handbook slips through, and the symptom
+# only appears in a consuming project (which has no template directory) -- measured as 3 broken links exactly this way.
 ai/template/
 ai/template-en/
-ops/verify/check-template-sync.sh
-ops/verify/gen-frame-manifest.sh

@@ -59,6 +59,53 @@ The Requester's own words:
 - **Never use a suggestion as a shield** ("I suggest doing X first" and then Y never happens).
 - **Never throw five directions at once.** At most two or three, **ordered by your recommendation, the first marked "(recommended)"** (§4b).
 
+## 4d. Think it through for him, then ask him: **the kickoff advisor**
+
+The Requester's own words (2026-09-26):
+
+> "Imagine an ordinary person using frame who does not know all the generic technical detail — the AI
+> should think it through for them in advance and explain the technical approach, the choice of stack,
+> the practice, why it recommends this, and so on; for example why Go for the language, or when the user
+> never mentioned internationalization the AI asks whether it is needed and what it would take, or
+> whether something existing has to stay compatible."
+
+**All four seats, and the Researcher too.**
+
+**When**: a new project / module / product line · a requirement of some size · a new requirement appearing
+mid-project · "how should this be done" / "is there a newer way" · the command word `initialize the project`.
+
+**How, in six steps**:
+
+1. **Read the profile first**, `product/requirements/requester-profile.md`. What he has settled is **used,
+   not asked again**, with one line in the body naming which of his rulings were applied.
+2. **Look up the generic library as needed**, `ai/advisor/` — 🔴 **never read it whole**: pick questions from
+   `questions.md` · find what it drags in via `chains.md` · check `stack.md` for a choice · read `domains/*`
+   for domain practice.
+3. **Give a plan card, not a pile of options**: recommended approach · why · cost · when it does not apply ·
+   what can still be reversed. **Settle the technical and architectural things yourself** and write down
+   what is reversible.
+4. **Ask about the dimensions he never mentioned** (internationalization, compatibility with an existing
+   system / data / interface, secrets, AI, licences, error collection …) — take only what **genuinely needs
+   his ruling** and pop it up per §4b (≤ 4 questions, recommendation first, every option with its cost, no
+   default). 🔒 **An irreversible question must be asked before any code.**
+5. **Plain-language mode**: when the profile is empty, or he says "I am not technical", spell out each
+   option's consequence in one plain sentence ("pick this and adding an English UI later means going
+   through every page"), and mark the recommendation "pick this if you are unsure".
+6. **Ask before you build**; his words go into the requirements inbox, **a ruling is appended to the
+   profile** (one line: preference · his words or choice · date and source), and anything important
+   becomes an AD.
+
+**Three things you may not do**:
+
+- 🔴 **Never treat the library's recommendation as a default.** If the profile is silent and it is his call
+  (commercial trade-offs, names, open or closed source, scope and schedule, how it is described publicly),
+  **it still gets asked** — the advisor thinks for him, it does not decide for him.
+- **Never read the whole library before starting.** Look up what you need; it is not in the opening read.
+- 🔴 **Never write profile content into `ai/advisor/`.** The profile is private to this project (seed, never
+  flows back); the library is FRAME itself (follow, and it syncs into the open-source repository), so
+  **only judgements that hold on another project belong there** — no brand names, product names, people's
+  names or private sources (`ops/verify/check-advisor.sh` scans for them).
+
 ## 4c. He told the wrong seat: **take it, don't do it, tell him who to go to**
 
 The Requester often says things straight to whichever session is in front of him — a requirement to the Developer seat, a request to write code to the Reviewer seat, a development job to the Supervisor seat.

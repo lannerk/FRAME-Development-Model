@@ -217,7 +217,12 @@ foreign_dirty() { # foreign_dirty <仓库> <基线文件（忽略，见下）> <
     # 🔴 `ai/FRAME-VERSION` 这一份**是这套机制自己写的**（文件里就写着「别手改」），
     # 它是 seed 类、不进基线，所以认不出来是我们写的；把它算成「别人的改动」会拦住下一次同步，
     # 而人手改了它也没有意义——下一次 `--stamp` 本来就会盖掉。
+    # 🔴 同一条道理也适用于 `ops/frame/.baseline*`：**它们也是这套机制自己写的账**
+    # （2026-09-26 实测：把源仓库基线表头里的会话路径去掉之后，这条检查把它判成「别人的未提交改动」
+    # 而拒绝同步——而那一处正是为了不让会话路径进公开仓库才改的）。判的是「别和别人的活搅在一起」，
+    # 机制自己的账不算别人的活。
     case "$f" in */ai/FRAME-VERSION|ai/FRAME-VERSION) continue;; esac
+    case "$f" in */ops/frame/.baseline*|ops/frame/.baseline*) continue;; esac
     f="${f%\"}"; f="${f#\"}"
     cur="$(h "$R/$f")"
     case " ${B[$f]:-} " in *" $cur "*) continue;; esac   # 命中任意一份基线 = 我们（某一轮）写进去的
@@ -381,7 +386,9 @@ if [ "$DIST" != 1 ] && { [ "$MODE" = sync ] || [ "$MODE" = adopt ]; }; then
 
   if [ "$MODE" = adopt ]; then
     mkdir -p "$(dirname "$BL")"
-    { echo "# adopt：把「现在两边这样」收为基线  $(date +%F)  源=$HOME_REPO"
+# 🔴 **基线表头只记仓库名，不记绝对路径**：云端会话的挂载路径带着会话 id，一结束就没有意义，
+# 而这份文件会被提交进**公开仓库**（`synced_with` 那条同样的教训，实测漏过一次）。
+    { echo "# adopt：把「现在两边这样」收为基线  $(date +%F)  源=$(basename "$HOME_REPO")"
       echo "# 一行：<内容sha256> <相对路径>。🔴 adopt 等于承认现状是对的——**先看过再认**。"
       LC_ALL=C sort -u "$TMPBL"; } > "$BL"
     echo "  ✅ 基线已记：${BL#$SRC/}（$(grep -vc '^#' "$BL") 条）"
@@ -433,7 +440,7 @@ if [ "$DIST" != 1 ] && { [ "$MODE" = sync ] || [ "$MODE" = adopt ]; }; then
     echo "  下一步（人做）：bump 版本 → 两边写 ai/FRAME-VERSION → 各记一行维护记录 → 源仓库提交并推 GitHub。"
   fi
   # 铁律 5：重记基线
-  { echo "# apply 之后重记  $(date +%F)  源=$HOME_REPO"
+  { echo "# apply 之后重记  $(date +%F)  源=$(basename "$HOME_REPO")"
     # 🔴 根文件也要记进基线：不记的话，下一轮判「这几份是谁改的」就没有依据，
     # 而它们刚被这一轮投影过——会被自己判成「别人改的」（实测）。
     while IFS= read -r mline; do
@@ -549,7 +556,7 @@ for T in "${TARGETS[@]}"; do
   [ ${#G[@]} -gt 0 ] && { echo "  ── 源已删（🔴 从不自动删，自己确认）──"; printf '    ? %s\n' "${G[@]}" | head -20; }
   if [ "$APPLY" = 1 ] || [ "$MODE" = adopt ]; then
     mkdir -p "$(dirname "$BL")"
-    { echo "# 同步自 $SROLE $SRC  commit=$(cd "$SRC" && git rev-parse --short HEAD 2>/dev/null || echo -)  版本=$(ver_read "$SRC" "$SROLE")  $(date +%F)"
+    { echo "# 同步自 $SROLE $(basename "$SRC")  commit=$(cd "$SRC" && git rev-parse --short HEAD 2>/dev/null || echo -)  版本=$(ver_read "$SRC" "$SROLE")  $(date +%F)"
       echo "# 一行：<内容sha256> <相对路径>；ROOT:<名> 是根文件映射"
       LC_ALL=C sort -u "$TMP"; } > "$BL"
     echo "  ✅ 基线已记：${BL#$T/}"

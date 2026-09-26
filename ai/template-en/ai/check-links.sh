@@ -42,7 +42,7 @@ while IFS= read -r f; do
     d="$(dirname "$f")"
     # A reference resolves if it exists under any of these bases:
     #  (1) the repo root (most common in docs) (2) the source root src/ (3) the directory of the referencing file
-    if [ ! -e "$p" ] && [ ! -e "src/$p" ] && [ ! -e "$d/$p" ]; then
+    if [ ! -e "$p" ] && [ ! -e "src/$p" ] && [ ! -e "${LINKCHECK_SRC:-src/_}/$p" ] && [ ! -e "$d/$p" ]; then
       echo "broken  $f  ->  $p"
     fi
   done

@@ -224,6 +224,7 @@ yours.
 | `product/` | Requirements (verbatim / specs) · design and prototypes · **development plan and milestones** |
 | `docs/` · `src/` · `ops/` · `dist/` · `tmp/` · `archive/` | Engineering docs / source / ops and guards / build output / scratch / history |
 | `ai/mail/` | **The inter-seat mail**: `to-<recipient>/from-<sender>.md` holds unread letters only, plus one archive per seat. **Mail carries talk, the ledger carries work** |
+| `ai/advisor/` | **The kickoff advisor library** (FRAME itself): when he starts a project / raises a large requirement / asks "how should this be done", every seat **thinks the plan and the "why" through for him first and raises the dimensions he never mentioned**. Generic principles · a 53-question bank (each with Why ask and a recommendation) · chains · choice cards · domain practice; **looked up as needed, never read whole, not in the opening read**. What is specific to a project lives in `product/requirements/requester-profile.md` (the profile: private, never flows back). The procedure is `ai/rules/requester.md` §4d |
 | `ai/RandD/` | **The workspace of the R&D line** (the extra Researcher seat, see §3): one numbered directory per topic, holding everything not yet settled; empty while the line is not open |
 | `claude-outputs/` | The AI's scratch area: screenshots, measurements, reports, supervisor output |
 
@@ -252,6 +253,7 @@ Rules do not run on good intentions; they run on scripts that can turn red.
 | `check-root.sh` | Every entry at the repo root is on the list, no retired directory name has come back, scratch entries carry a date |
 | `check-filenames.sh` | File names that cannot be created on Windows (they break cross-platform work on the spot) |
 | `check-mail.sh` | The mail has not rotted: unread only · no stale letters · nobody assigning work by mail · one archive per seat per month |
+| `check-advisor.sh` | The advisor library has not decayed (**skips itself when there is none**): every choice card has **Recommendation · Why · Does not apply / Reversible** · every question has **Why ask** and **Recommend** · the profile is **seed** (marking it follow pushes his preferences into the open-source repo) · **no private word leaked into anything synced out** |
 | `check-randd.sh` | The R&D line's structure and indexes (**skips itself when that line is not open**): an `INDEX.md` in each archive dir · live files within their caps · **nine green criteria before anything may be marked graduated** |
 | A few project-specific ones | e.g. frontend cache-busting, source-to-mirror drift, CSS class clashes — **they skip themselves where they do not apply** |
 

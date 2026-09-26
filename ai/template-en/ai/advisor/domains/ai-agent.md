@@ -1,0 +1,17 @@
+# Domain practice: AI assistants and agents
+
+| Dimension | What to do | Why |
+|---|---|---|
+| The assistant is a module | The system assistant and the agent engine are a **replaceable app / module**, not welded into the system | Models and agent frameworks change far too fast |
+| The AI base belongs to the system | The system's AI settings own only: models, skills / MCP indexed by category (a capability registered by an app is one implementation and can be replaced), installing external skills / MCP, knowledge bases, shared directories, usage | Several AI apps share one base instead of each configuring its own |
+| AI is a subject | Its own identity, **not inheriting all of a person's permissions by default**; effective permission = the AI's own ∩ the person it acts for; three tiers: **reading is given · writing asks · dangerous things can only be proposed**, executed under the person's identity after approval, with the audit trail recording "initiated by AI"; enforced at the OS boundary (separate account plus sandbox), never by judging command text | Judging command text can always be talked around; an OS boundary cannot |
+| Self-improvement | signal → reflection → proposal → evaluation → adoption → observation → rollback; 🔴 **only data evolves** (memory, skills, prompts, rules, flows) — **never permissions, system configuration, the judge or the audit trail**; progress is judged on real outcomes; real tasks become evaluation cases | Let it evolve the judge and there is no judge |
+| Orchestration | A declarative flow file that runs as parent and child tasks in the task centre; **a sub-agent's permissions can only narrow**; the agent designs (ReAct / plan-execute-check / state machine / blackboard) are plugins, while tool calls, budgets, cancellation, event streams and run records come from the framework | Swap the agent design without swapping the infrastructure |
+| Small models | Train or wrap small models for the large one to call (packaged as a skill, the way an object-detection model would be) | Cheap, fast, and works offline |
+| Decision models | A small "judge, do not generate" model for intent routing, tool selection, and whether to escalate to the large model | Faster and far fewer tokens |
+| Browser control | An agent turns "everything without an API" into a callable capability through a controlled browser; the adapter is replaceable; confirm the licence when it is unclear | A great many real services have no API |
+| Local models | Managed by you, not dependent on a single tool; a VRAM budget with low-memory / balanced / fast tiers, distinguishing "actually smaller" from "trading speed for it" | User hardware varies enormously |
+| The model gateway | Several models routed by capability, with a default, switchable off, usage visible | Models are replaceable infrastructure |
+| Make it usable by AI | Tools can express "I am not sure"; diagnostic codes and self-check commands; docs retrieved on demand, versioned, in English | What hurts AI most is pretending to be certain |
+| An assistant that travels | Phone / tablet / desktop all talking to the same assistant (same memory, permissions, audit); hand it work while out, come home to it done; each user with their own AI identity; an AI companion that remembers you, is always there, can actually act, and leaves a trail; voice endpoints | An assistant's value is "anywhere, and the same one" |
+| Still usable with AI off | Turn AI off and the product is still complete | AI is an enhancement, not a dependency |

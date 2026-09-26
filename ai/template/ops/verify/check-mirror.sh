@@ -4,9 +4,9 @@
 #       bash ops/verify/check-mirror.sh --accept   把当前的差异记成基线（**只许缩小**）
 # 退出码 0 = 没有新漂移；1 = 有新漂移或基线该收窄；2 = 结构不对。
 #
-# 【为什么要这条】`ai/rules/conventions.md` §四.22 要求「改前端当轮写回 `src/inos/web/` 并镜像到
-# `product/design/prototype/inos/suite/AI-DESKTOP/`」，而**这条规矩从写下那天起没有任何脚本在查**。
-# 开发席 2026-09-16 实测：HEAD 上已经漂了三份（`inos-files.js` -897 行、`inos-voice.js` -162、`inos-ui.js` -105）。
+# 【为什么要这条】有些项目的前端源之外还有一份**原型镜像**（给需求方看的那一份），
+# 规矩要求「改了前端当轮把镜像也抄一遍」，而**这类规矩从写下那天起往往没有任何脚本在查**。
+# 实测过一次：HEAD 上已经漂了三份文件，其中一份少了近九百行，而所有守门都是绿的。
 # **没有守门的规矩等于没有**——这是这套方法自己的判据。
 #
 # 【判的是要保的那件事】判**镜像与源逐字节一致**，不判「有没有人记得抄」。
@@ -18,14 +18,16 @@
 # 存量归零归**审查席**（`product/*` 按 `ai/rules/layout.md` §七 是它的），不是守门的活。
 set -u
 ROOT="$(cd "$(dirname "$0")/../.." && pwd)"; cd "$ROOT" || exit 2
-SRC="${MIRROR_SRC:-src/inos/web}"
-DST="${MIRROR_DST:-product/design/prototype/inos/suite/AI-DESKTOP}"
+# 🔴 **项目专属的路径不许写死在 FRAME 里**（需求方 2026-09-26 拍板：「frame 也应该和具体项目无关」）：
+# 值从 `ops/verify/paths.env` 读（一行一个 `KEY=值`，seed 类：模板里只有注释掉的样例），
+# 也可以用环境变量临时盖过。**没配就跳过并说清怎么配**——不许报红：
+# 一条不适用的守门报红，等于每个新项目开局就带一处假红，而假红的唯一修法是学会忽略它。
+[ -f ops/verify/paths.env ] && . ops/verify/paths.env
+SRC="${MIRROR_SRC:-}"
+DST="${MIRROR_DST:-}"
 BASE="${MIRROR_BASE:-ops/verify/.mirror-baseline}"
-# 【新项目怎么办】这一对路径是项目专属的（本项目：前端源 ↔ 原型镜像）。
-# 两边都不存在就**跳过**，不是报错——**模板里没有镜像对的项目不该被一条不适用的守门拦住**；
-# 要用就在跑的时候给 MIRROR_SRC / MIRROR_DST，或者把默认值改成你项目的那一对。
-if [ ! -d "$SRC" ] || [ ! -d "$DST" ]; then
-  echo "MIRROR-SKIP（没有配置镜像对：$SRC ↔ $DST 不存在；用 MIRROR_SRC / MIRROR_DST 指定）"; exit 0
+if [ -z "$SRC" ] || [ -z "$DST" ] || [ ! -d "$SRC" ] || [ ! -d "$DST" ]; then
+  echo "MIRROR-SKIP（未配置镜像对——在 ops/verify/paths.env 里写 MIRROR_SRC= 与 MIRROR_DST=，或用环境变量）"; exit 0
 fi
 bad=0; drift=""
 

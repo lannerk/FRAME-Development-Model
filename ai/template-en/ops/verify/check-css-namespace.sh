@@ -1,57 +1,64 @@
 #!/usr/bin/env bash
-# check-css-namespace: within one page, two files may not each define the same top-level single-class selector and conflict.
+# check-css-namespace: within one page, two files may not each define the same "top-level single-class"
+# selector in conflicting ways.
 # Usage: bash ops/verify/check-css-namespace.sh
-# Exit codes: 0 = no clash; 1 = a clash that actually overrides; 2 = the structure is wrong.
+# Exit codes: 0 = no collision; 1 = a collision that overrides; 2 = wrong structure.
 #
-# 【为什么要这条】开发席 2026-09-16 报来 B-0003／T-0035 的根因：
-# `inos-files.js` 运行时注入的 CSS 里有一条**没带模块前缀的裸 `.spin`**（给它自己的按钮做边框转圈），
-# 而聊天侧的 `.spin` 只让 SVG 旋转。两条特指度都是 (0,1,0)，**胜负只看文档顺序**，
-# JS 注入的样式永远排在内联 <style> 之后 → 它赢，于是每个 `<svg class="ic spin">` 都被多套一圈 2px 边框。
-# **ui-lint 判令牌、css-inject-check 判有没有注入、web-syntax-check 判语法——三条都不判「注入进来的类名会不会撞掉别人的」**，
-# 所以这个 bug 从写下那天起一直绿着，是需求方肉眼看出来的。
+# [Why this exists] A measured bug: one module's runtime-injected CSS contained a **bare class selector
+# with no module prefix** (spinning a border on its own button), while another place defined the same
+# class to spin an icon. Both have the same specificity, so **document order decides**, and JS-injected
+# styles always come after the inline <style> -- so it won, and every icon using that class gained an
+# extra border. **The guard for tokens, the guard for whether CSS is injected and the guard for syntax
+# all fail to test "can an injected class name override someone else's"**, so that bug stayed green
+# until the Requester spotted it with his own eyes.
 #
-# 【判的是要保的那件事】不判「文本里有没有 .spin」，判：
-#   **同一份文档里，两个文件各自定义了同一个顶层单类选择器，且后者的声明块不是前者的子集。**
-#   · 「同一份文档」＝ index.html 的内联 <style> ＋ 它 <script src> 进来的每个模块注入的 CSS；
-#     installer/setup/login 是**另外的页面**，不一起判（否则 8 条假红）。
-#   · 「顶层单类」＝ 选择器只有一个类、没有后代/组合（`.pill.busy`、`.fx-item .fx-badge` 是有意扩写，不报）。
-#   · 「子集」＝ 后者的每条声明在前者里都有且值相同（`.iu-spin` 那种两份写重复的，只是该合并，不报红）。
+# [What is actually tested] Not "does the text contain that class", but:
+#   **within one document, two files each define the same top-level single-class selector, and the
+#   later one's declaration block is not a subset of the earlier one's.**
+#   . "One document" = that page's inline <style> plus the CSS injected by each module it pulls in via
+#     <script src>; other pages are **tested separately** (mixing them produced 8 false reds in practice).
+#   . "Top-level single class" = a selector with one class and no descendant/combinator
+#     (`.pill.busy` and `.a .b` are deliberate extensions, not reported).
+#   . "Subset" = every declaration of the later one exists in the earlier one with the same value
+#     (two copies of the same thing should merely be merged, so it is not red).
 set -u
 ROOT="$(cd "$(dirname "$0")/../.." && pwd)"; cd "$ROOT" || exit 2
-WEB="${CSSNS_WEB:-src/inos/web}"
+# 🔴 **A project-specific path may never be hard-coded into FRAME** (the Requester's ruling of
+# 2026-09-26): the values come from `ops/verify/paths.env` (class seed; the template ships commented
+# samples). All three optional front-end guards behave the same way: **unconfigured means SKIP**, not red
+# (measured: when only this one went red, every freshly distributed project started with a false red,
+# and the only cure for a false red is learning to ignore it).
+[ -f ops/verify/paths.env ] && . ops/verify/paths.env
+WEB="${CSSNS_WEB:-${CACHEBUST_WEB:-}}"
 PAGE="${CSSNS_PAGE:-index.html}"
-# 【New project】No front-end directory means **skip**, not an error -- the three optional checks must behave
-# the same way (`check-mirror` and `check-cachebust` both SKIP; this one alone went red, so every new project
-# started with a false red; measured on the first distribution to two consumer projects).
-[ -d "$WEB" ] || { echo "CSS-NS-SKIP (no $WEB; set CSSNS_WEB / CSSNS_PAGE)"; exit 0; }
-[ -f "$WEB/$PAGE" ] || { echo "CSS-NS-SKIP ($WEB has no $PAGE)"; exit 0; }
-command -v node >/dev/null 2>&1 || { echo "node is missing, skipping (install it in CI)"; exit 0; }
+[ -n "$WEB" ] && [ -d "$WEB" ] || { echo "CSS-NS-SKIP (no front end configured -- set CSSNS_WEB= or CACHEBUST_WEB= in ops/verify/paths.env)"; exit 0; }
+[ -f "$WEB/$PAGE" ] || { echo "CSS-NS-SKIP (there is no $PAGE under $WEB)"; exit 0; }
+command -v node >/dev/null 2>&1 || { echo "node is not installed, skipping (install it on CI)"; exit 0; }
 
 node - "$WEB" "$PAGE" <<'JS'
 const fs = require('fs'), path = require('path');
 const [web, page] = process.argv.slice(2);
 const html = fs.readFileSync(path.join(web, page), 'utf8');
-
-// 这一页真正会加载的模块：<script src="xxx.js">
-// 【坑】真实的 src 带缓存参数（`inos-files.js?v=d96`），第一版正则要求 `.js` 紧跟引号，一个模块都没匹配到
-//（跑出来「1 个来源」就是这个原因——**空扫却报绿，典型的假绿**，所以这里顺手多打一行来源数）。
+// The modules this page actually loads: <script src="xxx.js">
+// [Trap] Real src attributes carry a cache parameter (`app-files.js?v=d96`). The first version of this
+// regex required `.js` right before the quote and matched not one module -- it printed "1 source" and
+// still reported green: **an empty scan reporting green is the classic false green**, which is why the
+// number of sources is printed as well.
 const mods = [...html.matchAll(/<script[^>]*\bsrc\s*=\s*["']([^"'?]+\.js)(?:\?[^"']*)?["']/gi)].map(m => m[1]);
-// 这一页自己的内联 <style>
+// This page's own inline <style>
 const inline = [...html.matchAll(/<style[^>]*>([\s\S]*?)<\/style>/gi)].map(m => m[1]).join('\n');
-
 const sources = [{ file: page, css: inline }];
 for (const m of mods) {
   const p = path.join(web, m);
   if (!fs.existsSync(p)) continue;
   const js = fs.readFileSync(p, 'utf8');
-  // 模块注入的 CSS：模板字符串里带 { } 的那几段（ensureCSS/textContent = CSS 这类）
+  // CSS injected by a module: template literals containing { } (ensureCSS / textContent = CSS and friends)
   for (const lit of js.match(/`[^`]*`/g) || []) {
     const body = lit.slice(1, -1);
     if (/\{[^}]*:[^}]*\}/.test(body) && /(^|\n)\s*\.[A-Za-z_-]/.test(body)) sources.push({ file: m, css: body });
   }
 }
-
-// 只取「顶层单类」规则：^.cls { ... }
+// Only "top-level single class" rules: ^.cls { ... }
 const rules = [];   // {cls, file, decls:Map}
 for (const s of sources) {
   const css = s.css.replace(/\/\*[\s\S]*?\*\//g, '');
@@ -65,37 +72,33 @@ for (const s of sources) {
     if (decls.size) rules.push({ cls, file: s.file, decls });
   }
 }
-
 const byCls = new Map();
 for (const r of rules) { if (!byCls.has(r.cls)) byCls.set(r.cls, []); byCls.get(r.cls).push(r); }
-
 let bad = 0;
 for (const [cls, list] of byCls) {
   const files = [...new Set(list.map(r => r.file))];
-  if (files.length < 2) continue;                      // 同一个文件里写两次不是撞名
-  // 后者（文档顺序靠后）的声明是不是前者的子集
+  if (files.length < 2) continue;                      // twice in one file is not a collision
+  // Is the later one's declaration set a subset of the earlier one's?
   const first = list[0], last = list[list.length - 1];
   let subset = true;
   for (const [k, v] of last.decls) if (first.decls.get(k) !== v) { subset = false; break; }
-  if (subset) continue;                                // 内容重复而已，不会改变渲染
+  if (subset) continue;                                // merely duplicated, rendering unchanged
   const extra = [...last.decls].filter(([k, v]) => first.decls.get(k) !== v).map(([k, v]) => `${k}:${v}`);
-  console.log(`  ✗  .${cls} 被两个文件各自定义，后者会盖掉前者：${files.join(' vs ')}`);
-  console.log(`     后者多出来/改掉的声明：${extra.slice(0, 4).join('; ')}`);
-  console.log(`     改法：给模块自己的那条加模块前缀（例如 .${cls} → .dk-${cls}），别占用公共类名`);
+  console.log(`  x  .${cls} is defined by two files and the later one overrides the earlier: ${files.join(' vs ')}`);
+  console.log(`     what the later one adds or changes: ${extra.slice(0, 4).join('; ')}`);
+  console.log(`     the fix: give the module's own rule a module prefix (.${cls} -> .mod-${cls}); do not occupy a shared class name`);
   bad++;
 }
-
 if (bad) {
-  console.log('');
-  console.log(`CSS-NS-FAIL（${bad} 处撞名）`);
-  console.log('  判的是「同一份文档里两个文件定义同一个顶层单类、且后者不是前者的子集」——');
-  console.log('  有意扩写（.pill.busy / .a .b）和内容完全重复的不报。');
+  console.log(`CSS-NS-FAIL (${bad} collisions)`);
+  console.log('  The test is "within one document two files define the same top-level single class, and the later is not a subset of the earlier" --');
+  console.log('  deliberate extensions (.pill.busy / .a .b) and exact duplicates are not reported.');
   process.exit(1);
 }
 if (sources.length < 2) {
-  console.log(`  \u2717  只扫到 ${sources.length} 个来源（内联 <style> 都算上）——模块 CSS 一个都没抓到，这是空扫，不是绿`);
-  console.log(`     检查 <script src> 的匹配（真实的 src 带 ?v= 缓存参数）或模块注入 CSS 的写法`);
+  console.log(`  x  only ${sources.length} source(s) found (inline <style> included) -- not one module's CSS was picked up; that is an empty scan, not a green`);
+  console.log(`     check the <script src> match (real src attributes carry a ?v= cache parameter) or how the module injects its CSS`);
   process.exit(1);
 }
-console.log(`CSS-NS-OK（${page} 这一页：${sources.length} 个来源、${byCls.size} 个顶层单类，没有互相覆盖的）`);
+console.log(`CSS-NS-OK (page ${page}: ${sources.length} sources, ${byCls.size} top-level single classes, none overriding another)`);
 JS

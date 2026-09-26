@@ -70,9 +70,11 @@ role_of() { local r; r="$(conf_get "$1" role)"; [ -n "$r" ] && { echo "$r"; retu
   if [ -d "$1/ai/template" ] && [ ! -d "$1/src" ]; then echo home
   elif [ -d "$1/ai/template" ]; then echo host; else echo consumer; fi; }
 # Where FRAME lives in a repo: the template directory if it has one, otherwise the project root
-# 🔴 一个仓库可能有两份模板（中文／英文）。**一次只同步一份**，用 FRAME_TEMPLATE 指定另一份：
+# 🔴 A repository may hold two templates (Chinese / English). **Sync one at a time**, naming the other
+# with FRAME_TEMPLATE:
 #   FRAME_TEMPLATE=ai/template-en bash ops/frame/frame-sync.sh --sync
-# 不做成「一次跑两份」是因为指纹、基线、版本号都是按一份算的，混在一起就说不清谁跟谁一致。
+# It is not "both in one run" because the fingerprint, the baseline and the version are each computed per
+# template; mixed together, nothing can say which side matches which.
 base_of() { if [ "$2" = consumer ]; then echo "$1"; else
   local t; t="${FRAME_TEMPLATE:-$(conf_get "$1" template)}"; echo "$1/${t:-ai/template}"; fi; }
 
@@ -208,7 +210,7 @@ foreign_dirty() { # foreign_dirty <repo> <baseline file (ignored, see below)> <t
   declare -A B=()
   for blf in "$SRC"/ops/frame/.baseline*; do
     [ -f "$blf" ] || continue
-    sfx="${blf##*/.baseline}"                       # "" 或 "-template-en"
+    sfx="${blf##*/.baseline}"                       # "" or "-template-en"
     # 🔴 The unsuffixed baseline belongs to the **default template** (`template=` in the conf), not to the current run --
     # computing its prefix from the current run makes every file the other run wrote mismatch, so it becomes "someone else's" (measured).
     if [ -n "$sfx" ]; then pfx2="ai/${sfx#-}"
@@ -233,7 +235,13 @@ foreign_dirty() { # foreign_dirty <repo> <baseline file (ignored, see below)> <t
     # 🔴 `ai/FRAME-VERSION` is written by this mechanism itself (the file says "never hand-edit"),
     # it is a seed file that never enters the baseline, so it cannot be recognized as ours; counting it as someone
     # else's would block the next sync, and hand-edits to it are pointless -- the next `--stamp` overwrites it.
+    # 🔴 The same reasoning covers `ops/frame/.baseline*`: **they are this mechanism's own bookkeeping too**
+    # (measured 2026-09-26: after the session path was stripped from the source baseline's header, this check
+    # called it "someone else's uncommitted change" and refused to sync -- while that very edit existed to keep
+    # a session path out of a public repository). The test is "do not get tangled in someone else's work", and
+    # the mechanism's own bookkeeping is not someone else's work.
     case "$f" in */ai/FRAME-VERSION|ai/FRAME-VERSION) continue;; esac
+    case "$f" in */ops/frame/.baseline*|ops/frame/.baseline*) continue;; esac
     f="${f%\"}"; f="${f#\"}"
     cur="$(h "$R/$f")"
     case " ${B[$f]:-} " in *" $cur "*) continue;; esac   # matches any baseline = written by us in some run
@@ -404,7 +412,10 @@ if [ "$DIST" != 1 ] && { [ "$MODE" = sync ] || [ "$MODE" = adopt ]; }; then
 
   if [ "$MODE" = adopt ]; then
     mkdir -p "$(dirname "$BL")"
-    { echo "# adopt: taking what both sides look like now as the baseline  $(date +%F)  source=$HOME_REPO"
+# 🔴 **The baseline header records the repository's name, never an absolute path**: a cloud session's mount path
+# carries a session id that means nothing once it ends, and this file gets committed into a **public repository**
+# (the same lesson as `synced_with`, which leaked once).
+    { echo "# adopt: taking what both sides look like now as the baseline  $(date +%F)  source=$(basename "$HOME_REPO")"
       echo "# one line each: <content sha256> <relative path>. 🔴 adopt accepts the current state as correct -- look before you adopt."
       LC_ALL=C sort -u "$TMPBL"; } > "$BL"
     echo "  ✅ baseline recorded: ${BL#$SRC/} ($(grep -vc '^#' "$BL") entries)"
@@ -455,8 +466,8 @@ if [ "$DIST" != 1 ] && { [ "$MODE" = sync ] || [ "$MODE" = adopt ]; }; then
     [ "$NFP" = "$NHFP" ] || echo "  ⚠️ the fingerprints still differ -- usually seed files kept as-is (normal), or a difference nobody handled."
     echo "  next (for a human): bump the version -> write ai/FRAME-VERSION on both sides -> one maintenance-log line each -> commit the source repo and push it to GitHub."
   fi
-  # 铁律 5：重记基线
-  { echo "# re-recorded after apply  $(date +%F)  source=$HOME_REPO"
+  # Iron rule 5: re-record the baseline
+  { echo "# re-recorded after apply  $(date +%F)  source=$(basename "$HOME_REPO")"
     # 🔴 Root files go into the baseline too: without them the next run has nothing to judge "who changed these"
     # against, and since this run just projected them, it would read them as someone else's (measured).
     while IFS= read -r mline; do
@@ -575,7 +586,7 @@ for T in "${TARGETS[@]}"; do
   [ ${#G[@]} -gt 0 ] && { echo "  -- dropped in the source (🔴 never deleted automatically; confirm yourself) --"; printf '    ? %s\n' "${G[@]}" | head -20; }
   if [ "$APPLY" = 1 ] || [ "$MODE" = adopt ]; then
     mkdir -p "$(dirname "$BL")"
-    { echo "# synced from $SROLE $SRC  commit=$(cd "$SRC" && git rev-parse --short HEAD 2>/dev/null || echo -)  version=$(ver_read "$SRC" "$SROLE")  $(date +%F)"
+    { echo "# synced from $SROLE $(basename "$SRC")  commit=$(cd "$SRC" && git rev-parse --short HEAD 2>/dev/null || echo -)  version=$(ver_read "$SRC" "$SROLE")  $(date +%F)"
       echo "# one line each: <content sha256> <relative path>; ROOT:<name> is a root-file mapping"
       LC_ALL=C sort -u "$TMP"; } > "$BL"
     echo "  ✅ baseline recorded: ${BL#$T/}"

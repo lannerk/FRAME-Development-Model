@@ -23,6 +23,11 @@ follow  ai/mail/README.md
 follow  ai/bugs/README.md
 follow  ai/RandD/README.md
 follow  ai/glossary.md
+# 🔴 The kickoff advisor library is FRAME itself (the Requester ruled on 2026-09-26: "with the brand
+# names stripped, the whole thing goes into the open source"): it holds **generic judgements** that need
+# not change on another project; project-specific rulings live in the profile, which is seed (below).
+follow  ai/advisor/*.md
+follow  ai/advisor/domains/*.md
 follow  claude-outputs/README.md
 follow  docs/guide/*.md
 # 🔴 版本文件**不跟着拷**：它两边按定义就不一样（各自的 fingerprint、各自的 synced_with），
@@ -32,7 +37,10 @@ seed    ai/FRAME-VERSION
 # ── 守门与工具（源变了必须跟，否则判据两套）──
 follow  ai/check-links.sh
 follow  ai/frame-manifest.txt
-follow  ai/.linkcheck-ignore
+# 🔴 The link allowlist and the mirror baseline hold **this project's own** historical paths and backlog, none of
+# which hold on another project: they are **project content (seed / skip)**, not FRAME itself (follow would push one
+# project's history onto every project).
+seed    ai/.linkcheck-ignore
 follow  ops/verify/*.sh
 follow  ops/scripts/*.sh
 follow  ops/frame/*.sh
@@ -52,7 +60,14 @@ skip    ops/frame/targets.txt
 skip    ops/frame/.baseline
 skip    ops/verify/.sync-state
 skip    ops/verify/.template-baseline
+skip    ops/verify/.mirror-baseline
 skip    ops/verify/.rootcheck-allow
+# 🔴 The private-word list **is itself private**: syncing the words you are hiding into a public
+# repository points them out to everyone.
+# 🔴 Project-specific paths and prefixes (for the optional front-end guards): **seed, never overwritten by a sync**
+# -- FRAME itself may not hard-code any project's directory names.
+seed    ops/verify/paths.env
+skip    ops/verify/.private-words
 
 # ── 🔴 明确留 seed 的几处（虽然默认已是 seed，写出来是为了让人看见）──
 seed    CLAUDE.md
@@ -68,6 +83,10 @@ seed    ai/specs/index.md
 seed    ai/bugs/index.md
 seed    ai/mail/to-*/from-*.md
 seed    product/requirements/inbox.md
+# 🔴 **The Requester's profile is always seed**: it holds his preferences and the sources of his own
+# words, and **marking it follow would push it back into the open-source repository** -- a leak that
+# cannot be undone (`ops/verify/check-advisor.sh` tests this line). The template ships an empty skeleton.
+seed    product/requirements/requester-profile.md
 
 # ── 🔴 角色限定：<模式>@<目标角色>，只对该类目标生效 ──
 # 目标是 home/host 时，落点是它的「模板目录」，那里的 README / SYNC.md / gitignore.template

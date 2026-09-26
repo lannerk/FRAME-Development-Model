@@ -49,6 +49,8 @@ echo
 [ -x ops/verify/check-template-sync.sh ]  && run "模板同步"     bash ops/verify/check-template-sync.sh
 [ -x ops/verify/check-cachebust.sh ]     && run "前端缓存串"   bash ops/verify/check-cachebust.sh
 [ -x ops/verify/check-randd.sh ]         && run "R&D 线"         bash ops/verify/check-randd.sh
+[ -x ops/verify/check-advisor.sh ]       && run "开场顾问"      bash ops/verify/check-advisor.sh
+[ -x ops/verify/check-debrand.sh ]       && run "去品牌  "      bash ops/verify/check-debrand.sh
 
 echo
 if [ "$fail" -gt 0 ]; then

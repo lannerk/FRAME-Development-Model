@@ -40,7 +40,7 @@ while IFS= read -r f; do
     d="$(dirname "$f")"
     # 一个引用在这三种基准下任意一处存在就算指得到：
     #  ① 仓库根（文档里最常见）②源码根 src/（web/… internal/… 这类）③引用它的文件自己所在目录
-    if [ ! -e "$p" ] && [ ! -e "src/$p" ] && [ ! -e "src/inos/$p" ] && [ ! -e "$d/$p" ]; then
+    if [ ! -e "$p" ] && [ ! -e "src/$p" ] && [ ! -e "${LINKCHECK_SRC:-src/_}/$p" ] && [ ! -e "$d/$p" ]; then
       echo "断链  $f  ->  $p"
     fi
   done

@@ -23,6 +23,10 @@ follow  ai/mail/README.md
 follow  ai/bugs/README.md
 follow  ai/RandD/README.md
 follow  ai/glossary.md
+# 🔴 开场顾问库是 FRAME 本体（需求方 2026-09-26 拍板「去掉品牌名后整套放进开源」）：
+# 它是**通用判断**，换个项目一字不改；项目专属的定法在画像里，画像是 seed（见下）。
+follow  ai/advisor/*.md
+follow  ai/advisor/domains/*.md
 follow  claude-outputs/README.md
 follow  docs/guide/*.md
 # 🔴 版本文件**不跟着拷**：它两边按定义就不一样（各自的 fingerprint、各自的 synced_with），
@@ -32,7 +36,9 @@ seed    ai/FRAME-VERSION
 # ── 守门与工具（源变了必须跟，否则判据两套）──
 follow  ai/check-links.sh
 follow  ai/frame-manifest.txt
-follow  ai/.linkcheck-ignore
+# 🔴 引用白名单与镜像基线里放的是**这个项目自己的**历史路径与存量，换个项目一条都不成立：
+# 它们是**项目内容（seed／skip）**，不是 FRAME 本体（follow 会把一个项目的历史推给所有项目）。
+seed    ai/.linkcheck-ignore
 follow  ops/verify/*.sh
 follow  ops/scripts/*.sh
 follow  ops/frame/*.sh
@@ -52,7 +58,12 @@ skip    ops/frame/targets.txt
 skip    ops/frame/.baseline
 skip    ops/verify/.sync-state
 skip    ops/verify/.template-baseline
+skip    ops/verify/.mirror-baseline
 skip    ops/verify/.rootcheck-allow
+# 🔴 私有词清单**自己就是私有的**：把「要藏的词」同步进开源仓库，等于把它们指给别人看。
+# 🔴 项目专属的路径与前缀（前端类守门用）：**seed，同步永不覆盖**——FRAME 本体不许写死某个项目的目录名。
+seed    ops/verify/paths.env
+skip    ops/verify/.private-words
 
 # ── 🔴 明确留 seed 的几处（虽然默认已是 seed，写出来是为了让人看见）──
 seed    CLAUDE.md
@@ -68,6 +79,9 @@ seed    ai/specs/index.md
 seed    ai/bugs/index.md
 seed    ai/mail/to-*/from-*.md
 seed    product/requirements/inbox.md
+# 🔴 **需求方画像永远是 seed**：里面是他的偏好与原话出处，**标成 follow 就会把它推回开源仓库**，
+# 而那种泄露不可逆（`ops/verify/check-advisor.sh` 判这一行）。模板里只给空骨架。
+seed    product/requirements/requester-profile.md
 
 # ── 🔴 角色限定：<模式>@<目标角色>，只对该类目标生效 ──
 # 目标是 home/host 时，落点是它的「模板目录」，那里的 README / SYNC.md / gitignore.template

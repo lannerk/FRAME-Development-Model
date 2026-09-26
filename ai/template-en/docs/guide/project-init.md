@@ -256,6 +256,8 @@ Produce a **migration mapping table**: **old path → new path**, or "not migrat
 | 9 | **Delete `SYNC.md`** | It is for maintaining the template, not a part of the project |
 | 10 | `ai/frame-repo.conf` | **This one file is how the project keeps up with FRAME later**: `role=` (`consumer` for a project that carries no templates) · `home=` (where the FRAME source repo sits on this machine; when it sits **next to** this project, `../FRAME-Development-Model` is enough) · `push=` (**write `no` if you have no commit rights on the source** = pull-only; with no line the role decides, consumer=no). Then record a baseline: `bash ops/frame/frame-sync.sh --adopt-mine` (it records "this project as it is now", so later source changes count as "the source changed it" → they get pulled in). Skip this and catching up later means comparing files by hand — the procedure is in `docs/guide/frame-sync.md` §5 |
 
+| 11 | `product/requirements/requester-profile.md` | **Walk `ai/advisor/questions.md`** (≤ 4 questions per pop-up round, only what genuinely needs his ruling) and write the answers as profile v0.1. 🔴 **This step is the kickoff advisor's first run** (`ai/rules/requester.md` §4d): the dimensions he never mentioned — internationalization, compatibility with what exists, secrets, AI, licences — **you raise on purpose**, each with its cost and a marked recommendation; if he is not technical, spell out the consequence in plain words. **Ask before you build.** |
+
 Everything else (`ai/roles/*`, `ai/rules/{workflow,layout}.md`, each directory's README) **works without being changed**.
 
 > **After item 8, `ai/frame-manifest.txt` no longer matches this repo one to one — that is normal.**

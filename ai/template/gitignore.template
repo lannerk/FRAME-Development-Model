@@ -21,8 +21,8 @@
 
 # ---- 构建产物 ----
 # ⚠️ **不要在这里写裸的二进制名或裸的扩展名。** 迁移当天的真事：
-#    `inos-installer*` 把源码目录 `src/inos/cmd/inos-installer/` 整个吞了（10 个 .go + 页面 + 素材），
-#    `inosd` 吞了 `cmd/inosd/main.go`，`*.tgz` 吞了两个 vendored 依赖（vditor / plymouth assets）。
+#    一条裸名规则（`<产品>-installer*` 这种）把源码目录 `src/<产品>/cmd/<产品>-installer/` 整个吞了（10 个 .go + 页面 + 素材），
+#    一条裸名规则吞了 `cmd/<二进制名>/main.go`，`*.tgz` 吞了两个 vendored 依赖（vditor / plymouth assets）。
 #    一共 14 个源码文件被静默排除在 git 之外，**没有任何症状**，是 `git ls-files --others --ignored` 才查出来的。
 # 规矩：产物一律放 `dist/`（整个目录已忽略），靠**位置**区分产物与源码，不靠名字。
 *.iso
@@ -60,7 +60,7 @@ Claude outputs/
 
 # ── R&D 线的实验目录（ai/RandD/<话题>/lab/<实验>/）────────────────────────────
 # 依赖清单（package.json / go.mod / requirements.txt）**入库**，装出来的东西不入库。
-# 🔴 全部写**带路径**的规则，绝不用裸名：裸名 `inosd` 曾经无声吞掉 14 个源码文件。
+# 🔴 全部写**带路径**的规则，绝不用裸名：一条裸名规则曾经无声吞掉 14 个源码文件。
 # 这是对「只有 tmp/ 和 dist/ 不入库」的一条**事先定好的显式例外**，不是造完再回来补。
 ai/RandD/*/lab/*/node_modules/
 ai/RandD/*/lab/*/venv/

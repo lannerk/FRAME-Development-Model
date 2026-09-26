@@ -63,7 +63,7 @@ for f in "$D"/to-*/from-*.md; do
   [ -f "$f" ] || continue
   recv=$(basename "$(dirname "$f")"); recv=${recv#to-}
   sender=$(basename "$f" .md); sender=${sender#from-}
-  # 研究席的投递口只许配监督席
+  # the Researcher's drop-boxes may only pair with the peers listed above
   if [ "$recv" = "$RND_SEAT" ] || [ "$sender" = "$RND_SEAT" ]; then
     other="$sender"; [ "$sender" = "$RND_SEAT" ] && other="$recv"
     case " $RND_PEERS " in
@@ -140,7 +140,7 @@ for f in "$D"/to-*/from-*.md; do
       # inside a CJK filename -- **truncating the path into a name that does not exist and reporting a false red**
       # (measured and reported by the Supervisor seat on 2026-09-15). **Use sed, which works on characters.**
       for pth in $(printf '%s' "$where" | sed 's/[`·,]/ /g' | grep -oE '[A-Za-z0-9_./-]+/[^[:space:]]+' || true); do
-        # 【判文件在不在，不判后面挂了什么】A letter often writes `ai/rules/laws.md:33` to point at a line.
+        # [Test that the file exists, not what is appended] A letter often writes `ai/rules/laws.md:33` to point at a line.
         # What must hold is that **the file still exists**; the line number is not part of the path.
         # Without stripping it every such reference goes falsely red, and the only way to clear a false red
         # would be to drop the line number — **a rule that forces people to write less precisely**.

@@ -49,6 +49,8 @@ echo
 [ -x ops/verify/check-template-sync.sh ]  && run "template sync"  bash ops/verify/check-template-sync.sh
 [ -x ops/verify/check-cachebust.sh ]     && run "web cache-bust"  bash ops/verify/check-cachebust.sh
 [ -x ops/verify/check-randd.sh ]         && run "R&D line"       bash ops/verify/check-randd.sh
+[ -x ops/verify/check-advisor.sh ]       && run "kickoff advisor" bash ops/verify/check-advisor.sh
+[ -x ops/verify/check-debrand.sh ]       && run "de-branding   " bash ops/verify/check-debrand.sh
 
 echo
 if [ "$fail" -gt 0 ]; then

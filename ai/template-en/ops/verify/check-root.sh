@@ -4,17 +4,20 @@
 # Exit codes: 0 = clean; 1 = an item outside the list, or a name that breaks the rule; 2 = the structure is wrong.
 #
 # [Why this exists] Measured by the Supervisor seat on 2026-09-16: **the old scratch-area name came back as a real directory
-# 而且已经提交进库**，十条守门没有一条出声。原因是当时所有守门都只判「脚本/文档里提到旧名字」，
-# **判的是别人提到它，不是它存不存在**——又一次判文本影子。
-# 同一轮开发席也报来：模板教人在仓库根建 `.ps1` 薄壳，与 `layout.md` §一 的顶层清单直接打架，
-# 本项目照着长出了四个（`6212162`）。**两件事合起来说明：根目录从来没有守门。**
+# and had already been committed**, and not one of the ten guards said a word. Every guard at the time only tested
+# "does a script or doc mention the old name" -- **testing that someone mentions it, not that it exists**: testing a
+# shadow again. In the same round it turned out a doc was teaching people to put thin `.ps1` shells at the repo root,
+# in direct conflict with the top-level list in `layout.md` §1, and one project really did grow four of them.
+# **Together the two say: the root directory never had a guard.**
 #
-# 【判三条】
-#   ① **仓库根的每一项（文件和目录）都必须在 `ai/rules/layout.md` §一 的顶层表里**——
-#      判据的唯一出处是那张表（和预算表、归属表同一个规矩：不许在脚本里另抄一份）。
-#   ② **旧名字不许作为真实路径存在**（不只是别写进脚本）。
-#   ③ **`claude-outputs/<席>/` 下的一级条目必须以 `YYYY-MM-DD-` 开头**（`claude-outputs/README.md` 的命名规矩，
-#      原来只写在文档里没人守）。豁免写在 `ops/verify/.rootcheck-allow`，一行一条，**显式豁免，不用「以后注意」**。
+# [Three tests]
+#   (1) **Every entry at the repo root (files and directories) must be in the top-level table of
+#      `ai/rules/layout.md` §1** -- that table is the single source of the criterion (the same rule as the budget and
+#      ownership tables: never copy a second list into a script).
+#   (2) **An old name may not exist as a real path** (not merely: do not write it in a script).
+#   (3) **Every first-level entry under `claude-outputs/<seat>/` must start with `YYYY-MM-DD-`** (the naming rule in
+#      `claude-outputs/README.md`, which used to live only in a doc with nothing enforcing it). Exemptions go in
+#      `ops/verify/.rootcheck-allow`, one per line -- **an explicit exemption, never "be careful next time"**.
 set -u
 # 🔴 **A read-only git call must never create an index.lock** (root cause reported by the Supervisor
 # 2026-09-24, hit twice for real): the local Cowork workspace has **no delete permission by default**,
@@ -39,8 +42,8 @@ ignored() { git check-ignore -q -- "$1" 2>/dev/null; }
 tracked() { git ls-files --error-unmatch -- "$1" >/dev/null 2>&1; }
 skip()    { tracked "$1" && return 1; ignored "$1"; }
 
-# ---- ① 根白名单：从 layout.md §一 的表里读 ----
-# 表行形如：| `ai/` | 放什么 | 谁写 | 入库 |  或 | `CLAUDE.md` | … |
+# ---- (1) the root allowlist: read from the table in layout.md §1 ----
+# A table row looks like: | `ai/` | what goes in | who writes | committed |   or   | `CLAUDE.md` | ... |
 WL=$(awk '/^## 1\. Top level/{f=1} f && /^## 2\./{exit} f && /^\|/ {
       line=$0; sub(/^\|[[:space:]]*/, "", line); sub(/[[:space:]]*\|.*$/, "", line);
       gsub(/`/, "", line); gsub(/\*\*/, "", line);
@@ -61,8 +64,8 @@ for e in * .[!.]*; do
   bad=$((bad+1))
 done
 
-# ---- ② 旧名字不许作为真实路径存在 ----
-# 【和 check-paths.sh 的分工】那一条判「脚本/文档里写着旧名字」，这一条判「旧名字真的存在」。
+# ---- (2) an old name may not exist as a real path ----
+# [Division of labour with check-paths.sh] That one tests "a script or doc writes the old name"; this one tests "the old name really exists".
 OLD='Claude outputs|SourceCode|_transfer|_to_delete'
 while IFS= read -r p; do
   [ -n "$p" ] || continue
@@ -72,9 +75,9 @@ while IFS= read -r p; do
 done < <(find . -maxdepth 3 \( -path ./.git -o -path ./archive -o -path ./tmp -o -path ./dist \) -prune -o \
           -print 2>/dev/null | sed 's#^\./##' | grep -E "(^|/)($OLD)(/|$)" | LC_ALL=C sort -u)
 
-# ---- ③ claude-outputs 命名：一级条目必须带日期 ----
-# 【不追溯】按 `ai/rules/workflow.md` §三之三：新判据不回头打旧交付。
-# 判的是**这一项什么时候进的库**（git 首次加入的提交时间，不是 mtime —— mtime 在 clone 后全失效）。
+# ---- (3) claude-outputs naming: a first-level entry must carry a date ----
+# [No retroactivity] Per `ai/rules/workflow.md` §3c: a new criterion does not go back and fail older deliverables.
+# The test is **when this entry entered the repository** (the commit time it was first added, not mtime -- a clone resets mtime).
 SINCE="${ROOTRULES_SINCE:-2026-09-16}"
 added_at() { git log --diff-filter=A --format=%cI -- "$1" 2>/dev/null | tail -1 | cut -c1-10; }
 note(){ echo "  ·  $* (pre-existing, no retroactive effect per §3c)"; }
@@ -96,7 +99,7 @@ done
 for d in claude-outputs/*/; do
   [ -d "$d" ] || continue
   case "$(basename "$d")" in developer|reviewer|supervisor|maintainer) ;; *) continue;; esac
-  case "$d" in claude-outputs/shared/) continue;; esac   # shared/ 下是固定三个子目录，单独看
+  case "$d" in claude-outputs/shared/) continue;; esac   # shared/ holds a fixed set of subdirectories, looked at separately
   for e in "$d"*; do
     [ -e "$e" ] || continue
     b=$(basename "$e")
@@ -109,7 +112,7 @@ for d in claude-outputs/*/; do
     # So: **a first-level entry that is a directory containing `README.md` counts as compliant**, and its files are not date-checked.
     [ -d "$e" ] && [ -f "$e/README.md" ] && continue
     a=$(added_at "$e")
-    if [ -n "$a" ] && [ "$a" \< "$SINCE" ]; then note "$e 命名不带日期（$a 入库）"; continue; fi
+    if [ -n "$a" ] && [ "$a" \< "$SINCE" ]; then note "$e has no date in its name (entered the repo $a)"; continue; fi
     echo "  x  scratch-area name breaks the rule (it must be <date>-<one line>): $e"; bad=$((bad+1))
   done
 done

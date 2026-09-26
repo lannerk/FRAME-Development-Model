@@ -4,11 +4,11 @@
 #       bash ops/verify/check-cachebust.sh --fix    就地改对（和 check-template-sync --accept 一个形状）
 # 退出码 0 = 干净；1 = 有对不上的；2 = 结构不对。
 #
-# 【为什么要这条】`index.html` 里每个 `inos-*.js` 后面挂一个 `?v=<号>`，用来让浏览器丢掉缓存。
-# 改了 js **不改这个号**，浏览器就一直用旧文件——**推上去了但没生效**：
+# 【为什么要这条】页面里每个脚本后面挂一个 `?v=<号>`，用来让浏览器丢掉缓存。
+# 改了脚本**不改这个号**，浏览器就一直用旧文件——**推上去了但没生效**：
 # 文件确实换了、sha 对得上、日志也正常，是最难查的一类。
-# 开发席第八段（存储页横幅推上去就是不出现）、第九段连报两次，`conventions.md` §四 21 条
-# 从写下那天起**只是一句靠人记的话，没有任何脚本在查**。没有守门的规矩等于没有。
+# 实测连报两次（改了的界面推上去就是不出现），而当时那条规矩
+# **只是一句靠人记的话，没有任何脚本在查**。没有守门的规矩等于没有。
 #
 # 【判的是要保的那件事】判**版本串 ＝ 该文件内容的指纹**，不判「号码有没有往上加」。
 # 人不再编号，也就没有"忘了改"这回事。指纹 ＝ sha256 前 8 位小写十六进制。
@@ -16,24 +16,28 @@
 # 【三种都要说话，别只查一半】
 #   ① 版本串和内容对不上（最常见的那一种：改了 js 忘了改号）；
 #   ② 引用了一个**不存在**的 js（打错名字 / 文件删了没删引用）；
-#   ③ 有 `inos-*.js` 但 `index.html` **一处都没引用**（加了文件忘了挂上去）；
+#   ③ 有这一族脚本但页面**一处都没引用**（加了文件忘了挂上去）；
 #   ④ 引用了但**连 `?v=` 都没有**——那等于永远不失效，和 ① 是同一个坑。
 #
-# 【镜像那一份】`product/design/prototype/inos/suite/AI-DESKTOP/index.html` 与源互为镜像，
-# 由 check-mirror 盯住"两边一致"；这里只管源，`--fix` 之后把镜像重抄一遍即可。
+# 【有原型镜像的项目】镜像那一份页面与源互为镜像，由 check-mirror 盯住「两边一致」；
+# 这里只管源，`--fix` 之后把镜像重抄一遍即可。
 set -u
 ROOT="$(cd "$(dirname "$0")/../.." && pwd)"; cd "$ROOT" || exit 2
-WEB="${CACHEBUST_WEB:-src/inos/web}"
-PAGE="${CACHEBUST_PAGE:-$WEB/index.html}"
-# 🔴 文件名前缀是**本项目的**约定（`inos-*.js`），模板里换个项目就不叫这个名。
-# 判据本身（版本串 ＝ 内容指纹）是通用的，**项目专属的那一格必须是旋钮，不许写死**。
-PREFIX="${CACHEBUST_PREFIX:-inos-}"
+# 🔴 **项目专属的路径不许写死在 FRAME 里**（需求方 2026-09-26 拍板：「frame 也应该和具体项目无关」）：
+# 值从 `ops/verify/paths.env` 读（一行一个 `KEY=值`，seed 类：模板里只有注释掉的样例），
+# 也可以用环境变量临时盖过。**没配就跳过并说清怎么配**——不许报红：
+# 一条不适用的守门报红，等于每个新项目开局就带一处假红，而假红的唯一修法是学会忽略它。
+[ -f ops/verify/paths.env ] && . ops/verify/paths.env
+WEB="${CACHEBUST_WEB:-}"
+PAGE="${CACHEBUST_PAGE:-${WEB:+$WEB/index.html}}"
+# 🔴 脚本名前缀是**每个项目自己的**约定，判据本身（版本串 ＝ 内容指纹）才是通用的——
+# **项目专属的那一格必须是旋钮，不许写死。**
+PREFIX="${CACHEBUST_PREFIX:-}"
 
-# 【新项目怎么办】三个旋钮：`CACHEBUST_WEB`（前端目录）· `CACHEBUST_PAGE`（挂脚本的那一页）·
-# `CACHEBUST_PREFIX`（脚本名前缀）。**页面不在、或者这一族脚本一个都没有，就跳过**，不是报错——
-# 一条不适用的守门不该拦住没有前端的项目，**也不该因为别人家的脚本不叫 `inos-` 就报红**。
-if [ ! -f "$PAGE" ]; then
-  echo "CACHEBUST-SKIP（没有 $PAGE；用 CACHEBUST_WEB / CACHEBUST_PAGE 指定）"; exit 0
+# 三个旋钮：`CACHEBUST_WEB`（前端目录）· `CACHEBUST_PAGE`（挂脚本的那一页）·
+# `CACHEBUST_PREFIX`（脚本名前缀）。**没配、页面不在、或这一族脚本一个都没有，就跳过**，不是报错。
+if [ -z "$WEB" ] || [ -z "$PREFIX" ] || [ -z "$PAGE" ] || [ ! -f "$PAGE" ]; then
+  echo "CACHEBUST-SKIP（未配置前端——在 ops/verify/paths.env 里写 CACHEBUST_WEB= / CACHEBUST_PREFIX=，或用环境变量）"; exit 0
 fi
 
 fp() { # 指纹 ＝ 内容 sha256 前 8 位。
@@ -46,7 +50,7 @@ FIX=0; [ "${1:-}" = "--fix" ] && FIX=1
 bad=0; report=""; fixed=0
 
 # ---- 逐条引用核指纹 ----
-# 取出所有 <script src="inos-*.js..."> 的 src 原样（含或不含 ?v=）。
+# 取出所有 <script src="<前缀>*.js..."> 的 src 原样（含或不含 ?v=）。
 refs=$(grep -o "<script src=\"$PREFIX[^\"]*\"" "$PAGE" | sed 's/^<script src="//; s/"$//' | LC_ALL=C sort -u)
 files=$(find "$WEB" -maxdepth 1 -type f -name "$PREFIX*.js" | LC_ALL=C sort)
 # 引用和文件**两边都空**＝这个项目根本没有这一族脚本，跳过。

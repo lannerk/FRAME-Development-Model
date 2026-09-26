@@ -256,6 +256,8 @@ git show HEAD:<那个文件>   # 把原件原样捞回来
 | 9 | **删掉 `SYNC.md`** | 它是维护模板用的，不是项目的一部分 |
 | 10 | `ai/frame-repo.conf` | **以后怎么跟上 FRAME 的更新，全靠这一份**：`role=`（不带模板的项目写 `consumer`）· `home=`（FRAME 源仓库在这台机器上的路径；**源与本项目同级**时写 `../FRAME-Development-Model` 即可）· `push=`（**拿不到源仓库提交权就写 `no`**＝单向拉回；不写时按角色默认，consumer=no）。填完**立一份基线**：`bash ops/frame/frame-sync.sh --adopt-mine`（记「本项目现在这样」，以后源那边的变化都算「源改的」→ 拉回来）。这一步省了，以后源更新就只能手工逐份比对——走法见 `docs/guide/frame-sync.md` §五 |
 
+| 11 | `product/requirements/requester-profile.md` | **走一遍 `ai/advisor/questions.md`**（≤4 题一轮弹窗问，只问真正要他拍板的），把答案写成画像 v0.1。🔴 **这一步就是「开场顾问」的第一次运行**（`ai/rules/requester.md` §四之四）：他没提到的维度——国际化、兼容现有系统、机密、AI、许可证——**你主动问**，每项写代价、标推荐；不懂技术就用白话讲后果。**问完再动手。** |
+
 剩下的（`ai/roles/*`、`ai/rules/{workflow,layout}.md`、各目录 README）**不用改就能用**。
 
 > **第 8 条之后，`ai/frame-manifest.txt` 就不再和本仓库一一对应了——这是正常的。**

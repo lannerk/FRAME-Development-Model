@@ -98,9 +98,9 @@ esac
 # -- File ownership: commit only your own (the single source is the ownership table in ai/rules/layout.md §7) --
 # [Why this exists] The old version always ran `git add -A`, and **it twice swept files another seat was editing
 # at that moment into its own commit**:
-#   . `acf7217`: the Maintainer's commit carried away the Reviewer's bug/task/state files and the Supervisor's report
+#   . once: the Maintainer's commit carried away the Reviewer's bug/task/state files and the Supervisor's report
 #     (10 of 24 files were not its own);
-#   . `992ed79`: when the Reviewer committed, 6 files the Maintainer had just staged were nearly taken with it.
+#   . again: when the Reviewer committed, 6 files the Maintainer had just staged were nearly taken with it.
 # **The commit message is history shared by all four seats; sweeping the wrong files in makes that history lie.**
 # So: if the changes span more than one seat, stop and let a human pick.
 SEAT_OF_FILE() {  # $1=path -> prints Maintainer/Reviewer/Developer/Supervisor/shared/-

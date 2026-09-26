@@ -2,11 +2,11 @@
 # check-paths: 扫所有脚本，找写死的仓库内旧目录名。
 # 用法：在仓库根执行   bash ops/verify/check-paths.sh
 # 退出码 0 = 干净；1 = 有写死的路径（逐条列出）。
-# 同时扫**写死的内网 IP**：测试机会增减、IP 会变，唯一出处是 ops/machines.json（实测仓库里 192.168.51.125
-# 出现过 124 次、192.168.55.109 出现过 20 次，换一台机器要改一百多处）。
+# 同时扫**写死的内网 IP**：测试机会增减、IP 会变，唯一出处是 ops/machines.json
+# （实测过：同一个网段的两个地址在仓库里出现了一百多次，换一台机器就要改一百多处）。
 #
-# 为什么要这条：上一次目录重整之后没人回头扫脚本，于是 SourceCode\aios / Backend / Frontend / dev
-# 这些早就不存在的名字一直留在部署脚本里（实测 10 处）。这条守门让同样的事不会再来一遍。
+# 为什么要这条：某次目录重整之后没人回头扫脚本，于是几个早就不存在的目录名一直留在部署脚本里
+# （实测 10 处）。这条守门让同样的事不会再来一遍。
 set -u
 # 🔴 **只读的 git 调用一律不许建 index.lock**（监督席 2026-09-24 报的根因，实测过两次）：
 # Cowork 本机工作区默认**没有删除权限**，而 `git status` / `git diff` 这类只读调用会顺手刷新索引、
@@ -76,7 +76,7 @@ done < <(find . \( -name '*.ps1' -o -name '*.sh' -o -name '*.service' -o -name '
 
 if [ "$n" -gt 0 ]; then
   echo "CHECK-PATHS-FAIL（$n 个文件写死了路径或测试机 IP）"
-  echo "  路径：dot-source ops/paths.ps1，用 \$Inos / \$Dist / \$Tmp / \$Outputs，别自己拼。"
+  echo "  路径：dot-source ops/paths.ps1，用它定义的变量（项目根 / dist / tmp / outputs），别自己拼。"
   echo "  机器：读 ops/machines.json，用 id（vm-dev / nb-test）引用，别写 IP。"
   exit 1
 fi

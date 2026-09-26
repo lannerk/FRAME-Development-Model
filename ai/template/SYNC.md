@@ -46,6 +46,10 @@
 | `ai/mail/to-researcher/from-{supervisor,reviewer}.md` · `ai/mail/to-{supervisor,reviewer}/from-researcher.md` | 同路径 | **空信箱**（研究席只和监督席、审查席通信——2026-09-25 拍板开通审查席那一对；守门会把别的配对报红） |
 | `ops/frame/frame-sync.sh` · `ops/frame/classes.txt` | 同路径 | **原样**（口令「同步 FRAME」的工具与分类表；不同仓库靠各自的 `ai/frame-repo.conf` 区分，**脚本里不写死仓库名**） |
 | `docs/guide/frame-sync.md` | `ai/template/docs/guide/frame-sync.md` | **原样**（十步走法、五条铁律、开源用户单向拉回那一节都是通用的） |
+| `ai/advisor/`（整棵） | `ai/template/ai/advisor/` | **原样**（开场顾问库是 FRAME 本体：通用原则 · 问题库 · 联想链 · 选型卡 · 分域做法；🔴 **里面不许有品牌名、产品名、人名、私有出处**，`check-advisor.sh` 会扫） |
+| `product/requirements/requester-profile.md` | 同路径 | **空骨架**（需求方画像：12 节空表 ＋ 怎么长的说明）。🔴 **seed 类，永不回流**——内容是项目私有的 |
+| `ops/verify/check-advisor.sh` | 同路径 | **原样**（判：选型卡四段齐 · 每题有为什么问与推荐 · 画像是 seed · 私有词没漏出去；**没开顾问库就 SKIP**） |
+| `ops/verify/.private-words` | **不进模板** | 宿主侧的私有词清单，**skip 类永不同步**——把要藏的词列进开源仓库等于指给别人看 |
 | `ai/FRAME-VERSION` | `ai/template/ai/FRAME-VERSION` | **版本号跟着 FRAME 走**；`fingerprint` 由脚本自动算，别手填 |
 | `ai/frame-repo.conf` | `ai/template/ai/frame-repo.conf` | **空白样板**：`role=consumer` ＋ `home=<绝对路径或 ../源仓库>` 占位 ＋ `push=no`（开源用户单向拉回），初始化时填。🔴 **同步永不覆盖它**（在 skip 名单里） |
 | `ai/decisions/index.md` | `ai/template/ai/decisions/index.md` | 编号重置为 AD1；去掉本项目的已知编号问题那一节 |

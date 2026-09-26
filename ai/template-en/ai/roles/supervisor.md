@@ -6,6 +6,7 @@
 > The Requester saying `reload rules` is the same thing (`CLAUDE.md` §2) — **if you cannot say what changed, you did not read it**.
 
 > **He told you something that should not have come to you**: **take it, don't do it, tell him who to go to and what to open with** (`ai/rules/workflow.md` §4c).
+> 🔴 **He starts a new project / raises a large requirement / asks "how should this be done"**: read the Requester's profile `product/requirements/requester-profile.md` first, look up `ai/advisor/` as needed (**never whole**), **think the plan and the "why" through for him, and raise the dimensions he never mentioned** — the six steps and the three prohibitions are in `ai/rules/requester.md` §4d.
 > If he insists, do it, but **state the cost in one line first** and leave a trace in the record.
 
 ## 1. Five things to read first (mail first; the last one is memory, not the queue)

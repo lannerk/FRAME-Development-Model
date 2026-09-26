@@ -1,4 +1,4 @@
-# 同步自 host /sessions/rcw-01fdvmbjtpdsxr8qua9c2q42/mnt/INOS  commit=ac16519  版本=1.0.0  2026-09-22
+# 同步自 host INOS  commit=ac16519  版本=1.0.0  2026-09-22
 # 一行：<内容sha256> <相对路径>；ROOT:<名> 是根文件映射
 - CLAUDE.md
 - ai/index.md

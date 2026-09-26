@@ -25,6 +25,15 @@
 `<If there is a terminal you can get into without a password, write it down here and say why it does not cross the security line —`
 `otherwise every seat goes bothering the Requester just to read one line of log (hard law 5).>`
 
+## 1b. Which browser to debug the real machine with
+
+🔴 **To debug a machine on a private network, use the channel that goes through the Requester's own browser plus the extension — not the AI's built-in browser pane**:
+the built-in pane often **allows only the first document load** for a private address, after which every sub-request the page makes is blocked by client policy
+(measured shape: the login endpoint fired 7 times, `GET /` and `…/me` all blocked), so **the page can never log in and no endpoint can be exercised** —
+during triage this is very easily mistaken for "the machine is broken". It usually also runs a **separate profile**, so it does not inherit the Requester's sign-ins.
+
+**Fill in three things here**: (1) which channel this project uses to reach the real machine; (2) the fallbacks when it is down (which endpoint does "run a command" / "push a file" / "fetch a file", and under which identity); (3) how to verify each channel is up.
+
 ## 2. How to use the build / test environment
 
 ```
@@ -41,11 +50,16 @@ the unpacked directory depth has to match the repo's, or those tests will not fi
 **Deployment scripts all live in `ops/scripts/`, and you call them with the path** (`powershell -File ops\scripts\<name>.ps1`).
 🔴 **No scripts at the repo root** — the top-level list in `ai/rules/layout.md` §1 has no slot for scripts, and
 "one thing has exactly one home". **This page used to teach putting a thin shell at the root, which contradicts §1 outright**:
-following it, this project really did grow four `.ps1` files at the root (commit `6212162`), found by the Developer seat on
-2026-09-16 when the Requester asked why the root did not match the rules. The typing it saves is paid for with a hole in the
+following it, one project really did grow four `.ps1` files at its root, found only when the Requester asked why the root
+did not match the rules. The typing it saves is paid for with a hole in the
 root directory, and the next person will use that hole for something else.
 
 **No hard-coded paths or IPs in scripts**: paths come from `ops/paths.ps1`, machines from `ops/machines.json`.
+
+**Verify on one machine; push updates to all of them.** **Verifying** on a test machine only needs one — any of them;
+**pushing an update** must reach **every machine in `ops/machines.json` with `status=in-use` and the `deploy` role** —
+that is what the deploy script should target by default, so **never push to just one by hand**, or the machines drift apart
+and the next person looks at an old build on another machine and wastes a round.
 Guard: `ops/verify/check-paths.sh`.
 
 ## 4. Paths on the real machine do not go into the repo

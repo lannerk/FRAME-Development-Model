@@ -29,6 +29,16 @@ ai/RandD/NN-topic/tasks/index.md
 ai/RandD/README.md
 ai/RandD/index.md
 ai/RandD/memory.md
+ai/advisor/README.md
+ai/advisor/chains.md
+ai/advisor/domains/ai-agent.md
+ai/advisor/domains/ecosystem.md
+ai/advisor/domains/materials.md
+ai/advisor/domains/platform.md
+ai/advisor/domains/ui.md
+ai/advisor/principles.md
+ai/advisor/questions.md
+ai/advisor/stack.md
 ai/bugs/README.md
 ai/bugs/archive/.gitkeep
 ai/bugs/index.md
@@ -108,11 +118,13 @@ ops/paths.ps1
 ops/scripts/.gitkeep
 ops/scripts/commit-round.sh
 ops/units/.gitkeep
+ops/verify/check-advisor.sh
 ops/verify/check-all.sh
 ops/verify/check-budget.sh
 ops/verify/check-bugs.sh
 ops/verify/check-cachebust.sh
 ops/verify/check-css-namespace.sh
+ops/verify/check-debrand.sh
 ops/verify/check-entrypoints.sh
 ops/verify/check-filenames.sh
 ops/verify/check-inbox.sh
@@ -124,6 +136,7 @@ ops/verify/check-randd.sh
 ops/verify/check-root.sh
 ops/verify/check-writeback.sh
 ops/verify/frame-scan.sh
+ops/verify/paths.env
 product/README.md
 product/design/database/.gitkeep
 product/design/prototype/_PROJECT_/feature/index.md
@@ -135,6 +148,7 @@ product/plan/milestones/M-00-sample.md
 product/plan/roadmap.md
 product/requirements/formal/.gitkeep
 product/requirements/inbox.md
+product/requirements/requester-profile.md
 product/requirements/specs/.gitkeep
 product/requirements/verbatim/.gitkeep
 product/vision.md
