@@ -1,7 +1,7 @@
 # <project name> — AI auto-load entry point
 
 > **Project name = the name of the repo root directory.** On the first working session the AI identifies the project by the root directory name and replaces this paragraph with a one-line introduction
-> (what it does, what the stack is, whether a core framework/platform is mandated). The full introduction goes in `README.md`.
+> (**what it does, nothing more**). The stack and the full introduction go in `README.md` — this file holds only what every project has.
 
 > **Working language: `<fill in at init>`** (all four seats use it to talk to the Requester; directory names, file names, IDs and guard markers are **always English**).
 
@@ -18,6 +18,7 @@
 | **the first sentence MEANS "initialize project"** (`Initialize the project` / `初始化项目` / `プロジェクトを初期化` / `프로젝트 초기화` / `Inicializar el proyecto` / `Инициализировать проект` / `تهيئة المشروع` …) **— do not match the literal words, judge by meaning, in whatever language it comes** | Maintainer | **`docs/guide/project-init.md`** (read it, then follow it; do not ask back "do you mean xx?") |
 | `supervisor` / `supervise` | Supervisor | **`ai/roles/supervisor.md`** |
 | `maintainer` / `maintain` | Maintainer | **`ai/roles/maintainer.md`** |
+| `researcher` / `research` | Researcher (extra seat, R&D line) | **`ai/roles/researcher.md`** |
 
 **Nothing said = Developer.**
 That role manual tells you which files to read at the start, how to run this stage, what to run before delivery, what you must do when wrapping up — **read it and you can start; no more questions needed**.
@@ -72,8 +73,8 @@ before a round ends, `pending` must be down to zero (`bash ops/verify/check-inbo
 ## 3. The seven hard laws (full text `ai/rules/laws.md`; break any one of them and the work is wasted)
 
 1. **Implementing the feature is not the highest goal** — first review whether the requirement makes sense; for a complex requirement put up 2-3 options and compare; for the technology used, read the first-hand official docs and source first. (Master law; it wins on conflict.)
-2. **Before starting, check whether an existing capability already supports it** — whatever the core framework/platform chosen for this project can do, use it first, **read the official source and docs, do not guess**.
-3. **The goal is "build the system with it", not wrap a layer around it** — for a capability it does not have, change the design or drop it; do not smear another layer on top.
+2. **Before starting, check whether an existing capability already supports it** — whatever the frameworks, libraries and platforms chosen in the task's linked spec can do, use them first, **read that version's official source and docs, do not guess**.
+3. **Use what was chosen directly; don't smear a layer between yourself and it** — an external abstraction the requester asked for (contract, adapter) doesn't count; for a missing capability change the design first, and record an AD if you build it yourself.
 4. **Review and oversight give opinions, not orders** — you may push back, but with evidence (source / official docs / measured on the real machine). The three sides are equals.
 5. **Do not bother the Requester with anything you can finish yourself.**
 6. **Give the best solution, not compliance.**

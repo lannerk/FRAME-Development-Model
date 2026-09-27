@@ -28,14 +28,14 @@
 |---|---|---|
 | `FRAME-Development-Model.md` | `ai/template/FRAME-Development-Model.md` | **原样**（本来就是通用的） |
 | `README.md` | `ai/template/README.md` | 换成填空版 |
-| `CLAUDE.md` | `ai/template/CLAUDE.md` | 换掉产品介绍段；铁律 2/3 的「核心框架」改回占位 |
+| `CLAUDE.md` | `ai/template/CLAUDE.md` | 换掉产品介绍段（铁律 2/3 从 2026-09-27 起通用，不再有占位） |
 | `ai/index.md` | `ai/template/ai/index.md` | 项目名换占位；「当前状态」三行换占位 |
 | `ai/roles/developer.md` | `ai/template/ai/roles/developer.md` | 自检清单改为指向 `conventions.md` §五；去掉本项目的具体例子 |
 | `ai/roles/reviewer.md` | `ai/template/ai/roles/reviewer.md` | 同上 |
 | `ai/roles/supervisor.md` | `ai/template/ai/roles/supervisor.md` | 同上 |
 | `ai/roles/maintainer.md` | `ai/template/ai/roles/maintainer.md` | **原样**（本来就是通用的） |
 | `ai/rules/maintenance-log.md` | `ai/template/ai/rules/maintenance-log.md` | 清空表，只留规矩与状态定义 |
-| `ai/rules/laws.md` | `ai/template/ai/rules/laws.md` | 去掉 AD 编号；铁律 2/3 改为占位 + 「没有核心平台就删掉这两条」 |
+| `ai/rules/laws.md` | `ai/template/ai/rules/laws.md` | 去掉 AD 编号（铁律 2/3 通用，照抄） |
 | `ai/rules/workflow.md` | `ai/template/ai/rules/workflow.md` | **几乎原样**（状态机、任务模板、优先级、收尾四件都是通用的） |
 | `ai/rules/layout.md` | `ai/template/ai/rules/layout.md` | **几乎原样**（目录职责、大小预算、命名、禁止项都是通用的） |
 | `ai/rules/conventions.md` | `ai/template/ai/rules/conventions.md` | §一 §二 §六 §七 §八 通用照搬；**§三 §四 §五 换成填空表** |

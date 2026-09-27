@@ -28,14 +28,14 @@ replace project-specific names with placeholders, boil the incident details down
 |---|---|---|
 | `FRAME-Development-Model.md` | `ai/template/FRAME-Development-Model.md` | **as is** (it is generic already) |
 | `README.md` | `ai/template/README.md` | replace with the fill-in-the-blanks version |
-| `CLAUDE.md` | `ai/template/CLAUDE.md` | swap out the product intro paragraph; put "core framework" in hard laws 2/3 back to a placeholder |
+| `CLAUDE.md` | `ai/template/CLAUDE.md` | swap out the product intro paragraph (hard laws 2/3 are generic since 2026-09-27; no placeholder) |
 | `ai/index.md` | `ai/template/ai/index.md` | project name to a placeholder; the three "current state" lines to placeholders |
 | `ai/roles/developer.md` | `ai/template/ai/roles/developer.md` | point the self-check list at `conventions.md` §5; drop this project's concrete examples |
 | `ai/roles/reviewer.md` | `ai/template/ai/roles/reviewer.md` | same as above |
 | `ai/roles/supervisor.md` | `ai/template/ai/roles/supervisor.md` | same as above |
 | `ai/roles/maintainer.md` | `ai/template/ai/roles/maintainer.md` | **as is** (it is generic already) |
 | `ai/rules/maintenance-log.md` | `ai/template/ai/rules/maintenance-log.md` | empty the table, keep only the rules and the status definitions |
-| `ai/rules/laws.md` | `ai/template/ai/rules/laws.md` | drop the AD numbers; hard laws 2/3 become a placeholder + "delete these two if there is no core platform" |
+| `ai/rules/laws.md` | `ai/template/ai/rules/laws.md` | drop the AD numbers (hard laws 2/3 are generic; copy as is) |
 | `ai/rules/workflow.md` | `ai/template/ai/rules/workflow.md` | **almost as is** (the state machine, the task template, priorities and the four wrap-up items are all generic) |
 | `ai/rules/layout.md` | `ai/template/ai/rules/layout.md` | **almost as is** (directory responsibilities, size budgets, naming and the banned items are all generic) |
 | `ai/rules/conventions.md` | `ai/template/ai/rules/conventions.md` | §1 §2 §6 §7 §8 carried over as generic; **§3 §4 §5 replaced with fill-in-the-blanks tables** |

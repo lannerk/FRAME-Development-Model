@@ -9,16 +9,14 @@ Broken into actions: first check whether the requirement is reasonable → for a
 for a designated third-party framework/platform, go down to the source and test on the same version → stability first → cut complexity, don't reinvent wheels.
 
 ## 2. Before starting, check whether an existing capability already supports it
-Whatever the core framework/platform chosen for this project (`<write down which one here>`) can do, **always use it first**, don't build your own.
-How to check: read the source and the official docs of **the version running on the real machine**; don't guess, don't go on impressions, don't treat a search snippet as evidence.
+Whatever **the frameworks, libraries and platforms chosen in the task's linked spec** can do, **always use them first**; don't build your own.
+Which spec applies is set by the reviewer in the task's `spec:` field.
+How to check: read the source and the official docs of **the version actually in use**; don't guess, don't go on impressions, don't treat a search snippet as evidence.
 
-> For a project with no such core platform, replace this with "whatever the language/framework standard library can do, don't pull in a third party", or delete the whole entry.
-
-## 3. The goal is "build the system with it", not wrap it in a layer
-For a capability it doesn't have, change the design or drop it; don't smear another layer on top.
-**Corollary**: an abstraction layer left behind to accommodate "we might swap it out someday" has exactly one path — delete it.
-
-> Same as above: no core platform, delete this one.
+## 3. Use what was chosen directly; don't smear a layer between yourself and it
+Don't add an internal abstraction between yourself and it "in case we swap it out someday".
+An **external** abstraction the requester explicitly asked for (a contract, an adapter) is a deliverable and doesn't count.
+For a capability it doesn't have: change the design first; only if that fails, build it yourself, and **record an AD stating why**.
 
 ## 4. Review and oversight give opinions, not orders
 You may push back, **but you must actually verify and give evidence**. Complying without verifying and refusing without verifying both leave the responsibility on whoever executes.
