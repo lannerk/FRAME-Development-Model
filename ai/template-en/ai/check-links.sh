@@ -46,13 +46,13 @@ while IFS= read -r f; do
       echo "broken  $f  ->  $p"
     fi
   done
-done < <(find . -name '*.md' \
+done < <(find . -name node_modules -prune -o -name '*.md' \
           -not -path './.git/*' -not -path './tmp/*' -not -path './dist/*' -not -path '*/node_modules/*' \
           -not -path './archive/*' -not -path './*/archive/*' \
           -not -path './ai/specs/*' -not -path './product/requirements/*' \
           -not -path './claude-outputs/*' -not -path './src/*' \
           -not -path './_newroot/*' \
-          -not -path './ai/template/*' -not -path './SYNC.md') >> "$OUT"
+          -not -path './ai/template/*' -not -path './SYNC.md' -print) >> "$OUT"
 
 # ---- (2) section anchors: is the section it points at still there? ----
 # [Why this exists] The Supervisor seat reported on 2026-09-15: `laws.md` pointed at `conventions.md` §9,
@@ -75,7 +75,7 @@ while IFS= read -r f; do
     if [ -z "$t" ]; then
       # only a bare filename (`reviewer.md §6`): judge it only when the name is unique in the repo
       case "$p" in */*) continue;; esac
-      n=$(find ./ai ./docs ./product -name "$p" -not -path './ai/template*' 2>/dev/null)
+      n=$(find ./ai ./docs ./product -name node_modules -prune -o -name "$p" -not -path './ai/template*' -print 2>/dev/null)
       { [ -n "$n" ] && [ "$(wc -l <<< "$n")" -eq 1 ]; } && t="$n" || continue
     fi
     ok=0; s="$a"
@@ -85,12 +85,12 @@ while IFS= read -r f; do
     done
     [ "$ok" -eq 1 ] || echo "broken anchor  $f:$ln  ->  $p §$a"
   done
-done < <(find . -name '*.md' \
+done < <(find . -name node_modules -prune -o -name '*.md' \
           -not -path './.git/*' -not -path './tmp/*' -not -path './dist/*' -not -path '*/node_modules/*' \
           -not -path './archive/*' -not -path './*/archive/*' \
           -not -path './claude-outputs/*' -not -path './src/*' -not -path './_newroot/*' \
           -not -path './ai/template/*' -not -path './SYNC.md' \
-          -not -name 'maintenance-log.md') >> "$OUT"
+          -not -name 'maintenance-log.md' -print) >> "$OUT"
 
 if [ -s "$OUT" ]; then
   sort -u "$OUT"

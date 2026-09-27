@@ -44,14 +44,14 @@ while IFS= read -r f; do
       echo "断链  $f  ->  $p"
     fi
   done
-done < <(find . -name '*.md' \
+done < <(find . -name node_modules -prune -o -name '*.md' \
           -not -path './.git/*' -not -path './tmp/*' -not -path './dist/*' -not -path '*/node_modules/*' \
           -not -path './archive/*' -not -path './*/archive/*' \
           -not -path './ai/specs/*' -not -path './product/requirements/*' \
           -not -path './claude-outputs/*' -not -path './src/*' \
           -not -path './_newroot/*' \
           -not -path './ai/template/*' -not -path './ai/template-en/*' \
-          -not -name 'maintenance-log.md') >> "$OUT"
+          -not -name 'maintenance-log.md' -print) >> "$OUT"
 
 # 【为什么把维护记录排除在第①段之外】它是**历史记录，不是导航**：
 # 每一条都逐字引用需求方当时的原话和当时的路径，而路径会随重构改名、消失。
@@ -78,7 +78,7 @@ while IFS= read -r f; do
     if [ -z "$t" ]; then
       # 只写了文件名的（`reviewer.md §六` 这种）：全仓唯一同名才敢判，不唯一就不判
       case "$p" in */*) continue;; esac
-      n=$(find ./ai ./docs ./product -name "$p" -not -path './ai/template*' 2>/dev/null)
+      n=$(find ./ai ./docs ./product -name node_modules -prune -o -name "$p" -not -path './ai/template*' -print 2>/dev/null)
       { [ -n "$n" ] && [ "$(wc -l <<< "$n")" -eq 1 ]; } && t="$n" || continue
     fi
     ok=0; s="$a"
@@ -88,12 +88,12 @@ while IFS= read -r f; do
     done
     [ "$ok" -eq 1 ] || echo "锚点断链  $f:$ln  ->  $p §$a"
   done
-done < <(find . -name '*.md' \
+done < <(find . -name node_modules -prune -o -name '*.md' \
           -not -path './.git/*' -not -path './tmp/*' -not -path './dist/*' -not -path '*/node_modules/*' \
           -not -path './archive/*' -not -path './*/archive/*' \
           -not -path './claude-outputs/*' -not -path './src/*' -not -path './_newroot/*' \
           -not -path './ai/template/*' -not -path './ai/template-en/*' \
-          -not -name 'maintenance-log.md') >> "$OUT"
+          -not -name 'maintenance-log.md' -print) >> "$OUT"
 
 if [ -s "$OUT" ]; then
   sort -u "$OUT"
