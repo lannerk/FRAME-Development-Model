@@ -52,6 +52,21 @@ echo
 [ -x ops/verify/check-advisor.sh ]       && run "kickoff advisor" bash ops/verify/check-advisor.sh
 [ -x ops/verify/check-debrand.sh ]       && run "de-branding   " bash ops/verify/check-debrand.sh
 
+# -- 🔴 The project's own guards: `ops/verify/check-project-*.sh` are auto-discovered ----------
+# 【Why this hook exists】the table above belongs to **FRAME itself** (class follow -- a sync overwrites it).
+# A project inevitably grows guards that only hold for it (a component inventory, an API reconcile, a glossary),
+# and **adding a row to that table = writing project content into FRAME**: measured once -- a project's
+# maintainer edited check-all.sh to register its own guard, so that file became "target changed" there and
+# **every distribution needed a human merge**, while merging it into the template would have pushed that
+# project's guard to every project. So the hook is on the FILE NAME, not in the table:
+# drop `ops/verify/check-project-*.sh` in and it runs. The word `project` in the name is the reminder --
+# **it never enters the template** (class skip in `ops/frame/classes.txt`).
+# Same contract as every row above: print one `*-OK` line when green, exit non-zero when red, SKIP when N/A.
+for pc in ops/verify/check-project-*.sh; do
+  [ -x "$pc" ] || continue
+  run "project guard" bash "$pc"
+done
+
 echo
 if [ "$fail" -gt 0 ]; then
   [ "$V" = 1 ] && { echo "$out"; echo; }

@@ -52,6 +52,19 @@ echo
 [ -x ops/verify/check-advisor.sh ]       && run "开场顾问"      bash ops/verify/check-advisor.sh
 [ -x ops/verify/check-debrand.sh ]       && run "去品牌  "      bash ops/verify/check-debrand.sh
 
+# ── 🔴 项目自己的守门：`ops/verify/check-project-*.sh` 自动发现 ────────────────
+# 【为什么要这个口子】上面这张表是 **FRAME 本体**的（follow 类，同步会覆盖）。一个项目必然会长出
+# 只对它成立的守门（组件清单、接口对账、词表……），而**在这张表里加一行 = 把项目内容写进 FRAME**：
+# 实测过一次——某个项目的维护席为了注册自己的守门改了 check-all.sh，于是这份文件在它那里变成
+# 「目标改过」，**每次分发都要人来合一次**，而合进模板又会把那个项目的守门推给所有项目。
+# 所以口子开在**文件名**上，不开在表里：`ops/verify/check-project-*.sh` 放进去就自动跑，
+# 名字里带 `project` 是提醒——**它永不进模板**（`ops/frame/classes.txt` 里是 skip 类）。
+# 约定与上面各条一样：绿了打印一行 `*-OK`，红了 exit 非 0，不适用就 SKIP 别报红。
+for pc in ops/verify/check-project-*.sh; do
+  [ -x "$pc" ] || continue
+  run "项目守门" bash "$pc"
+done
+
 echo
 if [ "$fail" -gt 0 ]; then
   [ "$V" = 1 ] && { echo "$out"; echo; }

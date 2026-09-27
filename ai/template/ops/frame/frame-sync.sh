@@ -353,7 +353,7 @@ if [ "$DIST" != 1 ] && { [ "$MODE" = sync ] || [ "$MODE" = adopt ]; }; then
   declare -A BASE=()
   [ -f "$BL" ] && while read -r a b; do case "$a" in ''|'#'*) continue;; *) BASE["$b"]="$a";; esac; done < "$BL"
 
-  PULL=(); PUSH=(); CONF=(); GONE=(); SAME=0; SEEDN=0; SKIPN=0; UNK=0; LOCALN=0
+  PULL=(); PUSH=(); CONF=(); GONE=(); SAME=0; SEEDN=0; SKIPN=0; UNK=0; LOCALN=0; SEEDDIFF=()
   TMPBL="$(mktemp)"
   ALL="$( { list_files "$SRC" "$SROLE"; list_files "$HOME_REPO" "$HROLE"; } | LC_ALL=C sort -u )"
   while IFS= read -r rel; do
@@ -370,7 +370,16 @@ if [ "$DIST" != 1 ] && { [ "$MODE" = sync ] || [ "$MODE" = adopt ]; }; then
     if [ "$cs" = seed ] || [ "$ch" = seed ]; then
       if   [ "$sh" = "-" ]; then PULL+=("$rel  (骨架·新建)")
       elif [ "$hh" = "-" ]; then PUSH+=("$rel  (骨架·新建)")
-      else SEEDN=$((SEEDN+1)); [ "$bh" != "-" ] && echo "$bh $rel" >> "$TMPBL"; fi
+      else SEEDN=$((SEEDN+1)); [ "$bh" != "-" ] && echo "$bh $rel" >> "$TMPBL"
+        # 🔴 **两边都是模板时，seed 的「各留各的」会把两份空白版的分叉藏起来**（2026-09-27 实测）：
+        # seed 存在的理由是保护「项目自己填过的内容」，而模板与模板之间没有项目内容——
+        # 于是两份**空白版**各自被改、机制一声不出。实测：源仓库那份入口文件删掉了两行
+        # （开场顾问的触发行、同步 FRAME 那一行），本项目这份还留着，**双方都以为自己是对的**。
+        # 这里**只报不写**（seed 的不覆盖语义不动），让人看一眼再决定谁并谁。
+        # ai/FRAME-VERSION 例外：它两边本来就该不同（角色 · 指纹 · source_fingerprint）。
+        if [ "$SROLE" != consumer ] && [ "$HROLE" != consumer ] && [ "$rel" != ai/FRAME-VERSION ]; then
+          SEEDDIFF+=("$rel"); fi
+      fi
       continue; fi
     # 🔴 **adopt 必须说清「以哪一边为准」**：基线的意思是「上次两边一致的那份内容」。
     # 记成源那边 ⇒ 本项目与它的差异算**我改的**，下一轮**推出去**（首次同步的常见情形）；
@@ -396,6 +405,11 @@ if [ "$DIST" != 1 ] && { [ "$MODE" = sync ] || [ "$MODE" = adopt ]; }; then
 
   echo "──────────────────────────────────────────"
   printf '  ← 拉回本项目 %-4s  → 推到源 %-4s  一致 %-4s  seed各留各的 %-4s  跳过 %-4s\n' ${#PULL[@]} ${#PUSH[@]} $SAME $SEEDN $SKIPN
+  if [ "${#SEEDDIFF[@]}" -gt 0 ]; then
+    echo "  🔶 两份模板的 seed 骨架内容不一致（${#SEEDDIFF[@]} 份）——机制不会自动合，要人看一眼："
+    for sd in "${SEEDDIFF[@]}"; do echo "     $sd"; done
+    echo "     seed 是用来保护「项目填过的内容」的，而这两边都是模板：分叉留着只会无症状变大。"
+  fi
   printf '  🔴 要人处理 %-4s（其中「没有基线」%s 条）\n' ${#CONF[@]} $UNK
   [ "$LOCALN" -gt 0 ] && echo "  本项目自己加的 $LOCALN 份（上游没有这几份，push=no 时不管它们）"
   [ ${#PULL[@]} -gt 0 ] && { echo "  ── ← 拉回 ──"; printf '    %s\n' "${PULL[@]}" | head -30; }

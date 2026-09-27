@@ -378,7 +378,7 @@ if [ "$DIST" != 1 ] && { [ "$MODE" = sync ] || [ "$MODE" = adopt ]; }; then
   declare -A BASE=()
   [ -f "$BL" ] && while read -r a b; do case "$a" in ''|'#'*) continue;; *) BASE["$b"]="$a";; esac; done < "$BL"
 
-  PULL=(); PUSH=(); CONF=(); GONE=(); SAME=0; SEEDN=0; SKIPN=0; UNK=0; LOCALN=0
+  PULL=(); PUSH=(); CONF=(); GONE=(); SAME=0; SEEDN=0; SKIPN=0; UNK=0; LOCALN=0; SEEDDIFF=()
   TMPBL="$(mktemp)"
   ALL="$( { list_files "$SRC" "$SROLE"; list_files "$HOME_REPO" "$HROLE"; } | LC_ALL=C sort -u )"
   while IFS= read -r rel; do
@@ -396,7 +396,17 @@ if [ "$DIST" != 1 ] && { [ "$MODE" = sync ] || [ "$MODE" = adopt ]; }; then
     if [ "$cs" = seed ] || [ "$ch" = seed ]; then
       if   [ "$sh" = "-" ]; then PULL+=("$rel  (skeleton, created)")
       elif [ "$hh" = "-" ]; then PUSH+=("$rel  (skeleton, created)")
-      else SEEDN=$((SEEDN+1)); [ "$bh" != "-" ] && echo "$bh $rel" >> "$TMPBL"; fi
+      else SEEDN=$((SEEDN+1)); [ "$bh" != "-" ] && echo "$bh $rel" >> "$TMPBL"
+        # 🔴 **When both sides are templates, "each keeps its own" hides a fork between the two blanks**
+        # (measured 2026-09-27): seed exists to protect content a PROJECT filled in, and between two
+        # templates there is no project content -- so both BLANKS get edited and the mechanism says nothing.
+        # Measured: the source copy of the entry file had lost two rows (the advisor trigger and the
+        # "sync FRAME" command row) that this project's copy still had, and each side believed it was right.
+        # This only REPORTS (seed still never overwrites); a human decides which way to merge.
+        # ai/FRAME-VERSION is exempt: those two are supposed to differ (role, fingerprint, source_fingerprint).
+        if [ "$SROLE" != consumer ] && [ "$HROLE" != consumer ] && [ "$rel" != ai/FRAME-VERSION ]; then
+          SEEDDIFF+=("$rel"); fi
+      fi
       continue; fi
     # 🔴 **adopt has to say which side is the truth**: a baseline means "the content both sides last agreed on".
     # Record the source's ⇒ every local difference counts as **mine**, pushed out next run (the usual first sync);
@@ -423,6 +433,11 @@ if [ "$DIST" != 1 ] && { [ "$MODE" = sync ] || [ "$MODE" = adopt ]; }; then
 
   echo "──────────────────────────────────────────"
   printf '  <- pull in %-4s  -> push out %-4s  same %-4s  seed kept as-is %-4s  skipped %-4s\n' ${#PULL[@]} ${#PUSH[@]} $SAME $SEEDN $SKIPN
+  if [ "${#SEEDDIFF[@]}" -gt 0 ]; then
+    echo "  🔶 the two templates' seed skeletons differ (${#SEEDDIFF[@]}) -- the mechanism will not merge these, a human must look:"
+    for sd in "${SEEDDIFF[@]}"; do echo "     $sd"; done
+    echo "     seed protects content a PROJECT filled in, and both of these sides are templates: a fork left alone only grows."
+  fi
   printf '  🔴 needs a human %-4s (of which %s are "no baseline")\n' ${#CONF[@]} $UNK
   [ "$LOCALN" -gt 0 ] && echo "  $LOCALN files are this project's own (upstream has none of them; with push=no they are left alone)"
   [ ${#PULL[@]} -gt 0 ] && { echo "  -- <- pull in --"; printf '    %s\n' "${PULL[@]}" | head -30; }

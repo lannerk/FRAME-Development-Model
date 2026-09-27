@@ -259,6 +259,11 @@ fi
 if [ -n "$MINE" ]; then
   # **path-limited commit**: another seat may already have staged things in SourceTree, and a commit without paths
   # would take them along.
+  # 🔴 **Keep the file list in the positional parameters; never write it to a temp file.** Measured twice on a
+  #   real project: `> /tmp/.cr_mine.$$` collides (PIDs are small and get reused in a sandbox, and a leftover
+  #   file owned by someone else cannot be written or removed) -- with `|| true` swallowing the failure, the
+  #   next line commits **another session's file list** under your own commit message. And `$(tr '\n' ' ')`
+  #   splits on spaces, so a path containing a space was committed wrong anyway.
   set --
   while IFS= read -r f; do [ -n "$f" ] && set -- "$@" "$f"; done <<< "$(printf '%s\n' "$MINE" | grep .)"
   G commit -q -m "$MSG" -- "$@" || { echo "the commit failed; nothing was changed."; exit 1; }

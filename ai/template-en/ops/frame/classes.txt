@@ -68,6 +68,10 @@ skip    ops/verify/.rootcheck-allow
 # -- FRAME itself may not hard-code any project's directory names.
 seed    ops/verify/paths.env
 skip    ops/verify/.private-words
+# 🔴 The project's own guards (`check-all.sh` auto-discovers them): they never enter the template
+# and are never overwritten by it. That is what the name hook buys: to register your own guard,
+# use this name -- do not edit check-all.sh.
+skip    ops/verify/check-project-*.sh
 
 # ── 🔴 明确留 seed 的几处（虽然默认已是 seed，写出来是为了让人看见）──
 seed    CLAUDE.md

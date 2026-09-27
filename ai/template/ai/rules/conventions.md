@@ -106,7 +106,7 @@
 | `ops/verify/check-randd.sh` | **R&D 线**（`ai/RandD/`）没烂掉：话题骨架齐 · `log/ lab/ runs/ notes/` 各有 `INDEX.md` · 话题登记进 `index.md` · 活文件（现状 200／未决 100／话题卡 50／线级记忆 80）没超 · 🔴 标「已毕业」的必须有**九条全绿**的判据自查。**没开这条线就 SKIP** | 研究席每轮收尾；维护席收尾 |
 | `ops/verify/check-mirror.sh` | **前端源与原型镜像逐行一致**（这类规矩原先往往没有任何脚本在查；实测过一次：HEAD 上已经漂了 9 份）。存量在 `ops/verify/.mirror-baseline`，**只许缩小** | 改过前端源目录之后；每轮收尾 |
 | `ops/verify/check-css-namespace.sh` | **同一页里两个文件不许各自定义同一个顶层单类且互相覆盖**（B-0003 的根因：模块注入的裸 `.spin` 盖掉了聊天侧的 `.spin`） | 改过 `web/` 里注入 CSS 的模块之后 |
-| `ops/verify/check-all.sh` | **一次跑完上面所有条，只回一张表**（需求方说 `规范巡检` 时跑它） |
+| `ops/verify/check-all.sh` | **一次跑完上面所有条，只回一张表**（需求方说 `规范巡检` 时跑它）。🔴 **本项目自己的守门起名 `ops/verify/check-project-*.sh` 就自动被它跑**——**不要为了注册守门去改 check-all.sh**：那份是 FRAME 本体，改了它每次分发都要人来合一次 |
 | `ops/verify/check-budget.sh` | 行数预算有没有被超、**开场必读实际多少行**。**放宽上限＝改规范，要进维护记录** |
 | `ops/verify/check-filenames.sh` | **在 Windows 上建不出来的文件名**（`<>:"\|?*`、结尾点或空格、保留名、只差大小写的重名） |
 | `ops/verify/check-entrypoints.sh` | 别的平台的入口文件（`AGENTS.md` 等）有没有变成第二份规矩。**真入口只有 `CLAUDE.md`** |

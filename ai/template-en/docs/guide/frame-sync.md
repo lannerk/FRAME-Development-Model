@@ -45,6 +45,20 @@ A three-way merge needs a baseline to tell **who changed it**, and **the first r
 | Use mtime instead of a content fingerprint | `check-template-sync` v1 fell exactly there (a fresh clone reported 11 false reds with nothing changed) |
 | Hand-edit the open-source repo's root files | They are **the template plus declared patches** (`map=` / `patch=` in its conf); hand-edit them and the next sync reports "the target changed it" |
 
+🔴 **The `seed` exception protects "content a project filled in"; it does NOT catch "the two templates' blanks forking"**
+(measured 2026-09-27). Between the source repo and a host project both sides are templates with no project content in
+them, so `seed` let both **blanks** be edited and said nothing: one run found 3 (the entry file was missing two command
+rows, `ai/index.md` five pointer rows, `ai/RandD/index.md` its example row) -- **and the missing-rows copy is exactly
+what a new project clones from the open-source repo**. `--sync` now prints one extra 🔶 line listing them,
+**report only** (the "seed never overwrites" rule is untouched); the Maintainer merges them by hand once.
+`ai/FRAME-VERSION` is exempt: those two are supposed to differ.
+
+🔴 **Never register a project's own guard inside `ops/verify/check-all.sh`** -- that file is FRAME itself (`follow`).
+Edit it and this project's `check-all.sh` becomes "target changed" on **every** distribution, needing a human merge
+every time; merging it upstream would push one project's guard to every project. **Name it
+`ops/verify/check-project-*.sh` and it runs automatically**; such files are `skip` in `classes.txt`,
+so they neither enter the template nor get overwritten by it.
+
 ## 5. Open-source users: pull from the source only (`role=consumer` + `push=no`)
 
 > Who reads this: **anyone who took this FRAME from GitHub to run their own project**. You have no

@@ -260,10 +260,15 @@ fi
 
 if [ -n "$MINE" ]; then
   # **路径限定提交**：别席可能已经在 SourceTree 里暂存了东西，无路径的 commit 会把它们一起提交。
-  printf '%s\n' "$MINE" | grep . > /tmp/.cr_mine.$$ || true
-  # shellcheck disable=SC2046
-  G commit -q -m "$MSG" -- $(tr '\n' ' ' < /tmp/.cr_mine.$$)
-  rm -f /tmp/.cr_mine.$$
+  # 🔴 **文件清单走位置参数，不落临时文件**（2026-09-27，另一个项目的维护席实测出的两个缺陷）：
+  #   甲·原来写 `> /tmp/.cr_mine.$$`——沙箱里 PID 很小而且会复用，别的会话留下的同名文件
+  #     属主不是自己、删不掉也写不进去，而 `|| true` 把这个失败吞了；下一行就读了**别人那一轮的
+  #     文件清单**去做路径限定提交：提交信息是自己的，挑的文件是按别人清单挑的。
+  #   乙·`$(tr '\n' ' ')` 还会按空格再切一次，所以**带空格的路径本来就提交不对**。
+  #   位置参数一次解决两件事：没有临时文件可撞、没有 `|| true` 可吞、也不再按空格切词。
+  set --
+  while IFS= read -r f; do [ -n "$f" ] && set -- "$@" "$f"; done <<< "$(printf '%s\n' "$MINE" | grep .)"
+  G commit -q -m "$MSG" -- "$@"
 else
   G commit -q -m "$MSG"
 fi || { echo "提交失败，什么都没改。"; exit 1; }

@@ -64,6 +64,9 @@ skip    ops/verify/.rootcheck-allow
 # 🔴 项目专属的路径与前缀（前端类守门用）：**seed，同步永不覆盖**——FRAME 本体不许写死某个项目的目录名。
 seed    ops/verify/paths.env
 skip    ops/verify/.private-words
+# 🔴 项目自己的守门（`check-all.sh` 自动发现它们）：**永不进模板、也永不被模板覆盖**。
+# 口子开在文件名上就是为了这一行：想注册自己的守门，起这个名字，别去改 check-all.sh。
+skip    ops/verify/check-project-*.sh
 
 # ── 🔴 明确留 seed 的几处（虽然默认已是 seed，写出来是为了让人看见）──
 seed    CLAUDE.md
