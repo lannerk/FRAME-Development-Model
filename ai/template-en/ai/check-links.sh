@@ -25,7 +25,7 @@ while IFS= read -r f; do
   # so require the match to start at a line start or a non-path character, then strip that character.
   grep -ohE "(^|[^A-Za-z0-9_./-])$PAT" "$f" 2>/dev/null | sed -E 's/^[^A-Za-z0-9_.-]//' | sort -u | while IFS= read -r p; do
     # skip template placeholders
-    case "$p" in *'<'*|*'>'*|*'*'*|*xxx*|*XXX*|*'》'*|*'《'*|*'–'*|*'~'*|*'####'*) continue;; esac
+    case "$p" in *'<'*|*'>'*|*'*'*|*xxx*|*XXX*|*'》'*|*'《'*|*'–'*|*'~'*|*'####'*|*_PROJECT_*) continue;; esac
     # Allowlist: ai/.linkcheck-ignore, one full path per line, # starts a comment
     # Two forms in the list: a **full path**, or a **prefix ending in `/`** (ignore that whole subtree).
     # 🔴 The prefix form was bought with an incident: every new `ai/template/...` reference added to
@@ -47,7 +47,7 @@ while IFS= read -r f; do
     fi
   done
 done < <(find . -name '*.md' \
-          -not -path './.git/*' -not -path './tmp/*' -not -path './dist/*' \
+          -not -path './.git/*' -not -path './tmp/*' -not -path './dist/*' -not -path '*/node_modules/*' \
           -not -path './archive/*' -not -path './*/archive/*' \
           -not -path './ai/specs/*' -not -path './product/requirements/*' \
           -not -path './claude-outputs/*' -not -path './src/*' \
@@ -69,7 +69,7 @@ while IFS= read -r f; do
     ln="${hit%%:*}"; rest="${hit#*:}"
     p=$(sed 's/^`\([^`]*\)`.*/\1/' <<< "$rest")
     a=$(grep -oE "$ANCH" <<< "$rest" | head -1 | sed 's/^§//')
-    case "$p" in *'<'*|*'>'*|*'*'*|*'####'*) continue;; esac
+    case "$p" in *'<'*|*'>'*|*'*'*|*'####'*|*_PROJECT_*) continue;; esac
     d="$(dirname "$f")"; t=""
     for c in "$p" "$d/$p" "src/$p"; do [ -f "$c" ] && { t="$c"; break; }; done
     if [ -z "$t" ]; then
@@ -86,7 +86,7 @@ while IFS= read -r f; do
     [ "$ok" -eq 1 ] || echo "broken anchor  $f:$ln  ->  $p §$a"
   done
 done < <(find . -name '*.md' \
-          -not -path './.git/*' -not -path './tmp/*' -not -path './dist/*' \
+          -not -path './.git/*' -not -path './tmp/*' -not -path './dist/*' -not -path '*/node_modules/*' \
           -not -path './archive/*' -not -path './*/archive/*' \
           -not -path './claude-outputs/*' -not -path './src/*' -not -path './_newroot/*' \
           -not -path './ai/template/*' -not -path './SYNC.md' \

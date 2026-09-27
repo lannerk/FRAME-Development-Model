@@ -24,7 +24,7 @@ while IFS= read -r f; do
   # 判的是**路径**，不是**子串**——所以要求匹配前面是行首或非路径字符，再把那个字符去掉。
   grep -ohE "(^|[^A-Za-z0-9_./-])$PAT" "$f" 2>/dev/null | sed -E 's/^[^A-Za-z0-9_.-]//' | sort -u | while IFS= read -r p; do
     # 模板占位跳过
-    case "$p" in *'<'*|*'>'*|*'*'*|*xxx*|*XXX*|*'》'*|*'《'*|*'–'*|*'~'*|*'####'*) continue;; esac
+    case "$p" in *'<'*|*'>'*|*'*'*|*xxx*|*XXX*|*'》'*|*'《'*|*'–'*|*'~'*|*'####'*|*_PROJECT_*) continue;; esac
     # 白名单：ai/.linkcheck-ignore，一行一条完整路径，# 开头是注释
     # 白名单两种写法：**整条路径**，或**以 `/` 结尾的前缀**（整段忽略）。
     # 🔴 前缀那种是实测换来的：`ai/roles/maintainer.md` 每加一条 `ai/template/...` 引用，
@@ -45,7 +45,7 @@ while IFS= read -r f; do
     fi
   done
 done < <(find . -name '*.md' \
-          -not -path './.git/*' -not -path './tmp/*' -not -path './dist/*' \
+          -not -path './.git/*' -not -path './tmp/*' -not -path './dist/*' -not -path '*/node_modules/*' \
           -not -path './archive/*' -not -path './*/archive/*' \
           -not -path './ai/specs/*' -not -path './product/requirements/*' \
           -not -path './claude-outputs/*' -not -path './src/*' \
@@ -72,7 +72,7 @@ while IFS= read -r f; do
     ln="${hit%%:*}"; rest="${hit#*:}"
     p=$(sed 's/^`\([^`]*\)`.*/\1/' <<< "$rest")
     a=$(grep -oE "$ANCH" <<< "$rest" | head -1 | sed 's/^§//')
-    case "$p" in *'<'*|*'>'*|*'*'*|*'####'*) continue;; esac
+    case "$p" in *'<'*|*'>'*|*'*'*|*'####'*|*_PROJECT_*) continue;; esac
     d="$(dirname "$f")"; t=""
     for c in "$p" "$d/$p" "src/$p"; do [ -f "$c" ] && { t="$c"; break; }; done
     if [ -z "$t" ]; then
@@ -89,7 +89,7 @@ while IFS= read -r f; do
     [ "$ok" -eq 1 ] || echo "锚点断链  $f:$ln  ->  $p §$a"
   done
 done < <(find . -name '*.md' \
-          -not -path './.git/*' -not -path './tmp/*' -not -path './dist/*' \
+          -not -path './.git/*' -not -path './tmp/*' -not -path './dist/*' -not -path '*/node_modules/*' \
           -not -path './archive/*' -not -path './*/archive/*' \
           -not -path './claude-outputs/*' -not -path './src/*' -not -path './_newroot/*' \
           -not -path './ai/template/*' -not -path './ai/template-en/*' \
