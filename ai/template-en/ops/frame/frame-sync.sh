@@ -234,6 +234,29 @@ foreign_dirty() { # foreign_dirty <repo> <baseline file (ignored, see below)> <t
   # like someone else's change -- measured: the English run reported all 21 files plus 4 root files the Chinese run had just pushed.
   local R="$1" _ignored="$2" PFX="$3" line st f rel cur out="" blf sfx pfx2 k
   [ -d "$R/.git" ] || return 1
+  # 🔴 **Only look at paths FRAME actually manages** (2026-09-27). This used to read the target's WHOLE
+  # git status, so any uncommitted business file in the target blocked distribution -- measured: one
+  # consumer project had 375 uncommitted `ai/RandD/...` files the Researcher was working on, entirely
+  # unrelated to what FRAME writes, and **distribution stalled on it two rounds in a row**.
+  # What must hold is "**never overwrite a FRAME file someone else is editing**", not "the target
+  # repository must be clean": FRAME only ever writes its own file list, and never touches the rest.
+  # 🔴 The list is keyed by FRAME-RELATIVE path, and the repo's own template prefix is stripped when
+  # comparing: the third argument equals the repo's ABSOLUTE path when FRAME sits at the repo root
+  # (a consumer), not the empty string -- the first version pasted it in as a prefix, so every key was
+  # an absolute path, nothing ever matched and **this check was effectively off for consumers**
+  # (the reverse assertion caught it at once: a locally edited ai/rules/laws.md was not refused).
+  # Prefixes come from the conf; nothing is guessed.
+  declare -A OWNED=()
+  while IFS= read -r rel; do [ -n "$rel" ] && OWNED["$rel"]=1; done < <(list_files "$SRC" "$SROLE")
+  local -a TPFXS=(); local tp
+  tp="$(conf_get "$R" template)";    [ -n "$tp" ] && TPFXS+=("$tp")
+  tp="$(conf_get "$R" template_en)"; [ -n "$tp" ] && TPFXS+=("$tp")
+  owned_path() { local q="$1" pp
+    [ -n "${OWNED[$q]:-}" ] && return 0
+    for pp in "${TPFXS[@]}"; do
+      case "$q" in "$pp"/*) [ -n "${OWNED[${q#$pp/}]:-}" ] && return 0;; esac
+    done
+    return 1; }
   declare -A B=()
   for blf in "$SRC"/ops/frame/.baseline*; do
     [ -f "$blf" ] || continue
@@ -270,6 +293,8 @@ foreign_dirty() { # foreign_dirty <repo> <baseline file (ignored, see below)> <t
     case "$f" in */ai/FRAME-VERSION|ai/FRAME-VERSION) continue;; esac
     case "$f" in */ops/frame/.baseline*|ops/frame/.baseline*) continue;; esac
     f="${f%\"}"; f="${f#\"}"
+    # Outside the list (business code, another seat's ledgers, the R&D line) FRAME never writes: not our business
+    if ! owned_path "$f" && [ -z "${B[$f]:-}" ]; then continue; fi
     cur="$(h "$R/$f")"
     case " ${B[$f]:-} " in *" $cur "*) continue;; esac   # matches any baseline = written by us in some run
     out="$out $f"
@@ -566,6 +591,12 @@ for T in "${TARGETS[@]}"; do
   FOREIGN_T="$(foreign_dirty "$T" "$BL" "${TBASE#$T/}" || true)"
   if [ "$APPLY" = 1 ] && [ -n "$FOREIGN_T" ]; then
     echo "🔴 the target has **someone else's** uncommitted changes, refusing to write:$FOREIGN_T"; rc=1; continue; fi
+  # 🔶 Dirty files outside the list do not block, but say so: afterwards that repo holds both FRAME's
+  # changes and another seat's own work, so commit them separately (that is what
+  # `ops/scripts/commit-round.sh --seat` is for).
+  NONF="$( (cd "$T" && git status --porcelain 2>/dev/null | grep -cv '^??') || true )"
+  if [ "$APPLY" = 1 ] && [ "${NONF:-0}" -gt 0 ]; then
+    echo "  🔶 the target still has $NONF uncommitted changes (unrelated to FRAME, not blocked) -- commit them per seat."; fi
   declare -A TB=()
   [ -f "$BL" ] && while read -r a b; do case "$a" in ''|'#'*) continue;; *) TB["$b"]="$a";; esac; done < "$BL"
   nC=0; nU=0; nS=0; nSeed=0; nSkip=0; nConf=0; nGone=0; C=(); U=(); K=(); G=()

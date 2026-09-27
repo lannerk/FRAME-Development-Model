@@ -42,6 +42,7 @@ A three-way merge needs a baseline to tell **who changed it**, and **the first r
 | Flip the default to `follow` | One unclassified file then **silently loses content**; with `seed` as the default, the same slip only creates a file |
 | Let `seed` files take part in two-way overwriting | `CLAUDE.md`, the `index.md` files, `memory.md`, `inbox.md` are filled in by the project — **pushing them back carries project content into FRAME** |
 | Delete target files automatically | Deletion is irreversible. 🔴 **If one side deleted it, only report it** — treating a deletion as a new file pushes it back and **nobody can ever delete it** (measured) |
+| Treating "the target repo must be clean" as a precondition for distribution | What must hold is **never overwrite a FRAME file someone else is editing**, not "a clean working tree". Measured: one consumer project had 375 uncommitted `ai/RandD/...` files the Researcher was working on, unrelated to anything FRAME writes, and **distribution stalled on it two rounds running**. Now only dirty files **inside FRAME's own file list** block; anything outside gets one advisory line (commit per seat) |
 | Use mtime instead of a content fingerprint | `check-template-sync` v1 fell exactly there (a fresh clone reported 11 false reds with nothing changed) |
 | Hand-edit the open-source repo's root files | They are **the template plus declared patches** (`map=` / `patch=` in its conf); hand-edit them and the next sync reports "the target changed it" |
 

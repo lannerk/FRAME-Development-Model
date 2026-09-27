@@ -214,6 +214,47 @@ foreign_dirty() { # foreign_dirty <仓库> <基线文件（忽略，见下）> <
   # 会变成「别人改的」——实测：英文那轮把中文那轮刚推的 21 份 ＋ 4 份根文件全报成别人的。
   local R="$1" _ignored="$2" PFX="$3" line st f rel cur out="" blf sfx pfx2 k
   [ -d "$R/.git" ] || return 1
+  # 🔴 **只看 FRAME 管得着的那些路径**（2026-09-27）。原来这里读的是整仓 `git status`，
+  # 于是目标项目里任何一份没提交的业务文件都会把分发拦住——实测：一个消费项目有 375 份
+  # 研究席正在写的 `ai/RandD/…`，与 FRAME 要写的文件毫无关系，**分发连着两轮卡在这里**。
+  # 要保的那件事是「**别覆盖别人正在改的 FRAME 文件**」，不是「目标仓库必须干净」：
+  # FRAME 永远只写自己那张文件清单里的东西，清单外的脏文件我们一个字都不会碰。
+  # 🔴 **清单按「FRAME 内相对路径」存，比对时把仓库自己的模板前缀剥掉**：
+  # 调用方传进来的第三个参数在「FRAME 落在仓库根」（consumer）时等于仓库绝对路径，不是空串——
+  # 第一版直接拿它拼前缀，于是清单里全是绝对路径、一条都对不上，**这道检查在消费项目上等于被关掉了**
+  # （反向断言当场抓到：目标私改过的 ai/rules/laws.md 没被拦住）。前缀从 conf 读，不猜。
+  declare -A OWNED=()
+  while IFS= read -r rel; do [ -n "$rel" ] && OWNED["$rel"]=1; done < <(list_files "$SRC" "$SROLE")
+  local -a TPFXS=(); local tp
+  tp="$(conf_get "$R" template)";    [ -n "$tp" ] && TPFXS+=("$tp")
+  tp="$(conf_get "$R" template_en)"; [ -n "$tp" ] && TPFXS+=("$tp")
+  owned_path() { local q="$1" pp
+    [ -n "${OWNED[$q]:-}" ] && return 0
+    for pp in "${TPFXS[@]}"; do
+      case "$q" in "$pp"/*) [ -n "${OWNED[${q#$pp/}]:-}" ] && return 0;; esac
+    done
+    return 1; }
+  declare -A B=()
+  for blf in "$SRC"/ops/frame/.baseline*; do
+    [ -f "$blf" ] || continue
+    sfx="${blf##*/.baseline}"                       # "" 或 "-template-en"
+    # 🔴 没后缀那一份记的是**默认模板**（conf 里的 template=），不是「当前这一轮的模板」——
+    # 按当前这一轮算前缀，会把中文那轮写的文件全对不上，于是又变成「别人的」（实测）。
+    if [ -n "$sfx" ]; then pfx2="ai/${sfx#-}"
+    elif [ "$(role_of "$R")" = consumer ]; then pfx2=""
+    else pfx2="$(conf_get "$R" template)"; pfx2="${pfx2:-ai/template}"; fi
+    while read -r a b; do
+      case "$a" in ''|'#'*) continue;; esac
+      # 🔴 **同一条路径可能在几份基线里各有一个哈希**（根文件在中英两份基线里都记了一次）：
+      # 用「最后一份覆盖前一份」会让**刚更新过的那一份反而对不上**，于是自己写的东西被判成别人的（实测）。
+      # 所以按**集合**存：只要命中其中任意一个，就算我们写的。
+      case "$b" in
+        ROOT:*) k="${b#ROOT:}";;
+        *) k="$pfx2/$b";;
+      esac
+      B["$k"]="${B[$k]:-} $a"
+    done < "$blf"
+  done
   declare -A B=()
   for blf in "$SRC"/ops/frame/.baseline*; do
     [ -f "$blf" ] || continue
@@ -249,6 +290,8 @@ foreign_dirty() { # foreign_dirty <仓库> <基线文件（忽略，见下）> <
     case "$f" in */ai/FRAME-VERSION|ai/FRAME-VERSION) continue;; esac
     case "$f" in */ops/frame/.baseline*|ops/frame/.baseline*) continue;; esac
     f="${f%\"}"; f="${f#\"}"
+    # 清单外的（业务代码、别席的台账、研究线的活）FRAME 根本不会写，与这次同步无关
+    if ! owned_path "$f" && [ -z "${B[$f]:-}" ]; then continue; fi
     cur="$(h "$R/$f")"
     case " ${B[$f]:-} " in *" $cur "*) continue;; esac   # 命中任意一份基线 = 我们（某一轮）写进去的
     out="$out $f"
@@ -533,6 +576,11 @@ for T in "${TARGETS[@]}"; do
   FOREIGN_T="$(foreign_dirty "$T" "$BL" "${TBASE#$T/}" || true)"
   if [ "$APPLY" = 1 ] && [ -n "$FOREIGN_T" ]; then
     echo "🔴 目标里有**别人**的未提交改动，拒绝写：$FOREIGN_T"; rc=1; continue; fi
+  # 🔶 清单外的脏文件不拦人，但要说一句：写完之后那个仓库里会同时有「FRAME 的改动」和
+  # 「别席自己的活」，提交时按席分开（`ops/scripts/commit-round.sh --seat` 就是为这个）。
+  NONF="$( (cd "$T" && git status --porcelain 2>/dev/null | grep -cv '^??') || true )"
+  if [ "$APPLY" = 1 ] && [ "${NONF:-0}" -gt 0 ]; then
+    echo "  🔶 目标里还有 $NONF 份未提交改动（与 FRAME 无关，没拦）——提交时按席分开。"; fi
   declare -A TB=()
   [ -f "$BL" ] && while read -r a b; do case "$a" in ''|'#'*) continue;; *) TB["$b"]="$a";; esac; done < "$BL"
   nC=0; nU=0; nS=0; nSeed=0; nSkip=0; nConf=0; nGone=0; C=(); U=(); K=(); G=()
