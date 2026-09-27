@@ -27,6 +27,7 @@ That role manual tells you which files to read at the start, how to run this sta
 
 | He says | Means |
 |---|---|
+| A new project / module / a large requirement / "how should this be done" | **Not a command word but a trigger**: read the Requester's profile `product/requirements/requester-profile.md` first, look up `ai/advisor/` as needed, **think the plan and the "why" through for him and raise the dimensions he never mentioned** — the procedure is `ai/rules/requester.md` §4d (not in the opening read; read it when triggered) |
 | `review done, continue` | For the Developer: go to `ai/tasks/index.md`, take the highest-priority entry with status = `todo`, carry on |
 | `review` | For the Reviewer: open a review round, go to `ai/tasks/index.md` and look at the entries with status = `in review`. **Review only, do not spread out into testing** |
 | `review and test` | Do the review, **plus test everything that can be tested**: functionality, UI acceptance, interfaces, end-to-end operation, performance, case coverage, regression, full test pass (`ai/roles/reviewer.md` §6; what this project tests with is in `ai/specs/testing.md`) |
@@ -36,6 +37,7 @@ That role manual tells you which files to read at the start, how to run this sta
 | `look at the task` | For the Supervisor seat: go read **the one advisory task assigned to it** (this is its only exception to reading the queue) and give an opinion |
 | `the supervisor has given its opinion` | For the Reviewer seat: go read the Supervisor seat's output, **give the verdict taking it into account**, then close that advisory task |
 | `check mail` / `you have mail` | For **any seat**: read `ai/mail/to-<your seat>/` (three files, one per sender) — **all of it at once, de-duplicated by you, one thing done once** — then handle each letter (do it / turn it into a task / refuse it and send one reply) and move that row into `ai/mail/archive/<your seat>-<YYYY-MM>.md` (**the archive belongs to the recipient**). **You must report a short summary in the session: how many letters → how many distinct things → what happens to each** (the shape is in `ai/mail/README.md`) |
+| `sync FRAME` | For the **Maintainer**: bring this project's FRAME into line with the source repository (two-way; when this project has not changed FRAME it is simply a pull). Follow the ten steps in `docs/guide/frame-sync.md`; **it reports and writes nothing by default** |
 | `conformance sweep` | For **any seat**: run `bash ops/verify/check-all.sh`, **answer with one table only**; for the red ones, `-v` for the detail. Only what a machine cannot judge gets read by a human. **Who owns a red is decided by who owns the file**; only the Maintainer seat may change the rules on the strength of it |
 | `reload rules` | For **any seat**: the rules changed — **re-read the five below on the spot**, then report what changed. See "※ reload rules" below |
 

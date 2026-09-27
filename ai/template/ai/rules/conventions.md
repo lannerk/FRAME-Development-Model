@@ -94,7 +94,7 @@
 | 脚本 | 查什么 |
 |---|---|
 | `ai/check-links.sh` | 文档里指不到东西的路径。**断链必须为 0** |
-| `ops/verify/check-paths.sh` | 脚本/文档里写死的机器 IP 与已废弃的旧目录名 |
+| `ops/verify/check-paths.sh` | 脚本/文档里写死的机器 IP 与已废弃的旧目录名；**双引号 `echo` 里的反引号**（那是命令替换，`bash -n` 查不出来） |
 | `ops/verify/check-inbox.sh` | 收件簿里还有没有没处置的需求方发言。**一轮结束前必须清零** |
 | `ops/verify/check-bugs.sh` | bug 闭环断没断：复现步骤是不是真写了、修完有没有复测、关闭有没有依据。**一轮结束前必须绿** |
 | `ops/verify/check-ledger.sh` | 任务字段齐不齐、**状态双写一致不一致**、**同一个编号有没有第二份文件**、索引与实体对不对得上、`ai/` 根下有没有散件 |

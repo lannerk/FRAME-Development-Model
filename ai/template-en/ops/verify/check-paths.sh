@@ -72,6 +72,50 @@ done < <(find . \( -name '*.ps1' -o -name '*.sh' -o -name '*.service' -o -name '
               git check-ignore -q -- "$f" 2>/dev/null || echo "$f"
             done)
 
+# -- 🔴 Third test: a script may not put a backtick inside a double-quoted echo ----------
+# [Why this exists] This is the same trap this method has now hit **six times**: writing a hint in markdown
+# habit and quoting a path or a flag name in backticks -- while **a backtick inside double quotes is command
+# substitution**, so the guard "executes" its own message the moment it goes red. Real incidents include
+# executing a handbook and printing 4467 lines of recursive errors, and creating 43 zero-byte junk files at
+# the repo root. **`bash -n` cannot see it** (the syntax is perfectly legal); it only explodes when that line
+# is reached, so it stayed a thing people had to remember -- and six times, people did not.
+# The test looks at **non-comment lines** only (explaining the trap in a comment is legitimate; the first
+# version reported its own explanation as a violation).
+# [No retroactivity] Per ai/rules/workflow.md §3c, the gate is the **git commit time a file first entered**
+# (never mtime -- a clone resets it): files added after that date go red, older ones are a note for their
+# owning seat to fix.
+BQ_SINCE="${BACKTICK_SINCE:-2026-09-27}"
+nbq=0
+while IFS= read -r f; do
+  [ -f "$f" ] || continue
+  # 🔴 An ESCAPED backtick (\`) inside double quotes is a **literal**, not command substitution.
+  # Strip those first, otherwise this check flags correct code (measured: one such false positive
+  # on a real script). sed keeps the line count, so grep -n line numbers still match the file.
+  hits=$(sed 's/\\`//g' "$f" | grep -nE '^[[:space:]]*[^#]*echo[[:space:]]+"[^"]*`' | cut -d: -f1)
+  [ -n "$hits" ] || continue
+  a=$(git log --diff-filter=A --format=%cs -1 -- "$f" 2>/dev/null)
+  while IFS= read -r line; do
+    [ -n "$line" ] || continue
+    if [ -n "$a" ] && [ "$a" \< "$BQ_SINCE" ]; then
+      echo "  .  $f:$line has a backtick inside a double-quoted echo (entered the repo $a; §3c, not retroactive -- the owning seat fixes it)"
+    else
+      echo "  x  $f:$line -- a backtick inside a double-quoted echo is command substitution: the message gets run as a command (hit six times)"
+      nbq=$((nbq+1))
+    fi
+  done <<< "$hits"
+# 🔴 **Untracked new scripts are scanned too**: `git ls-files` cannot see them, and **a fresh mistake is
+# exactly where they are** (the first reverse assertion fell into this: an uncommitted script, and the guard
+# said nothing -- the same trap as adding `--others` to `--dry` earlier). So both lists are used: tracked,
+# plus untracked-and-not-ignored.
+done < <( { git -c core.quotepath=false ls-files -- '*.sh'; \
+            git -c core.quotepath=false ls-files --others --exclude-standard -- '*.sh'; } 2>/dev/null \
+          | grep -vE '^(ai/template|ai/template-en)/' | LC_ALL=C sort -u )
+if [ "$nbq" -gt 0 ]; then
+  echo "CHECK-PATHS-FAIL ($nbq backticks inside double-quoted echos)"
+  echo "  Use plain text or drop the quotes in a message; use \$( ) when you really mean a command. **bash -n cannot catch this.**"
+  exit 1
+fi
+
 if [ "$n" -gt 0 ]; then
   echo "CHECK-PATHS-FAIL ($n files hard-code a path or a test-machine IP)"
   echo "  Paths: dot-source ops/paths.ps1 and use \$Proj / \$Dist / \$Tmp / \$Outputs; do not assemble your own."

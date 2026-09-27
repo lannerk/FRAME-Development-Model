@@ -74,6 +74,49 @@ done < <(find . \( -name '*.ps1' -o -name '*.sh' -o -name '*.service' -o -name '
               git check-ignore -q -- "$f" 2>/dev/null || echo "$f"
             done)
 
+# ── 🔴 第三条：脚本里不许在双引号 echo 里写反引号 ──────────────────────
+# 【为什么要这条】这是本项目**踩了六次**的同一个坑（项目记忆第 3 条）：写提示文案时按 markdown 习惯
+# 用反引号引一个路径或参数名，而**双引号里的反引号是命令替换**——于是守门一报红就去「执行」那段文字，
+# 出过「执行一份手册、递归打印 4467 行错误」「在仓库根建出 43 个 0 字节垃圾文件」这样的事故。
+# **`bash -n` 查不出来**（语法完全合法），只有真跑到那一行才炸，所以它一直靠人记——而人记了六次没记住。
+# 判据：**非注释行**里同时出现 echo 加双引号和反引号就报红。
+# （注释里举例说明这个坑是正当的，所以跳过注释行——否则这条判据会把「写下这条判据」本身判成违规，
+#  实测：第一版就把自己的说明文字报成了一处红。）
+# 改法：提示文案里用「」或不加引号，真要执行命令就用 $( )。
+# 【不追溯】按 ai/rules/workflow.md §三之三：新判据不回头打旧交付。
+# 闸门用 **git 首次入库时间**（不是 mtime——clone 一次 mtime 就全变了）：这一天之后入库的报红，
+# 之前的只提醒，并由归属席自己修（改法一行，但那是它的文件）。
+BQ_SINCE="${BACKTICK_SINCE:-2026-09-27}"
+nbq=0
+while IFS= read -r f; do
+  [ -f "$f" ] || continue
+  # 🔴 转义过的反引号（\`）在双引号里是**字面量**，不是命令替换——先把它们抹掉再判，
+  # 否则会把「正确的写法」判成违规（实测：src 下一份 09-15 入库的脚本就是这样一处误报）。
+  # sed 不改行数，所以 grep -n 的行号仍然对得上原文件。
+  hits=$(sed 's/\\`//g' "$f" | grep -nE '^[[:space:]]*[^#]*echo[[:space:]]+"[^"]*`' | cut -d: -f1)
+  [ -n "$hits" ] || continue
+  a=$(git log --diff-filter=A --format=%cs -1 -- "$f" 2>/dev/null)
+  while IFS= read -r line; do
+    [ -n "$line" ] || continue
+    if [ -n "$a" ] && [ "$a" \< "$BQ_SINCE" ]; then
+      echo "  ·  $f:$line 双引号 echo 里有反引号（$a 入库，按 §三之三 不追溯——归属席自己改）"
+    else
+      echo "  ✗  $f:$line —— 双引号 echo 里有反引号：那是命令替换，会把文案当命令跑（项目记忆第 3 条，踩过六次）"
+      nbq=$((nbq+1))
+    fi
+  done <<< "$hits"
+# 🔴 **未跟踪的新脚本也要扫**：`git ls-files` 看不见它们，而**刚写出来的错正好在那儿**
+# （反向断言第一版就栽在这：造了一个未提交的脚本，守门一声不出——和 #35 给 `--dry` 补
+# `--others` 是同一个坑）。所以两份清单都要：已跟踪 ＋ 未跟踪且没被 gitignore 挡掉的。
+done < <( { git -c core.quotepath=false ls-files -- '*.sh'; \
+            git -c core.quotepath=false ls-files --others --exclude-standard -- '*.sh'; } 2>/dev/null \
+          | grep -vE '^(ai/template|ai/template-en)/' | LC_ALL=C sort -u )
+if [ "$nbq" -gt 0 ]; then
+  echo "CHECK-PATHS-FAIL（$nbq 处双引号 echo 里写了反引号）"
+  echo "  文案里用「」或去掉引号；要执行命令用 \$( )。**bash -n 查不出这一类**，只有跑到才炸。"
+  exit 1
+fi
+
 if [ "$n" -gt 0 ]; then
   echo "CHECK-PATHS-FAIL（$n 个文件写死了路径或测试机 IP）"
   echo "  路径：dot-source ops/paths.ps1，用它定义的变量（项目根 / dist / tmp / outputs），别自己拼。"

@@ -5,4 +5,5 @@
 
 | # | Topic | Started | Status | Destination (filled in at graduation) |
 |---|---|---|---|---|
+| `NN` | `<topic>` | `<YYYY-MM-DD>` | `exploring` | |
 | | | | | |

@@ -9,6 +9,7 @@
 | 开发者 | `roles/developer.md` | 可靠地把功能实现出来 | `src/` · 任务文件的「开发者回报」 |
 | 审查者 | `roles/reviewer.md` | 资深技术专家：审代码/审方案、对需求方、排活 | 任务文件的「审查结论」· `decisions/` · `specs/` |
 | 监督者 | `roles/supervisor.md` | 需求方的全能技术顾问，单独沟通 | `claude-outputs/supervisor/`（原样入库） |
+| **研究者** | `roles/researcher.md` | **R&D 线**：把还没名字的想法带到能开工的项目；编外座位，**四权结构不改** | `ai/RandD/`（只写这里） |
 | **维护者** | `roles/maintainer.md` | **维护这套开发模式本身**，不参与开发、不碰需求 | `ai/rules/` · `ai/roles/` · `ai/template/` |
 
 四方都要遵守：`rules/laws.md`（铁律）· `rules/conventions.md`（工程约定）· `rules/workflow.md`（怎么配合）· `rules/layout.md`（东西放哪）· **`rules/investigate.md`（怎么查一个「坏了」）**
@@ -24,6 +25,10 @@
 | 现在系统是什么样、最近的坑 | `state/now.md`（≤200 行） |
 | **他交代过、以后都算数的事**（token 在哪拿、机器脾气、他的偏好） | `memory.md`（**项目记忆**，四席都读、四席都能写；**和规范重复的不记**） |
 | **别席给我留了什么话** | `mail/to-<我这一席>/`（**席间信箱**，一个发信人一份，只放未读；规矩 `mail/README.md`） |
+| **R&D 线在跑什么** | `RandD/index.md`（话题一览）· `RandD/README.md`（目录与编号规矩）· `RandD/memory.md`（研究席的记忆） |
+| **FRAME 怎么跟源仓库同步** | `docs/guide/frame-sync.md`（口令「同步 FRAME」十步走）· `ai/frame-repo.conf`（本仓库画像）· `ops/frame/` |
+| **开新项目／提大需求前先替他想** | `advisor/`（通用顾问库：`questions.md` 挑题 · `chains.md` 联想 · `stack.md` 选型卡 · `domains/*` 分域）＋ `../product/requirements/requester-profile.md`（需求方画像，**私有**）；走法 `rules/requester.md` §四之四 |
+| **写守门／写判据之前的坑** | `memory-archive/type4.md`（记忆卷宗，按需读） |
 | **需求方说过的每一句、处置到哪了** | `../product/requirements/inbox.md`（**收件簿**，一轮结束前 `待处理` 清零） |
 | 这套模式改过什么、为什么 | `rules/maintenance-log.md`（**维护记录**，维护者专用，和收件簿两条线） |
 | 需求方原话全文 | `../product/requirements/verbatim/` |

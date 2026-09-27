@@ -9,7 +9,11 @@
 #   bash ops/frame/frame-sync.sh --adopt-mine              同上，但基线记**本项目这一份**
 #                                                          （从 GitHub 拿这套的人首次用这个：以后源那边的变化都算「源改的」→ 拉回来）
 #   bash ops/frame/frame-sync.sh --diff <仓库> <相对路径>   某一份到底差在哪
-#   bash ops/frame/frame-sync.sh --dry-run|--apply <目标…>  从本仓库**分发**给别的项目（home/host 才有意义）
+#   bash ops/frame/frame-sync.sh --dry-run <目标…>         **分发**给别的项目，只报不写（home/host 才有意义）
+#   bash ops/frame/frame-sync.sh --dist --apply <目标…>    **分发**并写入目标
+# 🔴 **`--apply <目标>` 不是「分发并写入」**：单独的 `--apply` 走的是「与源仓库对账」那一侧，
+#    位置参数会被当成**源仓库**。实测踩中过一次：`--apply ../<某消费项目>` 把那个项目的 542 份内容
+#    拉进了本仓库的模板。所以现在**它直接报错**（见下面的参数解析），要分发就明确写 `--dist --apply`。
 # 退出码 0 = 已对齐或报告完；1 = 有要人处理的；2 = 结构/参数不对。
 #
 # 🔴 五条铁律（都在代码里，不是口号）：
@@ -36,15 +40,20 @@ export GIT_OPTIONAL_LOCKS=0
 SELF="$(cd "$(dirname "$0")" && pwd)"
 SRC="$(cd "$SELF/../.." && pwd)"
 MODE="sync"; APPLY=0; ADOPT_MINE=0; DIST=0; STAMP_V=""; TARGETS=(); DIFF_T=""; DIFF_P=""; CLASSES="$SELF/classes.txt"
+SAW_APPLY=0; SAW_SYNC=0; SAW_DIST=0
 while [ $# -gt 0 ]; do
   case "$1" in
-    --status|--fingerprint|--sync|--adopt) MODE="${1#--}" ;;
+    --sync) MODE="sync"; SAW_SYNC=1 ;;
+    --status|--fingerprint|--adopt) MODE="${1#--}" ;;
     --adopt-mine) MODE="adopt"; ADOPT_MINE=1 ;;
     --stamp) MODE="stamp"; STAMP_V="${2:-}"; shift ;;
-    --dist) DIST=1 ;;   # 分发给别的项目这一侧（默认是与源仓库双向对账）
+    --dist) DIST=1; SAW_DIST=1 ;;   # 分发给别的项目这一侧（默认是与源仓库双向对账）
 
     --dry-run) MODE="dist"; DIST=1 ;;
-    --apply) APPLY=1; [ "$MODE" = "sync" ] || { MODE="dist"; DIST=1; } ;;
+    # 🔴 **`--apply` 不再猜**：它只把「写」这个意思打开，走哪一侧由 `--sync` / `--dist` 明确说。
+    # 旧版是「MODE 还是默认的 sync 就当对账」，于是 `--apply <目标>` 静静地走了对账，
+    # 把目标当成源仓库（实测：542 份内容被拉进模板）。**歧义的默认值比报错危险得多。**
+    --apply) APPLY=1; SAW_APPLY=1; [ "$MODE" = "sync" ] || { MODE="dist"; DIST=1; } ;;
     --diff) MODE="diff"; DIFF_T="${2:-}"; DIFF_P="${3:-}"; shift 2 ;;
     --classes) CLASSES="${2:-}"; shift ;;
     -*) echo "不认识的参数：$1"; exit 2 ;;
@@ -108,7 +117,12 @@ cpn() { local s="$1" d="$2"
     awk '{ sub(/\r$/,""); printf "%s\r\n", $0 }' "$s" > "$d"
   else cp "$s" "$d"; fi; }
 
-list_files() { local b; b="$(base_of "$1" "$2")"; (cd "$b" 2>/dev/null && find . -type f -printf '%P\n' | LC_ALL=C sort); }
+# 🔴 **任何层级的 `.git` 都不列**（2026-09-27）：一次误操作把另一个项目的仓库连 `.git` 一起拷进了模板，
+# 于是这里列出 420 份 `.git/objects/…`——它们进了基线、进了分发、还把一个私有远端地址带进了发行物。
+# `.git` 是**仓库自己的东西，永远不是 FRAME 的一份文件**，所以在**列文件这一层**就挡掉，
+# 而不是在每个调用点各写一遍过滤（`-prune` 而非 `-not -path`：后者仍会整棵走进去，大仓库上很慢）。
+list_files() { local b; b="$(base_of "$1" "$2")"
+  (cd "$b" 2>/dev/null && find . -name .git -prune -o -type f -printf '%P\n' | LC_ALL=C sort); }
 fp_of() { local R="$1" RO="$2" b rel
   b="$(base_of "$R" "$RO")"
   { while IFS= read -r rel; do
@@ -150,6 +164,17 @@ ver_write() { local R="$1" RO="$2" V="$3" FROM="$4" FFP="${5:-}" f; f="$(ver_fil
 # 默认值要让**漏填的那一方安全**：模板最常见的读者是没有提交权的人，他忘了写那一行，
 # 老的「一律默认 yes」会去写上游；反过来漏填只是少推一次，报告里还写着。显式写的永远压过默认。
 SROLE="$(role_of "$SRC")"
+# 🔴 **两道门，都是实测换来的**（监督席 2026-09-26 踩中一次，已还原，无损失）：
+# ⑴ `--apply` 后面跟了位置参数、又没有明确 `--dist` 或 `--sync`：**报错，不猜**。
+#    那个位置参数到底是「要分发的目标」还是「要对账的源仓库」，只有人知道；猜错的代价是
+#    把一个消费项目的全部内容拉进本仓库的模板（实测 542 份）。
+if [ "$SAW_APPLY" = 1 ] && [ "${#TARGETS[@]}" -gt 0 ] && [ "$SAW_DIST" != 1 ] && [ "$SAW_SYNC" != 1 ]; then
+  echo "🔴 --apply 后面跟了「${TARGETS[0]}」，但没说清走哪一侧——**不猜**："
+  echo "   要**分发**给它：bash ops/frame/frame-sync.sh --dist --apply ${TARGETS[*]}"
+  echo "   要和**源仓库**对账：bash ops/frame/frame-sync.sh --sync --apply（源仓库从 ai/frame-repo.conf 的 home= 来）"
+  exit 2
+fi
+
 PUSH_OK="$(conf_get "$SRC" push)"
 if [ -z "$PUSH_OK" ]; then
   if [ "$SROLE" = consumer ]; then PUSH_OK=no; else PUSH_OK=yes; fi
@@ -302,6 +327,17 @@ if [ "$DIST" != 1 ] && { [ "$MODE" = sync ] || [ "$MODE" = adopt ]; }; then
   HOME_REPO="$(home_resolve "${TARGETS[0]:-$(conf_get "$SRC" home)}")"
   [ -n "$HOME_REPO" ] && [ -d "$HOME_REPO" ] || { echo "🔴 找不到源 FRAME 仓库（ai/frame-repo.conf 的 home=，或命令行给一个）"; exit 2; }
   HROLE="$(role_of "$HOME_REPO")"; HBASE="$(base_of "$HOME_REPO" "$HROLE")"
+  # 🔴 ⑵ **对账的那一头必须是 home 或 host**：consumer 是**分发目标**，不是源仓库。
+  # 实测：`--apply ../<某消费项目>` 走成对账、把它当源，「拉回 542 · 推出 2」把它的项目内容
+  # （`ai/specs/*`、`product/requirements/*`、`src/*`）写进了本仓库的 `ai/template/`。
+  # 判的是「**这一头有资格当源吗**」，不是「路径存在吗」。
+  case "$HROLE" in
+    home|host) ;;
+    *) echo "🔴 拒绝：$HOME_REPO 的角色是 ${HROLE:-（没有 ai/frame-repo.conf）}，**它不是源仓库**。"
+       echo "   consumer 是分发目标：要分发请用  bash ops/frame/frame-sync.sh --dist --apply $HOME_REPO"
+       echo "   要和真正的源仓库对账，别给位置参数（源从 ai/frame-repo.conf 的 home= 来）。"
+       exit 2;;
+  esac
   SFP="$(fp_of "$SRC" "$SROLE")"; HFP="$(fp_of "$HOME_REPO" "$HROLE")"
   echo "本项目 : $SRC   角色 $SROLE   版本 $(ver_read "$SRC" "$SROLE")   指纹 $SFP"
   echo "源FRAME: $HOME_REPO   角色 $HROLE   版本 $(ver_read "$HOME_REPO" "$HROLE")   指纹 $HFP"

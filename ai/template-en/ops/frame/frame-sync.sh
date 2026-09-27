@@ -10,7 +10,11 @@
 #   bash ops/frame/frame-sync.sh --adopt-mine               the same, but the baseline records **this project's copy**
 #                                                           (whoever took this from GitHub uses this on the first run: later source changes count as "the source changed it" -> pulled in)
 #   bash ops/frame/frame-sync.sh --diff <repo> <rel-path>   what exactly differs in one file
-#   bash ops/frame/frame-sync.sh --dry-run|--apply <target…>  **distribute** from this repo to other projects (home/host only)
+#   bash ops/frame/frame-sync.sh --dry-run <targets...>    **distribute** to other projects, report only (home/host)
+#   bash ops/frame/frame-sync.sh --dist --apply <targets...>  **distribute** and write into the targets
+# 🔴 **`--apply <target>` is not "distribute and write"**: a bare `--apply` takes the "reconcile with the source"
+#    side, where a positional argument is read as **the source repository**. Measured once: `--apply ../<a consumer>`
+#    pulled 542 of that project's files into this repo's template. It now **errors out** (see the flag parsing).
 # Exit codes: 0 = aligned, or the report is done; 1 = something needs a human; 2 = wrong structure or arguments.
 #
 # 🔴 Five iron rules (all of them in the code, none of them slogans):
@@ -43,15 +47,21 @@ export GIT_OPTIONAL_LOCKS=0
 SELF="$(cd "$(dirname "$0")" && pwd)"
 SRC="$(cd "$SELF/../.." && pwd)"
 MODE="sync"; APPLY=0; ADOPT_MINE=0; DIST=0; STAMP_V=""; TARGETS=(); DIFF_T=""; DIFF_P=""; CLASSES="$SELF/classes.txt"
+SAW_APPLY=0; SAW_SYNC=0; SAW_DIST=0
 while [ $# -gt 0 ]; do
   case "$1" in
-    --status|--fingerprint|--sync|--adopt) MODE="${1#--}" ;;
+    --sync) MODE="sync"; SAW_SYNC=1 ;;
+    --status|--fingerprint|--adopt) MODE="${1#--}" ;;
     --adopt-mine) MODE="adopt"; ADOPT_MINE=1 ;;
     --stamp) MODE="stamp"; STAMP_V="${2:-}"; shift ;;
-    --dist) DIST=1 ;;   # the distribution side (the default is two-way reconciliation with the source)
+    --dist) DIST=1; SAW_DIST=1 ;;   # the distribution side (the default is two-way reconciliation with the source)
 
     --dry-run) MODE="dist"; DIST=1 ;;
-    --apply) APPLY=1; [ "$MODE" = "sync" ] || { MODE="dist"; DIST=1; } ;;
+    # 🔴 **`--apply` no longer guesses**: it only turns writing on; which side to take is said explicitly with
+    # `--sync` or `--dist`. The old version treated "MODE is still the default sync" as reconcile, so
+    # `--apply <target>` quietly reconciled and took the target for the source repository (measured: 542 files
+    # pulled into this repo's template). **An ambiguous default is far more dangerous than an error.**
+    --apply) APPLY=1; SAW_APPLY=1; [ "$MODE" = "sync" ] || { MODE="dist"; DIST=1; } ;;
     --diff) MODE="diff"; DIFF_T="${2:-}"; DIFF_P="${3:-}"; shift 2 ;;
     --classes) CLASSES="${2:-}"; shift ;;
     -*) echo "unknown argument: $1"; exit 2 ;;
@@ -120,7 +130,13 @@ cpn() { local s="$1" d="$2"
     awk '{ sub(/\r$/,""); printf "%s\r\n", $0 }' "$s" > "$d"
   else cp "$s" "$d"; fi; }
 
-list_files() { local b; b="$(base_of "$1" "$2")"; (cd "$b" 2>/dev/null && find . -type f -printf '%P\n' | LC_ALL=C sort); }
+# 🔴 **Never list a `.git` at any depth** (2026-09-27): one mis-run copied another project's repo,
+# `.git` and all, into a template, so this listed 420 `.git/objects/...` files -- they entered the
+# baseline, the distribution, and carried a private remote URL into a shipped artifact.
+# A `.git` belongs to the repository, never to FRAME, so it is excluded HERE, at the listing layer,
+# instead of once per call site (`-prune`, not `-not -path`: the latter still walks the whole tree).
+list_files() { local b; b="$(base_of "$1" "$2")"
+  (cd "$b" 2>/dev/null && find . -name .git -prune -o -type f -printf '%P\n' | LC_ALL=C sort); }
 fp_of() { local R="$1" RO="$2" b rel
   b="$(base_of "$R" "$RO")"
   { while IFS= read -r rel; do
@@ -166,6 +182,17 @@ ver_write() { local R="$1" RO="$2" V="$3" FROM="$4" FFP="${5:-}" f; f="$(ver_fil
 # rights, and the old "always default yes" would write upstream for them; the other way round, forgetting it
 # only skips a push that the report still lists. An explicit value always wins over the default.
 SROLE="$(role_of "$SRC")"
+# 🔴 **Two gates, both bought with a real incident** (hit once on 2026-09-26, reverted, nothing lost):
+# (1) `--apply` followed by a positional argument with no explicit `--dist` or `--sync`: **error, do not guess.**
+#     Only a human knows whether that argument is "a target to distribute to" or "a source repo to reconcile with",
+#     and guessing wrong pulls a consuming project's entire content into this repo's template (542 files, measured).
+if [ "$SAW_APPLY" = 1 ] && [ "${#TARGETS[@]}" -gt 0 ] && [ "$SAW_DIST" != 1 ] && [ "$SAW_SYNC" != 1 ]; then
+  echo "🔴 --apply was followed by \"${TARGETS[0]}\" without saying which side -- **not guessing**:"
+  echo "   to **distribute** to it:  bash ops/frame/frame-sync.sh --dist --apply ${TARGETS[*]}"
+  echo "   to reconcile with the **source repo**:  bash ops/frame/frame-sync.sh --sync --apply (the source comes from home= in ai/frame-repo.conf)"
+  exit 2
+fi
+
 PUSH_OK="$(conf_get "$SRC" push)"
 if [ -z "$PUSH_OK" ]; then
   if [ "$SROLE" = consumer ]; then PUSH_OK=no; else PUSH_OK=yes; fi
@@ -323,6 +350,18 @@ if [ "$DIST" != 1 ] && { [ "$MODE" = sync ] || [ "$MODE" = adopt ]; }; then
   HOME_REPO="$(home_resolve "${TARGETS[0]:-$(conf_get "$SRC" home)}")"
   [ -n "$HOME_REPO" ] && [ -d "$HOME_REPO" ] || { echo "🔴 cannot find the source FRAME repo (home= in ai/frame-repo.conf, or pass one on the command line)"; exit 2; }
   HROLE="$(role_of "$HOME_REPO")"; HBASE="$(base_of "$HOME_REPO" "$HROLE")"
+  # 🔴 (2) **The other end of a reconcile must be home or host**: a consumer is a **distribution target**, not a
+  # source. Measured: `--apply ../<a consuming project>` reconciled against it as if it were the source and
+  # "pulled in 542 / pushed out 2", writing that project's own content (`ai/specs/*`, `product/requirements/*`,
+  # `src/*`) into this repo's `ai/template/`. The test is **"is this end entitled to be the source"**, not "does
+  # the path exist".
+  case "$HROLE" in
+    home|host) ;;
+    *) echo "🔴 Refused: $HOME_REPO has role ${HROLE:-(no ai/frame-repo.conf)}, so **it is not a source repository**."
+       echo "   A consumer is a distribution target: to distribute, run  bash ops/frame/frame-sync.sh --dist --apply $HOME_REPO"
+       echo "   To reconcile with the real source, pass no positional argument (the source comes from home= in ai/frame-repo.conf)."
+       exit 2;;
+  esac
   SFP="$(fp_of "$SRC" "$SROLE")"; HFP="$(fp_of "$HOME_REPO" "$HROLE")"
   echo "this project: $SRC   role $SROLE   version $(ver_read "$SRC" "$SROLE")   fingerprint $SFP"
   echo "source FRAME: $HOME_REPO   role $HROLE   version $(ver_read "$HOME_REPO" "$HROLE")   fingerprint $HFP"

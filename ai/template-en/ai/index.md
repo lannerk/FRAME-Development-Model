@@ -9,6 +9,7 @@
 | Developer | `roles/developer.md` | implement the features reliably | `src/` · the "Developer report" in the task file |
 | Reviewer | `roles/reviewer.md` | senior technical expert: reviews code/specs, faces the Requester, schedules the work | the "Review verdict" in the task file · `decisions/` · `specs/` |
 | Supervisor | `roles/supervisor.md` | the Requester's all-round technical advisor, communicates separately | `claude-outputs/supervisor/` (committed as is) |
+| **Researcher** | `roles/researcher.md` | **The R&D line**: takes an idea that has no name yet to a project that can be started; an extra seat, **the four powers do not change** | `ai/RandD/` (it writes nowhere else) |
 | **Maintainer** | `roles/maintainer.md` | **maintains this development model itself**, does not develop, does not touch requirements | `ai/rules/` · `ai/roles/` · `ai/template/` |
 
 All four must obey: `rules/laws.md` (the hard laws) · `rules/conventions.md` (engineering conventions) · `rules/workflow.md` (how to work together) · `rules/layout.md` (where things go) · **`rules/investigate.md` (how to investigate an "it's broken")**
@@ -24,6 +25,10 @@ All four must obey: `rules/laws.md` (the hard laws) · `rules/conventions.md` (e
 | what the system looks like now, the recent pitfalls | `state/now.md` (≤200 lines) |
 | **things he handed over that hold from then on** (where to get the token, machine quirks, his preferences) | `memory.md` (**project memory**, all four seats read it and all four may write it; **what duplicates the rules is not recorded**) |
 | **What another seat left me** | `mail/to-<my seat>/` (**seat mail**, one file per sender, unread only; rules in `mail/README.md`) |
+| **What the R&D line is working on** | `RandD/index.md` (all topics) · `RandD/README.md` (directory and numbering rules) · `RandD/memory.md` (the Researcher's memory) |
+| **How FRAME syncs with the source repo** | `docs/guide/frame-sync.md` (the ten steps behind "sync FRAME") · `ai/frame-repo.conf` (this repo's profile) · `ops/frame/` |
+| **Think it through before a new project / a large requirement** | `advisor/` (the generic library: `questions.md` to pick questions · `chains.md` for what it drags in · `stack.md` choice cards · `domains/*` per domain) plus `../product/requirements/requester-profile.md` (the Requester's profile, **private**); the procedure is `rules/requester.md` §4d |
+| **Traps to know before writing a guard or a criterion** | `memory-archive/type4.md` (a memory volume, read on demand) |
 | **every sentence the Requester said and where it got to** | `../product/requirements/inbox.md` (**the inbox**, `pending` down to zero before a round ends) |
 | what has been changed in this model and why | `rules/maintenance-log.md` (**the maintenance log**, Maintainer only, a separate line from the inbox) |
 | the Requester's words in full | `../product/requirements/verbatim/` |

@@ -97,7 +97,7 @@ Two sides of the same point — **green has to mean something**.
 | Script | What it checks |
 |---|---|
 | `ai/check-links.sh` | Paths in docs that point at nothing. **Broken links must be 0** |
-| `ops/verify/check-paths.sh` | Hardcoded machine IPs and retired old directory names in scripts/docs |
+| `ops/verify/check-paths.sh` | Hardcoded machine IPs and retired old directory names in scripts/docs; **a backtick inside a double-quoted `echo`** (that is command substitution -- `bash -n` cannot catch it) |
 | `ops/verify/check-inbox.sh` | Whether the inbox still holds unhandled Requester statements. **Must be zero before the round ends** |
 | `ops/verify/check-bugs.sh` | Whether the bug loop is broken: were reproduction steps actually written, was there a retest after the fix, does the close have evidence. **Must be green before the round ends** |
 | `ops/verify/check-ledger.sh` | Whether the task fields are complete, **whether the state double write agrees**, **whether one ID has a second file**, whether index and entities line up, whether there are loose files in the `ai/` root |
