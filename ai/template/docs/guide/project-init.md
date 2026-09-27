@@ -251,8 +251,8 @@ git show HEAD:<那个文件>   # 把原件原样捞回来
 | 4 | `ai/rules/laws.md` | **铁律不用填**：2、3 两条指向「任务关联的技术方案」，对任何项目都成立（2026-09-27 起；以前要按项目填「核心框架/平台」，填进去就和模板分叉） |
 | 5 | `ai/state/now.md` | 「系统是什么样的」「跑在哪」两节 + 顶部日期与 🔔 行 —— 这是新会话最先读的东西 |
 | 6 | `ops/machines.json` | 开发机 / 测试机 / 构建机。**只有这里能写 IP**；旧文档里那些写死的 IP 搬到这里来，文档改成按 `id` 引用 |
-| 7 | `ai/rules/conventions.md` §五 | **交付前自检清单**：你的项目跑什么命令才算「做完了」 |
-| 8 | **占位目录改名** | 把 `product/design/prototype/_PROJECT_/` 改成项目名；按需建 `src/<项目名>/`。**新名字不许含 `<>:"\|?*`**——那几个字符在 Windows 上建不出来（`ops/verify/check-filenames.sh` 会拦） |
+| 7 | `ai/rules/conventions.md` §五 | **交付前自检清单**：你的项目跑什么命令才算「做完了」。🔴 **本项目特有的检查别写成表里的一行、也别去改 `ops/verify/check-all.sh`**——起名 `ops/verify/check-project-*.sh` 就会被自动跑（那类文件永不进模板、也不被模板覆盖）。🔴 §五 这张表本身是 follow 文件里的填空格子，所以它在每次分发时都会报「目标改过」（**1.5.5 起冲突只报不写，不会被盖**）；需求方 2026-09-27 已拍板把这几张表拆进项目自有的 seed 文件，拆完这条自然消失 |
+| 8 | **占位目录改名** | 把 `product/design/prototype/_PROJECT_/` 改成项目名；按需建 `src/<项目名>/`。**新名字不许含 `<>:"\|?*`**——那几个字符在 Windows 上建不出来（`ops/verify/check-filenames.sh` 会拦） | 🔴 **改完不会被分发建回来**：那两份占位在 `ops/frame/classes.txt` 里是 **skip**（2026-09-28 起；在那之前它是 seed，改名后下一次分发会把 `_PROJECT_/` 又建一遍，于是同一个项目里两份原型目录）。
 | 9 | **删掉 `SYNC.md`** | 它是维护模板用的，不是项目的一部分 |
 | 10 | `ai/frame-repo.conf` | **以后怎么跟上 FRAME 的更新，全靠这一份**：`role=`（不带模板的项目写 `consumer`）· `home=`（FRAME 源仓库在这台机器上的路径；**源与本项目同级**时写 `../FRAME-Development-Model` 即可）· `push=`（**拿不到源仓库提交权就写 `no`**＝单向拉回；不写时按角色默认，consumer=no）。填完**立一份基线**：`bash ops/frame/frame-sync.sh --adopt-mine`（记「本项目现在这样」，以后源那边的变化都算「源改的」→ 拉回来）。这一步省了，以后源更新就只能手工逐份比对——走法见 `docs/guide/frame-sync.md` §五 |
 

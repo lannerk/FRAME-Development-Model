@@ -121,7 +121,27 @@ cpn() { local s="$1" d="$2"
 # 于是这里列出 420 份 `.git/objects/…`——它们进了基线、进了分发、还把一个私有远端地址带进了发行物。
 # `.git` 是**仓库自己的东西，永远不是 FRAME 的一份文件**，所以在**列文件这一层**就挡掉，
 # 而不是在每个调用点各写一遍过滤（`-prune` 而非 `-not -path`：后者仍会整棵走进去，大仓库上很慢）。
-list_files() { local b; b="$(base_of "$1" "$2")"
+# 🔴 **消费项目的 FRAME 落在仓库根，所以「列文件」必须按清单列，不能按目录列**（2026-09-28 实测）。
+# 一个 consumer 配了 `push=yes` 跑 `--sync`，报「→ 推到源 **100**」——推的是它的规格、`src` 骨架、
+# 需求原话，**整个项目**：`find . -type f` 在 consumer 那里等于「把这个项目的每一份文件都当成 FRAME 的」，
+# 再加上「没分类的默认 seed」「本地有上游没有 = 推骨架」两条，就成了「把整个项目推进源仓库」。
+# 判据改成：**consumer 一侧只列 `ai/frame-manifest.txt` 里有、且本地真的存在的那些**——
+# 那份清单就是「FRAME 自己有哪些文件」的唯一出处（模板里由 gen-frame-manifest.sh 生成、follow 类跟着走）。
+# 🔴 清单缺失时**一个都不列**（并在 stderr 说明）：宁可这一轮什么都不做，也不能再把整个项目当成 FRAME。
+# 顺带修掉同一个根上的性能问题：`fp_of` 也走这里，在一个大仓库上整棵遍历一次要 2 分 4 秒
+# （分发时盖版本那一步就是被它拖进外层超时、`ai/FRAME-VERSION` 只写了半截）。
+list_files() { local b mf; b="$(base_of "$1" "$2")"
+  if [ "$2" = consumer ]; then
+    mf="$1/ai/frame-manifest.txt"
+    if [ ! -f "$mf" ]; then
+      echo "⚠️  $1 里没有 ai/frame-manifest.txt（FRAME 自己的文件清单）——**不列任何文件**，免得把整个项目当成 FRAME。分发一次就会带过来。" >&2
+      return 0
+    fi
+    ( cd "$b" 2>/dev/null || exit 0
+      grep -vE '^[[:space:]]*(#|$)' "$mf" | tr -d '\r' | LC_ALL=C sort -u \
+        | while IFS= read -r rel; do [ -f "$rel" ] && printf '%s\n' "$rel"; done )
+    return 0
+  fi
   (cd "$b" 2>/dev/null && find . -name .git -prune -o -type f -printf '%P\n' | LC_ALL=C sort); }
 fp_of() { local R="$1" RO="$2" b rel
   b="$(base_of "$R" "$RO")"
@@ -150,7 +170,10 @@ ver_write() { local R="$1" RO="$2" V="$3" FROM="$4" FFP="${5:-}" f; f="$(ver_fil
     echo "# version 由维护席 bump：结构/角色变=major · 规矩语义变=minor · 措辞=patch"
     echo "# 🔴 fingerprint 自动算、别手改，且**只和同 role 的仓库比**；"
     echo "#    要知道「我是不是跟上了源」，比的是 source_fingerprint 与源那边自己的 fingerprint。"
-  } > "$f"; }
+  # 🔴 **先写临时文件再改名**（2026-09-28 实测）：这一段里 `fp_of` 在大仓库上要跑两分钟，
+  # 一次分发被外层 timeout 打断，`ai/FRAME-VERSION` 就只落了三行——**半截的版本文件比没有更糟**，
+  # 下一轮读到的 version/fingerprint 都是残的。改名是原子的：要么是旧的那份，要么是完整的新的。
+  } > "$f.tmp.$$" && mv -f "$f.tmp.$$" "$f" || { rm -f "$f.tmp.$$"; echo "🔴 写不了 $f，原来那份没动。" >&2; return 1; }; }
 
 # 🔴 **能不能往上游写**：`ai/frame-repo.conf` 的 `push=`。
 # 开源用户把 FRAME 源 clone 到项目旁边，**他没有那个仓库的提交权**——对他来说这套机制只能**单向拉回**。
@@ -234,27 +257,6 @@ foreign_dirty() { # foreign_dirty <仓库> <基线文件（忽略，见下）> <
       case "$q" in "$pp"/*) [ -n "${OWNED[${q#$pp/}]:-}" ] && return 0;; esac
     done
     return 1; }
-  declare -A B=()
-  for blf in "$SRC"/ops/frame/.baseline*; do
-    [ -f "$blf" ] || continue
-    sfx="${blf##*/.baseline}"                       # "" 或 "-template-en"
-    # 🔴 没后缀那一份记的是**默认模板**（conf 里的 template=），不是「当前这一轮的模板」——
-    # 按当前这一轮算前缀，会把中文那轮写的文件全对不上，于是又变成「别人的」（实测）。
-    if [ -n "$sfx" ]; then pfx2="ai/${sfx#-}"
-    elif [ "$(role_of "$R")" = consumer ]; then pfx2=""
-    else pfx2="$(conf_get "$R" template)"; pfx2="${pfx2:-ai/template}"; fi
-    while read -r a b; do
-      case "$a" in ''|'#'*) continue;; esac
-      # 🔴 **同一条路径可能在几份基线里各有一个哈希**（根文件在中英两份基线里都记了一次）：
-      # 用「最后一份覆盖前一份」会让**刚更新过的那一份反而对不上**，于是自己写的东西被判成别人的（实测）。
-      # 所以按**集合**存：只要命中其中任意一个，就算我们写的。
-      case "$b" in
-        ROOT:*) k="${b#ROOT:}";;
-        *) k="$pfx2/$b";;
-      esac
-      B["$k"]="${B[$k]:-} $a"
-    done < "$blf"
-  done
   declare -A B=()
   for blf in "$SRC"/ops/frame/.baseline*; do
     [ -f "$blf" ] || continue
@@ -405,14 +407,21 @@ if [ "$DIST" != 1 ] && { [ "$MODE" = sync ] || [ "$MODE" = adopt ]; }; then
     if [ "$cs" = skip ] || [ "$ch" = skip ]; then SKIPN=$((SKIPN+1)); continue; fi
     sh="$(h "$SBASE/$rel")"; hh="$(h "$HBASE/$rel")"; bh="${BASE[$rel]:--}"
     if [ "$sh" = "$hh" ]; then SAME=$((SAME+1)); echo "$sh $rel" >> "$TMPBL"; continue; fi
-    # 🔴 push=no 且**上游根本没有这份**：这是本项目自己加的文件，上游永远不会有它。
-    # 既不能报「推出」（推不了），也不能报「源删了它」（源从来没有过）——数一笔，基线记本项目这份。
-    if [ "$PUSH_OK" = no ] && [ "$hh" = "-" ] && [ "$sh" != "-" ]; then
+    # 🔴 **本项目有、上游没有 = 本项目自己的东西，永远不推**（原来只有 `push=no` 这一支挡着）。
+    # 2026-09-28 实测：一个 consumer 配 `push=yes`，这一条走不到，于是落到 seed 分支的
+    # 「本地有上游没有 → 推骨架」上——**100 份项目文件被列成「要推给源的骨架」**。
+    # 「推骨架」这回事只在 **host ↔ home 两边都是模板**时才成立：模板之间缺一份就是缺一份；
+    # 而 consumer 那边多出来的每一份，都是那个项目自己的内容，推上去就是把项目灌进 FRAME。
+    # 所以判据是**角色**，不是 `push=`：能不能推是权限，该不该推是身份。
+    if { [ "$PUSH_OK" = no ] || [ "$SROLE" = consumer ] || [ "$HROLE" = consumer ]; } \
+       && [ "$hh" = "-" ] && [ "$sh" != "-" ]; then
       LOCALN=$((LOCALN+1)); echo "$sh $rel" >> "$TMPBL"; continue; fi
     # 🔴 seed 类永远不参与双向覆盖：项目里填过内容，push 回源会把项目内容带进 FRAME
     if [ "$cs" = seed ] || [ "$ch" = seed ]; then
       if   [ "$sh" = "-" ]; then PULL+=("$rel  (骨架·新建)")
-      elif [ "$hh" = "-" ]; then PUSH+=("$rel  (骨架·新建)")
+      # 🔴 第二道保险（上面那条按角色已经截走了）：**只有两边都是模板才有「推骨架」**
+      elif [ "$hh" = "-" ] && [ "$SROLE" != consumer ] && [ "$HROLE" != consumer ]; then
+        PUSH+=("$rel  (骨架·新建)")
       else SEEDN=$((SEEDN+1)); [ "$bh" != "-" ] && echo "$bh $rel" >> "$TMPBL"
         # 🔴 **两边都是模板时，seed 的「各留各的」会把两份空白版的分叉藏起来**（2026-09-27 实测）：
         # seed 存在的理由是保护「项目自己填过的内容」，而模板与模板之间没有项目内容——
@@ -573,14 +582,26 @@ for T in "${TARGETS[@]}"; do
   # 🔴 同一条道理（源那一侧已经修过两次）：判的是「**有没有别人的未提交改动**」，
   #    不是「工作区干不干净」。上一次分发写进去的那些，基线里有，不算别人的——
   #    用整仓判定会成死结：分发写脏 → 守门红 → 提交被拒 → 下一次分发又被「脏」拦住。
-  FOREIGN_T="$(foreign_dirty "$T" "$BL" "${TBASE#$T/}" || true)"
-  if [ "$APPLY" = 1 ] && [ -n "$FOREIGN_T" ]; then
-    echo "🔴 目标里有**别人**的未提交改动，拒绝写：$FOREIGN_T"; rc=1; continue; fi
-  # 🔶 清单外的脏文件不拦人，但要说一句：写完之后那个仓库里会同时有「FRAME 的改动」和
-  # 「别席自己的活」，提交时按席分开（`ops/scripts/commit-round.sh --seat` 就是为这个）。
-  NONF="$( (cd "$T" && git status --porcelain 2>/dev/null | grep -cv '^??') || true )"
-  if [ "$APPLY" = 1 ] && [ "${NONF:-0}" -gt 0 ]; then
-    echo "  🔶 目标里还有 $NONF 份未提交改动（与 FRAME 无关，没拦）——提交时按席分开。"; fi
+  # 🔴 **拦的粒度从「整个仓库」收到「本轮真的要写的那一份」**（2026-09-28，监督席实测）。
+  # 上一版已经把范围收窄到「FRAME 清单内」，但仍是**整仓一票否决**：一次分发报拒绝的 14 份里
+  # **5 份是人按指示手工对齐过、内容已与模板逐字相同**（分发本来判「一致」，根本不会写），
+  # **8 份是 seed 或项目自有**（台账、信箱、画像——分发永远不写已存在的 seed），
+  # **真正会被写、又有未提交改动的：0 份**。于是一次合法的分发被完全挡住。
+  # 判据改成：只在**即将覆盖这一份**的时候看它自己脏不脏；脏就把这一份报成要人看，其余照写。
+  # 这里只取一次 `git status`（逐份调 git 太慢），建一张「已跟踪、被改过」的表。
+  # 🔴 前缀要**算成 FRAME 内的相对前缀**：consumer 的 `TBASE` 就是仓库根，`${TBASE#$T/}` 剥不掉
+  # 任何东西、剩下的是绝对路径（同一个坑上一轮已经踩过一次，见 foreign_dirty 里那段注释）。
+  TPFX="${TBASE#$T/}"; case "$TPFX" in /*) TPFX="";; esac; [ "$TPFX" = "$T" ] && TPFX=""
+  declare -A TDIRTY=()
+  while IFS= read -r line; do
+    [ -n "$line" ] || continue
+    case "${line:0:2}" in '??') continue;; esac
+    tdf="${line:3}"; tdf="${tdf%\"}"; tdf="${tdf#\"}"
+    TDIRTY["$tdf"]=1
+  done < <(cd "$T" && git status --porcelain 2>/dev/null)
+  NONF=${#TDIRTY[@]}
+  if [ "$APPLY" = 1 ] && [ "$NONF" -gt 0 ]; then
+    echo "  🔶 目标里有 $NONF 份未提交改动（只有「本轮真要覆盖的那几份」会被拦，其余照写）——提交时按席分开。"; fi
   declare -A TB=()
   [ -f "$BL" ] && while read -r a b; do case "$a" in ''|'#'*) continue;; *) TB["$b"]="$a";; esac; done < "$BL"
   nC=0; nU=0; nS=0; nSeed=0; nSkip=0; nConf=0; nGone=0; C=(); U=(); K=(); G=()
@@ -603,9 +624,22 @@ for T in "${TARGETS[@]}"; do
       else [ "$th" != "-" ] && echo "$th $rel" >> "$TMP"; fi
       nS=$((nS+1)); continue; fi
     if [ "$bh" = "-" ]; then nConf=$((nConf+1)); K+=("$rel  (没有基线)"); echo "$th $rel" >> "$TMP"
-    elif [ "$th" = "$bh" ]; then nU=$((nU+1)); U+=("$rel")
-      [ "$APPLY" = 1 ] && cpn "$s" "$t"; echo "$sh $rel" >> "$TMP"
-    else nConf=$((nConf+1)); K+=("$rel  (目标改过)"); echo "$th $rel" >> "$TMP"; fi
+    elif [ "$th" = "$bh" ]; then
+      # 🔴 **只有到了「真的要覆盖它」这一步，才看它自己有没有未提交改动**（见上面那段）。
+      if [ -n "${TDIRTY[${TPFX:+$TPFX/}$rel]:-}" ]; then
+        nConf=$((nConf+1)); K+=("$rel  (目标有未提交改动，本轮不写)"); echo "$bh $rel" >> "$TMP"
+      else
+        nU=$((nU+1)); U+=("$rel")
+        [ "$APPLY" = 1 ] && cpn "$s" "$t"; echo "$sh $rel" >> "$TMP"
+      fi
+    else nConf=$((nConf+1)); K+=("$rel  (目标改过)")
+      # 🔴 **冲突的那一份，基线保留「上次双方一致的那个内容」，不记目标现在的哈希**（2026-09-28）。
+      # 记目标哈希的后果很具体：下一轮只要目标不再动它，`th == bh` 就判成「更新」，
+      # **用模板整份盖掉目标改过的内容，而且一声不出**——实测一个项目手工合过的自检清单
+      # 就差这一轮被冲掉（监督席当时只能手工把基线那一行改回模板哈希顶着）。
+      # 保留旧基线 ⇒ 这一份会**每轮都报「目标改过」**，直到人真的处理它；
+      # 人把它对齐成模板那份之后，第一条判据（`sh == th`）当场判「一致」，自己就消失了。
+      echo "$bh $rel" >> "$TMP"; fi
   done < <(list_files "$SRC" "$SROLE")
 
   # ── 根文件映射 map= / patch=：目标那几份是「模板 ＋ 声明式开源专用补丁」──

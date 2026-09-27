@@ -68,6 +68,15 @@ skip    ops/verify/.private-words
 # 口子开在文件名上就是为了这一行：想注册自己的守门，起这个名字，别去改 check-all.sh。
 skip    ops/verify/check-project-*.sh
 
+# 🔴 **初始化时要改名的占位目录：分发永不再建**（2026-09-28，一个消费项目的维护席实测）。
+# `product/design/prototype/_PROJECT_/` 那两份是 seed：项目按 project-init 第 8 条把它改成项目名之后，
+# 本地就「缺」了这两份，下一次分发按 seed 的「本地没有就建骨架」**把 `_PROJECT_/` 又建回来**——
+# 于是同一个项目里有两份原型目录，而且每分发一次就回来一次。
+# 判据：**改名是初始化的一部分，骨架只随「初始化时整棵拷模板」到位一次，之后 FRAME 不再管它**，
+# 所以列成 skip（既不建、也不覆盖）。里面是 `.gitkeep` 与一句话 `index.md`，没有值得下发的更新。
+skip    product/design/prototype/_PROJECT_/*
+skip    product/design/prototype/_PROJECT_/*/*
+
 # ── 🔴 明确留 seed 的几处（虽然默认已是 seed，写出来是为了让人看见）──
 seed    CLAUDE.md
 seed    ai/index.md

@@ -73,6 +73,16 @@ skip    ops/verify/.private-words
 # use this name -- do not edit check-all.sh.
 skip    ops/verify/check-project-*.sh
 
+# 🔴 **Placeholder directories that initialization renames: never re-created by a distribution**
+# (2026-09-28, measured on a real project). The two files under `product/design/prototype/_PROJECT_/`
+# are seed: once a project renames that directory to its own name (project-init step 8), the two files
+# are "missing" locally, and the next distribution's seed rule ("create the skeleton when absent")
+# **re-creates `_PROJECT_/`** -- so the project ends up with two prototype directories, once per distribution.
+# Criterion: **renaming is part of initialization; the skeleton arrives once, with the initial copy of the
+# template, and FRAME does not manage it afterwards** -- hence skip (neither created nor overwritten).
+skip    product/design/prototype/_PROJECT_/*
+skip    product/design/prototype/_PROJECT_/*/*
+
 # ── 🔴 明确留 seed 的几处（虽然默认已是 seed，写出来是为了让人看见）──
 seed    CLAUDE.md
 seed    ai/index.md

@@ -135,7 +135,32 @@ cpn() { local s="$1" d="$2"
 # baseline, the distribution, and carried a private remote URL into a shipped artifact.
 # A `.git` belongs to the repository, never to FRAME, so it is excluded HERE, at the listing layer,
 # instead of once per call site (`-prune`, not `-not -path`: the latter still walks the whole tree).
-list_files() { local b; b="$(base_of "$1" "$2")"
+# 🔴 **A consumer's FRAME sits at the repo root, so "list the files" must go by the MANIFEST, not by directory**
+# (measured 2026-09-28). A consumer configured with `push=yes` ran `--sync` and reported
+# "-> push out **100**" -- specs, the `src` skeleton, the requester's own words: **the whole project**.
+# `find . -type f` on a consumer means "treat every file in this project as one of FRAME's", and together with
+# "anything unclassified defaults to seed" and "present locally, absent upstream = push a skeleton" that adds up
+# to pushing an entire project into the source repository.
+# New criterion: **on a consumer side, list only what `ai/frame-manifest.txt` names AND that exists locally** --
+# that manifest is the single source of truth for "which files FRAME itself has" (generated in the template by
+# gen-frame-manifest.sh, class follow, so it travels with FRAME).
+# 🔴 When the manifest is missing, list **nothing** (and say so on stderr): better a round that does nothing
+# than one that treats an entire project as FRAME.
+# This also fixes a performance problem with the same root: `fp_of` goes through here too, and walking a large
+# repository once took 2m04s -- long enough that the version-stamping step was killed by an outer timeout and
+# `ai/FRAME-VERSION` was left half written.
+list_files() { local b mf; b="$(base_of "$1" "$2")"
+  if [ "$2" = consumer ]; then
+    mf="$1/ai/frame-manifest.txt"
+    if [ ! -f "$mf" ]; then
+      echo "⚠️  $1 has no ai/frame-manifest.txt (FRAME's own file list) -- **listing nothing**, so an entire project is never mistaken for FRAME. One distribution brings it in." >&2
+      return 0
+    fi
+    ( cd "$b" 2>/dev/null || exit 0
+      grep -vE '^[[:space:]]*(#|$)' "$mf" | tr -d '\r' | LC_ALL=C sort -u \
+        | while IFS= read -r rel; do [ -f "$rel" ] && printf '%s\n' "$rel"; done )
+    return 0
+  fi
   (cd "$b" 2>/dev/null && find . -name .git -prune -o -type f -printf '%P\n' | LC_ALL=C sort); }
 fp_of() { local R="$1" RO="$2" b rel
   b="$(base_of "$R" "$RO")"
@@ -165,7 +190,11 @@ ver_write() { local R="$1" RO="$2" V="$3" FROM="$4" FFP="${5:-}" f; f="$(ver_fil
     echo "# version is bumped by the Maintainer: structure/roles=major · rule semantics=minor · wording=patch"
     echo "# 🔴 The fingerprint is computed, never hand-edited, and **compares only with repos of the same role**;"
     echo "#    to know whether you kept up with the source, compare source_fingerprint with the source's own fingerprint."
-  } > "$f"; }
+  # 🔴 **Write a temp file and rename it** (measured 2026-09-28): `fp_of` takes two minutes on a large
+  # repository, one distribution was killed by an outer timeout and `ai/FRAME-VERSION` was left with three
+  # lines -- **a half-written version file is worse than none**: the next round reads a truncated version and
+  # fingerprint. A rename is atomic: either the old file or the complete new one.
+  } > "$f.tmp.$$" && mv -f "$f.tmp.$$" "$f" || { rm -f "$f.tmp.$$"; echo "🔴 cannot write $f; the old one is untouched." >&2; return 1; }; }
 
 # 🔴 **Whether we may write upstream**: `push=` in `ai/frame-repo.conf`.
 # An open-source user clones the FRAME source next to their project and **has no commit rights on it** --
@@ -412,15 +441,24 @@ if [ "$DIST" != 1 ] && { [ "$MODE" = sync ] || [ "$MODE" = adopt ]; }; then
     if [ "$cs" = skip ] || [ "$ch" = skip ]; then SKIPN=$((SKIPN+1)); continue; fi
     sh="$(h "$SBASE/$rel")"; hh="$(h "$HBASE/$rel")"; bh="${BASE[$rel]:--}"
     if [ "$sh" = "$hh" ]; then SAME=$((SAME+1)); echo "$sh $rel" >> "$TMPBL"; continue; fi
-    # 🔴 push=no and **upstream does not have this file at all**: it is this project's own file and
-    # upstream never will have it. It is neither "push out" (impossible) nor "the source deleted it"
-    # (the source never had it) -- just count it, and record this project's copy in the baseline.
-    if [ "$PUSH_OK" = no ] && [ "$hh" = "-" ] && [ "$sh" != "-" ]; then
+    # 🔴 **Present locally, absent upstream = this project's own thing, and it is NEVER pushed**
+    # (only the `push=no` branch used to catch this). Measured 2026-09-28: a consumer with `push=yes`
+    # never reached this line, fell through to the seed branch's "present locally, absent upstream ->
+    # push a skeleton", and **100 project files were listed as skeletons to push to the source**.
+    # "Pushing a skeleton" only makes sense **between two templates (host <-> home)**: there, a missing
+    # file really is a missing file. Every extra file on a consumer is that project's own content, and
+    # pushing it means pouring the project into FRAME.
+    # So the criterion is the **role**, not `push=`: whether you CAN push is permission,
+    # whether you SHOULD is identity.
+    if { [ "$PUSH_OK" = no ] || [ "$SROLE" = consumer ] || [ "$HROLE" = consumer ]; } \
+       && [ "$hh" = "-" ] && [ "$sh" != "-" ]; then
       LOCALN=$((LOCALN+1)); echo "$sh $rel" >> "$TMPBL"; continue; fi
     # 🔴 seed files never take part in two-way overwriting: a project fills them in, and pushing them back would carry project content into FRAME
     if [ "$cs" = seed ] || [ "$ch" = seed ]; then
       if   [ "$sh" = "-" ]; then PULL+=("$rel  (skeleton, created)")
-      elif [ "$hh" = "-" ]; then PUSH+=("$rel  (skeleton, created)")
+      # 🔴 Second line of defence (the role check above already caught it): **only two templates push skeletons**
+      elif [ "$hh" = "-" ] && [ "$SROLE" != consumer ] && [ "$HROLE" != consumer ]; then
+        PUSH+=("$rel  (skeleton, created)")
       else SEEDN=$((SEEDN+1)); [ "$bh" != "-" ] && echo "$bh $rel" >> "$TMPBL"
         # 🔴 **When both sides are templates, "each keeps its own" hides a fork between the two blanks**
         # (measured 2026-09-27): seed exists to protect content a PROJECT filled in, and between two
@@ -588,15 +626,28 @@ for T in "${TARGETS[@]}"; do
   #    uncommitted changes**", not "is the tree clean". What the last distribution wrote is in the baseline,
   #    so it is not someone else's -- a repo-wide check deadlocks: write -> guards red -> commit refused ->
   #    the next distribution blocked by "dirty".
-  FOREIGN_T="$(foreign_dirty "$T" "$BL" "${TBASE#$T/}" || true)"
-  if [ "$APPLY" = 1 ] && [ -n "$FOREIGN_T" ]; then
-    echo "🔴 the target has **someone else's** uncommitted changes, refusing to write:$FOREIGN_T"; rc=1; continue; fi
-  # 🔶 Dirty files outside the list do not block, but say so: afterwards that repo holds both FRAME's
-  # changes and another seat's own work, so commit them separately (that is what
-  # `ops/scripts/commit-round.sh --seat` is for).
-  NONF="$( (cd "$T" && git status --porcelain 2>/dev/null | grep -cv '^??') || true )"
-  if [ "$APPLY" = 1 ] && [ "${NONF:-0}" -gt 0 ]; then
-    echo "  🔶 the target still has $NONF uncommitted changes (unrelated to FRAME, not blocked) -- commit them per seat."; fi
+  # 🔴 **The block moves from "the whole repository" down to "the one file this round is about to write"**
+  # (measured 2026-09-28). The previous version had already narrowed the scope to "inside FRAME's list",
+  # but it was still an all-or-nothing veto: of the 14 files one refused distribution listed,
+  # **5 had been hand-aligned and were byte-identical to the template** (distribution judges them "same" and
+  # never writes them), **8 were seed or project-owned** (ledgers, mailboxes, the profile -- distribution never
+  # writes a seed that already exists), and **the number that would actually be written AND was dirty: 0**.
+  # A perfectly legal distribution was blocked outright.
+  # New criterion: check a file's own dirtiness only when **about to overwrite that file**; report that one and
+  # write the rest. One `git status` here (per-file git calls are far too slow) builds the "tracked and modified" set.
+  # 🔴 The prefix must be the FRAME-RELATIVE one: on a consumer `TBASE` IS the repo root, so `${TBASE#$T/}`
+  # strips nothing and leaves an absolute path (the same trap as in foreign_dirty above).
+  TPFX="${TBASE#$T/}"; case "$TPFX" in /*) TPFX="";; esac; [ "$TPFX" = "$T" ] && TPFX=""
+  declare -A TDIRTY=()
+  while IFS= read -r line; do
+    [ -n "$line" ] || continue
+    case "${line:0:2}" in '??') continue;; esac
+    tdf="${line:3}"; tdf="${tdf%\"}"; tdf="${tdf#\"}"
+    TDIRTY["$tdf"]=1
+  done < <(cd "$T" && git status --porcelain 2>/dev/null)
+  NONF=${#TDIRTY[@]}
+  if [ "$APPLY" = 1 ] && [ "$NONF" -gt 0 ]; then
+    echo "  🔶 the target has $NONF uncommitted changes (only the ones this round would actually overwrite are held back; the rest are written) -- commit them per seat."; fi
   declare -A TB=()
   [ -f "$BL" ] && while read -r a b; do case "$a" in ''|'#'*) continue;; *) TB["$b"]="$a";; esac; done < "$BL"
   nC=0; nU=0; nS=0; nSeed=0; nSkip=0; nConf=0; nGone=0; C=(); U=(); K=(); G=()
@@ -620,9 +671,25 @@ for T in "${TARGETS[@]}"; do
       else [ "$th" != "-" ] && echo "$th $rel" >> "$TMP"; fi
       nS=$((nS+1)); continue; fi
     if [ "$bh" = "-" ]; then nConf=$((nConf+1)); K+=("$rel  (no baseline)"); echo "$th $rel" >> "$TMP"
-    elif [ "$th" = "$bh" ]; then nU=$((nU+1)); U+=("$rel")
-      [ "$APPLY" = 1 ] && cpn "$s" "$t"; echo "$sh $rel" >> "$TMP"
-    else nConf=$((nConf+1)); K+=("$rel  (target changed it)"); echo "$th $rel" >> "$TMP"; fi
+    elif [ "$th" = "$bh" ]; then
+      # 🔴 **Only at the point of actually overwriting it do we look at its own uncommitted changes** (see above).
+      if [ -n "${TDIRTY[${TPFX:+$TPFX/}$rel]:-}" ]; then
+        nConf=$((nConf+1)); K+=("$rel  (target has uncommitted changes; not written this round)"); echo "$bh $rel" >> "$TMP"
+      else
+        nU=$((nU+1)); U+=("$rel")
+        [ "$APPLY" = 1 ] && cpn "$s" "$t"; echo "$sh $rel" >> "$TMP"
+      fi
+    else nConf=$((nConf+1)); K+=("$rel  (target changed it)")
+      # 🔴 **For a conflicting file the baseline keeps "the content both sides last agreed on"; it does NOT
+      # record the target's current hash** (2026-09-28). Recording the target's hash has a very concrete
+      # consequence: next round, if the target leaves the file alone, `th == bh` is judged "update" and
+      # **the template overwrites what the target changed, without a word** -- measured: a project's
+      # hand-merged self-check list came within one round of being wiped (the supervisor had to hand-edit
+      # that baseline line back to the template's hash to hold it off).
+      # Keeping the old baseline means the file is reported as "target changed" **every round** until a human
+      # really deals with it; once they align it with the template, the first criterion (`sh == th`) judges it
+      # "same" and the report disappears by itself.
+      echo "$bh $rel" >> "$TMP"; fi
   done < <(list_files "$SRC" "$SROLE")
 
   # -- Root-file mapping map= / patch=: those files are "the template plus declared, repo-specific patches" --
