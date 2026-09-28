@@ -71,13 +71,17 @@ a **seat / line / top-level directory / command word** was added or removed, or 
 **Criteria, thresholds, steps inside a flow, ownership rows, wording** → do not.
 The one-line test: 🔴 **would a new reader following the README walk into something it never mentions?**
 
-**Two closing criteria, and missing either one means it is not done**:
+**Three closing criteria, and missing any one means it is not done**:
 
 1. `bash ops/verify/check-template-sync.sh` prints `TEMPLATE-SYNC-OK`.
 2. **When you report to the Requester, you must say in so many words that both templates, Chinese and English, are in sync** (the Requester's own words:
    "every time you update the rules you update both templates, and when you are done you tell me that the templates were updated too").
    **Saying only "the rules are updated" does not count** — he then has to ask you back "have both templates been updated",
    **and that has already actually happened once**.
+3. 🔴 **If the FRAME body changed, stamp a version** -- whether you edited the source repo directly or changed this project and synced it up: in the same round pick the number
+   (structure/roles=major · rule semantics=minor · wording=patch), run `bash ops/frame/frame-sync.sh --stamp <version>`,
+   and **put the version in the commit message**. Guard: `check-frame-version.sh` goes red when the last FRAME-body commit is newer than the last stamp
+   (Requester 2026-09-28: "you updated the source FRAME without updating the version number" -- that round edited the source repo directly, skipped the "sync FRAME" command, and so skipped its step-8 bump).
 🔴 **`--accept` is the last action, not a button that turns the check green**: run it only after all three copies are changed and you have looked at both templates.
 **Accepting first and remembering the English copy afterwards means erasing the only evidence with your own hands** — the fingerprints get flattened and that criterion goes mute
 (this really happened on 2026-09-15; it was only recovered because the **structural check** reported `layout.md` table rows 71 Chinese / 68 English — see `ai/memory.md`, type 4, entry 6).
