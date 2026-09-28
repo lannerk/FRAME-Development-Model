@@ -50,6 +50,8 @@ echo
 [ -x ops/verify/check-cachebust.sh ]     && run "web cache-bust"  bash ops/verify/check-cachebust.sh
 [ -x ops/verify/check-randd.sh ]         && run "R&D line"       bash ops/verify/check-randd.sh
 [ -x ops/verify/check-frame-version.sh ] && run "FRAME version"  bash ops/verify/check-frame-version.sh
+[ -x ops/verify/check-shell-strict.sh ] && run "shell strict"  bash ops/verify/check-shell-strict.sh
+[ -x ops/verify/check-css-selfref.sh ]  && run "css self-ref"  bash ops/verify/check-css-selfref.sh
 [ -x ops/verify/check-advisor.sh ]       && run "kickoff advisor" bash ops/verify/check-advisor.sh
 [ -x ops/verify/check-debrand.sh ]       && run "de-branding   " bash ops/verify/check-debrand.sh
 

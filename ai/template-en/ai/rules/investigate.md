@@ -140,3 +140,10 @@ Three rules; miss one and do not touch a live file:
 - undo by **copying back the snapshot you took before breaking it**, not with `git checkout --`: that restores
   "what HEAD looks like", not "what it looked like before I touched it" -- the two agree only if the file was clean.
 > A probe: **the same guard was green before you broke it and goes RED after you "undid" it -- you reverted someone else's work.**
+
+🔴 **The scene disappears: take the evidence first, then fix** (added 2026-09-28).
+Before changing anything, put the things that **prove the mechanism** on disk: logs, the state as it was, a screenshot,
+the raw command output, the request and the response. After the fix they no longer exist -- **and "was this the right
+fix" can only be judged against the scene as it was before**.
+In one sentence: **a fix that cannot say what it looked like beforehand is a conclusion without evidence.**
+It costs tens of seconds; skipping it once means reproducing the failure from scratch -- and some failures cannot be reproduced.

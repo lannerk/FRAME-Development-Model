@@ -34,3 +34,23 @@
 | The widget panel | Apps register widgets (data / toggle / progress / jump), draggable and paged, the same set on a phone | One glance for the whole picture |
 | System level | Notification centre, card notifications, screensaver and power, a recovery page, a setup wizard | Without these it does not feel like a system |
 | The effects layer (reserved) | Effects for the background, boot, login and AI feedback; **decoration is not a component: turn it off and the interface still works**; with a performance budget and a degradation ladder | Low-end devices have to work too |
+
+## Interaction honesty (added 2026-09-28, from a real survey, de-branded)
+
+> **The governing idea: these live in the component layer, not in every page** -- put them in pages and every page
+> ends up with its own version.
+
+| # | Practice | Why |
+|---|---|---|
+| 1 | **A click always produces a response**: enter a busy state at once · say succeeded or failed at the end · never swallow an exception | With no response the user just clicks again, and the same action fires twice |
+| 2 | **The UI changes only after the setting actually saved** (no optimistic update on save-type controls) | Optimistic update plus a backend failure means the UI said yes and nothing was saved -- the hardest complaint to diagnose |
+| 3 | **The UI notices state changes itself**, without the user refreshing | "Try refreshing" hands your uncertainty to the user |
+| 4 | **One design language, one component set**; long explanations go behind "?" | Explanations spread on the page push what matters off screen |
+| 5 | **Fixed footer, only the middle scrolls** | Shorten the viewport and the confirm button scrolls out of sight; the user thinks they cannot submit |
+| 6 | **Finish in place, do not interrupt** | Once they are navigated away they do not come back |
+| 7 | **One shared fallback for missing dependencies**: say "unavailable + why + what next" | A fallback written separately everywhere is no fallback |
+| 8 | **Never fake data**; "cannot read", "read zero" and "not read yet" are **three different things** | Showing "cannot read" as 0 makes the user decide on a 0 |
+| 9 | **Not started is not empty**; **never silently substitute a default**; **"enabled" is not "working"** | All three are the UI being more optimistic than the facts |
+| 10 | **Errors name the object, the consequence, and the next step**; the UI does not talk about implementation | "Operation failed" tells the user nothing |
+| 11 | **Invalid values the browser does not complain about need a guard** (misspelled properties, invalid units, self-referencing variables) | They fail silently: no error, clean console, and the page just looks slightly off |
+

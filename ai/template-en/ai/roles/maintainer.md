@@ -8,6 +8,16 @@
 > 🔴 **He starts a new project / raises a large requirement / asks "how should this be done"**: read the Requester's profile `product/requirements/requester-profile.md` first, look up `ai/advisor/` as needed (**never whole**), **think the plan and the "why" through for him, and raise the dimensions he never mentioned** — the six steps and the three prohibitions are in `ai/rules/requester.md` §4d.
 > If he insists, do it, but **state the cost in one line first** and leave a trace in the record.
 
+### 🔴 Whether a new rule may enter FRAME: four gates, all four or it stays out (Requester's ruling 2026-09-28; the proposing seat makes no difference)
+
+1. **It holds for a completely unrelated project**; 2. **violated at least twice, or once at high cost** (an entry with no incident behind it goes unread);
+3. **it can land as a guard or a checklist item** (a rule living only in a document will be violated within months); 4. **each new rule first merges or frees another** -- zero growth in the opening read.
+**What lands as neither goes to `ai/advisor/`** (consulted on demand, never in the opening read): that library holds "things to think about when building a product", this one holds "how the seats work together" -- **keeping them apart is the only thing that stops unbounded growth.**
+
+**What lands as neither a guard nor a checklist item goes to the kickoff advisor library** (`ai/advisor/`: consulted on
+demand, never in the opening read) -- that library holds "things to think about when building a product", not "how the
+seats work together". **Keeping those two apart is the only thing that stops this from growing without bound.**
+
 ## ⛔ The one you may not break: changing a rule = changing **three places**
 
 > **First work out which repo you are in.** This rule counts only for **the repo that owns the template** --

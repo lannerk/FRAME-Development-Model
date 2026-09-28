@@ -18,3 +18,14 @@
 | Home / device ecosystem (later) | First the hub that "sees" the most → a device domain abstraction → a standard-protocol controller (such as a Matter controller) → device identity PKI → voice endpoints plus the hub brain → a certification programme; **no protocol or brand names in the domain layer** | Protocols get replaced, domains do not |
 | The boundary | Write down which categories you will not do (no phone OS, no TV OS, for instance) | Platform products are the easiest to be dragged into expanding |
 | The irreversible list | Before any code: the process model, the state model, addressing, licensing, the style contract, the filesystem … each ruled on | Platform products have an unusual number of irreversible decisions |
+
+| Remote actions that can lock you out (networking, permissions) | **Give a "confirm or auto-roll-back" timer**: no confirmation inside the window and it reverts by itself |
+| The management path | **Never cut it in any switch-over** -- once it is gone there is no channel left to undo the change |
+| The data plane | **Structurally isolated** from the management plane: when the data plane is saturated, management still gets in |
+| Identifying devices | **By attribute, not by enumeration order** (enumeration order changes on another machine) |
+| Clones / factory images | **Exclude runtime state** (machine id, hostname, keys, caches), or two machines collide on identity |
+| The deployment channel | **Not in the same unit as the thing being deployed**: restarting the target kills the deployer too |
+| Rollback criteria | Judge "it is up" by the **real startup process**, not by "the files are back" |
+| Install media | **Must be installed for real once** to count as verified (not installing and installing-but-broken are different things) |
+| Install vs run environment | Control the difference with **one switch**, not two configs written separately |
+

@@ -88,6 +88,15 @@ Two sides of the same point — **green has to mean something**.
 
 ## 6. Guards you run often (shipped with the template, usable out of the box)
 
+🔴 **Every guard reports how many files it scanned, and goes red on an empty scan** (2026-09-28).
+In one sentence: **a guard that scans nothing is green forever, and that is the most dangerous green there is** --
+it hands you the illusion of "already checked". So every `check-*.sh` prints a number in its green line
+("scanned N", "N sources", "N references"), and **N=0 means red or SKIP, never OK**: if it truly does not apply,
+say SKIP and say why; never let an empty scan pass as green.
+Its companion is the **roster method**: a roster may only shrink (delete an entry when it is fixed); growing it needs
+a reason. Scanning nothing at all means "the scanner is broken": **fix the scanner, do not trust that green.**
+
+
 | Script | What it checks |
 |---|---|
 | `ai/check-links.sh` | Paths in docs that point at nothing. **Broken links must be 0** |

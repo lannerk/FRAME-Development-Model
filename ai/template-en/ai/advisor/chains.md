@@ -26,3 +26,9 @@
 | Compatibility with what exists | a data migration tool; how long the old interface is promised; how old clients are told to upgrade; import and export formats |
 | Outward-facing material | one source, several formats (md / web page / slides / PDF); logos and icons from what already exists; nothing about what is not built, no unsourced numbers |
 | A new seat / a new process | every gate that enumerates seats (the ownership table, the mailboxes, the budgets, the READMEs) changes with it — **adding a seat is not just adding a handbook** |
+
+| "building or changing an interface" | the eleven **interaction honesty** rows in `domains/ui.md` (a click always responds · the UI changes only after it saved · never fake data · errors name the object) plus: these live in the component layer |
+| "writing shell / install scripts" | `domains/engineering.md` §2 timing and §4 delivery; the guard `check-shell-strict` (a function reading `$1` bare plus one call site passing nothing = one missing argument exits the whole script) |
+| "bulk replacement / migration" | `ai/specs/testing.md` §0a R3 (ship a guard for what the replacement itself can introduce, same round) plus the guard `check-css-selfref` (the most common regression when tokens are swapped in bulk) |
+| "changing networking / the system / installing" | `domains/platform.md` plus `domains/engineering.md` §1 irreversible actions (confirm-or-roll-back timer · never cut the management path · unmount before deleting) |
+

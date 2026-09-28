@@ -50,6 +50,8 @@ echo
 [ -x ops/verify/check-cachebust.sh ]     && run "前端缓存串"   bash ops/verify/check-cachebust.sh
 [ -x ops/verify/check-randd.sh ]         && run "R&D 线"         bash ops/verify/check-randd.sh
 [ -x ops/verify/check-frame-version.sh ] && run "FRAME 版本"  bash ops/verify/check-frame-version.sh
+[ -x ops/verify/check-shell-strict.sh ] && run "shell 严格模式" bash ops/verify/check-shell-strict.sh
+[ -x ops/verify/check-css-selfref.sh ]  && run "CSS 变量自引用" bash ops/verify/check-css-selfref.sh
 [ -x ops/verify/check-advisor.sh ]       && run "开场顾问"      bash ops/verify/check-advisor.sh
 [ -x ops/verify/check-debrand.sh ]       && run "去品牌  "      bash ops/verify/check-debrand.sh
 

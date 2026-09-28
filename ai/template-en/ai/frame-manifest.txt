@@ -33,6 +33,7 @@ ai/advisor/README.md
 ai/advisor/chains.md
 ai/advisor/domains/ai-agent.md
 ai/advisor/domains/ecosystem.md
+ai/advisor/domains/engineering.md
 ai/advisor/domains/materials.md
 ai/advisor/domains/platform.md
 ai/advisor/domains/ui.md
@@ -125,6 +126,7 @@ ops/verify/check-budget.sh
 ops/verify/check-bugs.sh
 ops/verify/check-cachebust.sh
 ops/verify/check-css-namespace.sh
+ops/verify/check-css-selfref.sh
 ops/verify/check-debrand.sh
 ops/verify/check-entrypoints.sh
 ops/verify/check-filenames.sh
@@ -136,6 +138,7 @@ ops/verify/check-mirror.sh
 ops/verify/check-paths.sh
 ops/verify/check-randd.sh
 ops/verify/check-root.sh
+ops/verify/check-shell-strict.sh
 ops/verify/check-writeback.sh
 ops/verify/frame-scan.sh
 ops/verify/paths.env

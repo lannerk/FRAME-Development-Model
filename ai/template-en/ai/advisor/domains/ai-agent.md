@@ -15,3 +15,11 @@
 | Make it usable by AI | Tools can express "I am not sure"; diagnostic codes and self-check commands; docs retrieved on demand, versioned, in English | What hurts AI most is pretending to be certain |
 | An assistant that travels | Phone / tablet / desktop all talking to the same assistant (same memory, permissions, audit); hand it work while out, come home to it done; each user with their own AI identity; an AI companion that remembers you, is always there, can actually act, and leaves a trail; voice endpoints | An assistant's value is "anywhere, and the same one" |
 | Still usable with AI off | Turn AI off and the product is still complete | AI is an enhancement, not a dependency |
+
+| A model reporting its own progress | **Not a fact**: what counts is verifiable output, not "I am done" |
+| Skill / tool descriptions | **Written for the model**: keywords first, and end with which command to use |
+| Tools and budget | Give **ceilings** (calls, time, output size); control signals never leak to the model |
+| When a feature counts as done | **The feature + the AI can use it + the AI was taught it**; after a config change the engine must **really reload** (writing the file alone changes nothing) |
+| Actions the AI initiates | **Tag the origin**, so an incident traces back to which run and which rule |
+| Blocked by permissions | **Do not route around it**: a success obtained that way costs more than the failure |
+
