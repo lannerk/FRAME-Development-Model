@@ -12,7 +12,7 @@
 | Directory | What goes in | Who writes | Committed |
 |---|---|---|---|
 | `CLAUDE.md` | Identity command words + the hard laws in one line each + the directories at a glance | **Maintainer** | ✓ |
-| `README.md` | Project intro for humans | Reviewer | ✓ |
+| `README.md` | Project intro for humans | **Maintainer** (the Reviewer supplies product facts; matches the §7 ownership table) | ✓ |
 | `FRAME-Development-Model.md` | The outward-facing description of this development model (how the four powers work) | **Maintainer** | ✓ |
 | `AGENTS.md` and other alias entry points | **One line of signposting only, pointing at `CLAUDE.md`**. Other AI platforms load them automatically; **not one word of the content may be copied across** (two entry points will diverge with no symptom) | **Maintainer** | ✓ |
 | `ai/` | Everything about the three roles working together | AI | ✓ |
