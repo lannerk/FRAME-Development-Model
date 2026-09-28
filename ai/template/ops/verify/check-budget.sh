@@ -61,17 +61,22 @@ done < <(grep -E '^\|[[:space:]]*`' "$L")
 # ---- ② 开场必读总量（这才是预算真正要管的成本）----
 common=$(( $(wc -l < CLAUDE.md) + $(wc -l < ai/rules/laws.md) + $(wc -l < ai/state/now.md) + $(wc -l < ai/tasks/index.md) + $(wc -l < ai/memory.md) ))
 worst=0; worst_role=""
+# 🔴 **硬顶只管「固定内容」，信箱单列不计入**（2026-09-28 改，理由见 ai/rules/maintenance-log.md #67）：
+# 信箱是**流动的**——今天三封明天零封，而且是**别席**写的。把它算进硬顶的后果实测到了：
+# 一封正常的回信把最贵那一席顶到 662/660，于是唯一的修法变成**去砍手册**——
+# **拿长期的规矩，给临时的信让路**。信箱自己本来就有上限（`ai/mail/README.md`：同一对未处置 ≤3 封、每封 ≤12 行），
+# 该由那条管。所以这里**分开报**：固定内容判硬顶，信箱只显示，让人看得见「这一席今天开场额外要读多少」。
 for r in developer reviewer supervisor; do
   f="ai/roles/$r.md"; [ -e "$f" ] || continue
   t=$(( common + $(wc -l < "$f") ))
-  # 开场第一件事是查信：算上它自己那个目录下的三份投递口（每份 ≤15 行）
-  for m in ai/mail/to-$r/from-*.md; do [ -e "$m" ] && t=$(( t + $(wc -l < "$m") )); done
   # 监督席按规矩**不读任务队列**（ai/roles/supervisor.md §一 的 🔴），所以不算它
   [ "$r" = supervisor ] && t=$(( t - $(wc -l < ai/tasks/index.md) ))
-  printf '  开场必读 · %-10s %4d 行\n' "$r" "$t"
+  mailn=0
+  for m in ai/mail/to-$r/from-*.md; do [ -e "$m" ] && mailn=$(( mailn + $(wc -l < "$m") )); done
+  printf '  开场必读 · %-10s %4d 行（另有信箱 %d 行，不计入硬顶）\n' "$r" "$t" "$mailn"
   [ "$t" -gt "$worst" ] && { worst=$t; worst_role=$r; }
 done
-echo "  （＝ CLAUDE.md + laws.md + memory.md + now.md + tasks/index.md + 该席手册 + mail/to-该席/ 三份）"
+echo "  （固定内容＝ CLAUDE.md + laws.md + memory.md + now.md + tasks/index.md + 该席手册；信箱另计）"
 if [ "$worst" -gt "$OPENING_CAP" ]; then
   echo "  ✗  最贵的一席（$worst_role）$worst 行 > 硬顶 $OPENING_CAP 行"
   echo "     要么把内容挪进「按需读」的文件，要么改硬顶——**改硬顶要进维护记录**。"

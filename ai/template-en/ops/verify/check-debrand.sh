@@ -51,6 +51,18 @@ fi
 [ -n "$DIRS" ] || { echo "DEBRAND-SKIP (no template directory and no source repository -- this project does not publish FRAME)"; exit 0; }
 
 hits=0
+# 🔴 **Check for a `.git` inside a template FIRST**: the grep below uses `--exclude-dir=.git` (otherwise it
+# would scan a pile of object files), so **a `.git` directory mis-copied into a template is exactly what it
+# cannot see** -- and that directory carries another repository's remote URL and history, which is genuinely
+# private content (measured 2026-09-27: one mis-run copied a private repo's `.git/config` into a template).
+for d in $DIRS; do
+  case "$d" in */ai|*/ops) continue;; esac
+  if [ -e "$d/.git" ]; then
+    echo "  ✗  $d/.git exists -- **a template directory may not contain a git repository**: it carries that repo's"
+    echo "     remote URL and history, and the word scan below **cannot see inside .git** (grep uses --exclude-dir=.git). Remove it: rm -rf $d/.git"
+    hits=$((hits+1))
+  fi
+done
 while IFS= read -r w; do
   case "$w" in ''|'#'*) continue;; esac
   while IFS= read -r f; do

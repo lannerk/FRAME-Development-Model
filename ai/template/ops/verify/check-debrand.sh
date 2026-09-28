@@ -44,6 +44,17 @@ fi
 [ -n "$DIRS" ] || { echo "DEBRAND-SKIP（没有模板目录，也没有源仓库——这个项目不发行 FRAME）"; exit 0; }
 
 hits=0
+# 🔴 **先判「模板里有没有 .git」**：下面的 grep 用 `--exclude-dir=.git`（不然会扫进一堆对象文件），
+# 于是**一个误拷进模板的 .git 目录恰好是它看不见的**——而那里面带着另一个仓库的 remote 地址，
+# 是货真价实的私有内容（2026-09-27 实测：一次误操作把某私有仓库的 `.git/config` 拷进了模板）。
+for d in $DIRS; do
+  case "$d" in */ai|*/ops) continue;; esac
+  if [ -e "$d/.git" ]; then
+    echo "  ✗  $d/.git 存在 —— **模板目录里不许有 git 仓库**：它带着那个仓库的 remote 地址与历史，"
+    echo "     而且下面按词扫的那一步**看不见 .git 里的东西**（grep 用了 --exclude-dir=.git）。删掉它：rm -rf $d/.git"
+    hits=$((hits+1))
+  fi
+done
 while IFS= read -r w; do
   case "$w" in ''|'#'*) continue;; esac
   while IFS= read -r f; do

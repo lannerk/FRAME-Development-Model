@@ -77,6 +77,9 @@ repository against the host-side private-word list.
 
 ## 3. Size budgets (over the limit means split it; hard constraint)
 
+🔴 **The opening-read hard cap (660 lines) covers the FIXED content only; the mailbox does not count** (2026-09-28): a mailbox is transient and written by **other seats**. Counting it had a measured bad shape -- one ordinary reply pushed the most expensive seat to **662/660**, so the only available fix became **cutting the handbook**: trading a long-lived rule for a temporary letter. A mailbox has its own bounds (`ai/mail/README.md`: at most 3 pending per pair, at most 12 lines each); `check-budget` now reports the two separately.
+
+
 | File | Limit | What to do when over |
 |---|---|---|
 | `CLAUDE.md` | **105 lines** | Move the details into `ai/index.md`. **Raised from 80 to 100 on 2026-09-15**, reason: a fourth seat + command words going from 3 to 8; the directory table and the wrong-seat detail have already been moved out. **100 → 105 on 2026-09-22**: the identity table gained a **fifth seat** (the Researcher, R&D line), and this file is the entry point every session loads — **a new seat has to get its line** |

@@ -42,6 +42,13 @@
 
 ## 4. Front end / interface (**the entries live in `ai/rules/conventions-project.md` §4**; leave it empty if there is no interface)
 
+> 🔴 **Nothing declared at a module's top level may share a name with a host-environment global** (measured once, 2026-09-28):
+> a front-end module declared `const CSS = ...` at its top level, **shadowing the browser's `CSS`**, so a later
+> `CSS.escape(...)` in the same file **threw only at the moment someone clicked it** -- the error surfaced in another
+> function, every other module kept working, and a refresh did not clear it. It is perfectly legal syntax, so static
+> checks miss it. Give the judgement to a machine, by **name** (a top-level declaration vs the list of host globals);
+> **the list and which directory to scan are the project's business**, so that guard is named `ops/verify/check-project-*.sh`.
+
 > The generic one stays here: **a rule that says "when you change X, remember to also change Y" is worth nothing if a human has to remember it.**
 > The project this template came from hit it twice in a row: the frontend file was pushed, its sha matched, the logs looked fine,
 > and the browser kept serving the old one, because the version string had not been bumped.

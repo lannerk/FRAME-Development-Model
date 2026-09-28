@@ -254,6 +254,7 @@ Rules do not run on good intentions; they run on scripts that can turn red.
 | `check-filenames.sh` | File names that cannot be created on Windows (they break cross-platform work on the spot) |
 | `check-mail.sh` | The mail has not rotted: unread only · no stale letters · nobody assigning work by mail · one archive per seat per month |
 | `check-advisor.sh` | The advisor library has not decayed (**skips itself when there is none**): every choice card has **Recommendation · Why · Does not apply / Reversible** · every question has **Why ask** and **Recommend** · the profile is **seed** (marking it follow pushes his preferences into the open-source repo) · **no private word leaked into anything synced out** |
+| `check-frame-version.sh` | Whether a change to the FRAME body got a version stamp (**by commit order**: the last body commit may not be newer than the last stamp) |
 | `check-randd.sh` | The R&D line's structure and indexes (**skips itself when that line is not open**): an `INDEX.md` in each archive dir · live files within their caps · **nine green criteria before anything may be marked graduated** |
 | A few project-specific ones | e.g. frontend cache-busting, source-to-mirror drift, CSS class clashes — **they skip themselves where they do not apply** |
 

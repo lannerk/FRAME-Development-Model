@@ -65,17 +65,23 @@ done < <(grep -E '^\|[[:space:]]*`' "$L")
 # ---- (2) the total opening read (this is the cost the budget is really about) ----
 common=$(( $(wc -l < CLAUDE.md) + $(wc -l < ai/rules/laws.md) + $(wc -l < ai/state/now.md) + $(wc -l < ai/tasks/index.md) + $(wc -l < ai/memory.md) ))
 worst=0; worst_role=""
+# 🔴 **The hard cap covers the FIXED content only; the mailbox is reported separately and does not count**
+# (changed 2026-09-28; reason in ai/rules/maintenance-log.md). A mailbox is **transient** -- three letters today,
+# none tomorrow -- and it is written by **other seats**. Counting it against the cap had a measured consequence:
+# one ordinary reply pushed the most expensive seat to 662/660, and the only available fix became **cutting the
+# handbook** -- trading a long-lived rule for a temporary letter. A mailbox has its own bounds already
+# (`ai/mail/README.md`: at most 3 pending per pair, at most 12 lines each); that rule governs it.
 for r in developer reviewer supervisor; do
   f="ai/roles/$r.md"; [ -e "$f" ] || continue
   t=$(( common + $(wc -l < "$f") ))
-  # the first thing at the opening is checking the mail: count the three drop-boxes in that seat's own directory (<=15 lines each)
-  for m in ai/mail/to-$r/from-*.md; do [ -e "$m" ] && t=$(( t + $(wc -l < "$m") )); done
   # the Supervisor seat by the rules **does not read the task queue** (the 🔴 in ai/roles/supervisor.md §1), so it is not counted for it
   [ "$r" = supervisor ] && t=$(( t - $(wc -l < ai/tasks/index.md) ))
-  printf '  opening read · %-10s %4d lines\n' "$r" "$t"
+  mailn=0
+  for m in ai/mail/to-$r/from-*.md; do [ -e "$m" ] && mailn=$(( mailn + $(wc -l < "$m") )); done
+  printf '  opening read · %-10s %4d lines (plus %d lines of mail, not counted against the cap)\n' "$r" "$t" "$mailn"
   [ "$t" -gt "$worst" ] && { worst=$t; worst_role=$r; }
 done
-echo "  (= CLAUDE.md + laws.md + memory.md + now.md + tasks/index.md + that seat's handbook + mail/to-<seat>/ x3)"
+echo "  (fixed content = CLAUDE.md + laws.md + memory.md + now.md + tasks/index.md + that seat's handbook; mail counted separately)"
 if [ "$worst" -gt "$OPENING_CAP" ]; then
   echo "  ✗  the most expensive seat ($worst_role) $worst lines > hard cap $OPENING_CAP lines"
   echo "     Either move content into a \"read on demand\" file, or change the cap -- **changing the cap goes into the maintenance log**."

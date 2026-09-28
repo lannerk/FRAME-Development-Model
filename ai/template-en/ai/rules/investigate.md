@@ -128,3 +128,15 @@ or it stayed green because it never got there.
 A "conclusion" that keeps overturning itself has negative value to him.
 **The criterion**: the moment "withdrawn / void / my earlier conclusion does not hold" appears, **it must say at the same time what that conclusion was based on originally**;
 more than twice in one round → that round's verdict is downgraded to "undetermined".
+
+🔴 **Where to plant the breakage: always in a COPY, never in a live file** (measured 2026-09-28, by the Maintainer itself).
+To do "break it and watch it go red", a line was appended to a source file another seat was editing, and
+`git checkout --` was used to undo it afterwards -- **that file carried another seat's uncommitted fix, and it was
+reverted along with the breakage** (uncommitted working-tree changes are not git objects: once gone, they are gone).
+Three rules; miss one and do not touch a live file:
+- **break a copy** (a temp directory, a sandbox repo, or point a knob such as `DIRS=` / `FV_ROOT=` at one);
+- if a live file really must be touched, **run `git status -- <that file>` first** -- if it is dirty, someone else is
+  working on it and it is untouchable;
+- undo by **copying back the snapshot you took before breaking it**, not with `git checkout --`: that restores
+  "what HEAD looks like", not "what it looked like before I touched it" -- the two agree only if the file was clean.
+> A probe: **the same guard was green before you broke it and goes RED after you "undid" it -- you reverted someone else's work.**
