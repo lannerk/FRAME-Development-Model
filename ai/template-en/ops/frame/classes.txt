@@ -19,6 +19,11 @@ follow  ai/roles/*.md
 # 一条一条列 = 每加一份规矩文件就要记得回来加一行，**而忘了不会有任何症状**。
 follow  ai/rules/*.md
 seed    ai/rules/maintenance-log.md
+# 🔴 **The project's own implementation discipline and self-check list** (the Requester ruled "split it out" 2026-09-27):
+# `conventions.md` is follow, but the entries in those sections are filled in per project -- keeping them in one follow file
+# had two measured consequences: **every distribution reported "target changed" and needed a human merge**, and a project
+# with `push=yes` pushed its own commands into FRAME. Split in two, the mechanism never has to ask.
+seed    ai/rules/conventions-project.md
 follow  ai/mail/README.md
 follow  ai/bugs/README.md
 follow  ai/RandD/README.md

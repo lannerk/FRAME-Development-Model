@@ -31,44 +31,31 @@
    Don't use one cell as the progress of a summary row that covers several sub-items. **Not updating it means nobody can tell what's left.**
 10. **Propagate a change down the whole chain**: code → comments → external docs → requirement/feature list → decisions → `state/now.md`. Miss one link and someone starts next stage from the old doc.
 
-## 3. Implementation discipline (**fill in for your project**)
+## 3. Implementation discipline (**the entries live in `ai/rules/conventions-project.md` §3**)
 
-> This section is project-specific. Write what you **actually agreed on**, don't copy generic software-engineering dogma —
-> an entry with no incident behind it goes unread three months later. Directions to consider:
+> This section is project-specific: write what you **actually agreed on**, don't copy generic software-engineering dogma --
+> an entry with no incident behind it goes unread three months later.
+> 🔴 **The entries themselves do not live here** (the Requester ruled "split it out" on 2026-09-27): they are project-owned content and go into
+> `ai/rules/conventions-project.md`, which is **seed** in `classes.txt` (a sync never overwrites it and never pushes it upstream).
+> They used to sit in this `follow` file, so **every distribution reported it as "target changed" and needed a human merge**,
+> while a project with `push=yes` would **push its own commands into FRAME**. **Numbering continues**, so references like "§4.22" still hold.
 
-11. `<hard constraints on technology choices, e.g. "the backend uses the standard library only", "no third-party UI framework">`
-12. `<real implementations, no mocks; a missing component honestly returns an empty state>`
-13. `<which table a new interface/config item must be registered in>`
-14. **Self-review the interaction loop**: before handing off, check that every state is complete (enter/exit/empty/error/first-use),
-    that there are no extra elements (duplicate titles, unusable controls — delete them on the spot), and that no element is missing. **The Requester says 1; on interaction you think of 10 yourself.**
-15. `<comment conventions: language, what a file header must say>`
+## 4. Front end / interface (**the entries live in `ai/rules/conventions-project.md` §4**; leave it empty if there is no interface)
 
-## 4. Front end / interface (**fill in for your project; no interface means delete the whole section**)
+> The generic one stays here: **a rule that says "when you change X, remember to also change Y" is worth nothing if a human has to remember it.**
+> The project this template came from hit it twice in a row: the frontend file was pushed, its sha matched, the logs looked fine,
+> and the browser kept serving the old one, because the version string had not been bumped.
+> Do this instead: **make the value computed** (the version string is the fingerprint of that file's contents), add a gate that recomputes
+> and reconciles, with a `--fix` mode; the project-specific slots (which directory, which prefix) **have to be knobs** (`ops/verify/paths.env`) --
+> hard-code them and the next project just gets a false red.
+> 🔴 **Strip carriage returns before hashing**, or the same content fingerprints differently on a Windows checkout and the gate goes red for no reason.
 
-16. `<which file is the one source of style tokens; new code may not hardcode colors or numbers>`
-17. `<controls of the same kind share one style system-wide; look for an existing control to reuse before making a new one>`
-18. **For "changed it, no effect" holes such as caching and version numbers: make the value computed, then add a gate.**
-    A rule that says "when you change X, remember to also change Y" **is worth nothing if a human has to remember it** —
-    the project this template came from hit it twice in a row: the frontend file was pushed, its sha matched, the logs
-    looked fine, and the browser kept serving the old one, because the version string had not been bumped.
-    Do this instead: make the version string the fingerprint of that file's contents (first few hex chars of its sha256),
-    and add a gate that recomputes and reconciles, with a `--fix` mode
-    (`ops/verify/check-cachebust.sh` is that shape: three knobs, `CACHEBUST_WEB` / `_PAGE` / `_PREFIX`, and it **skips itself when it does not apply** —
-    the project-specific slots have to be knobs; hard-code them and the next project just gets a false red).
-    🔴 **Strip carriage returns before hashing**, or the same content fingerprints differently on a Windows checkout
-    and the gate goes red for no reason.
-
-## 5. Pre-delivery self-check (**fill in for your project**; missing one means it isn't done)
+## 5. Pre-delivery self-check (**the list lives in `ai/rules/conventions-project.md` §5**; missing one means it isn't done)
 
 > **This is the most important section**: it defines what "done" means.
 > Every entry should **come out of one command**, with no human judgment. Paste the raw output into `claude-outputs/developer/`.
-
-| # | What to run | Which incident left it |
-|---|---|---|
-| 19 | `<build>` | `<has a file that doesn't compile ever sat in the repo?>` |
-| 20 | `<static analysis>` | |
-| 21 | `<tests>` | |
-| 22 | `<checks specific to this project, e.g. syntax scan / path reconciliation / rule lint>` | |
+> 🔴 **A check specific to this project does not get a row here, and never means editing `ops/verify/check-all.sh`** --
+> name it `ops/verify/check-project-*.sh` and it runs automatically (such files never enter the template and are never overwritten by it).
 
 **Beyond the checklist there is the "self-test"** (`ai/roles/developer.md` §5b): **walk through the feature you built once as a user yourself** —
 go item by item through the task's "Acceptance"; for UI, **compare one-to-one against the finalized prototype** (colors from tokens, icons taken as-is, the four states empty / loading / error / disabled + narrow screen + dark mode), and paste screenshots into the report;

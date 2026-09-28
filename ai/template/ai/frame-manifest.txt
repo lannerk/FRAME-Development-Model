@@ -74,6 +74,7 @@ ai/roles/maintainer.md
 ai/roles/researcher.md
 ai/roles/reviewer.md
 ai/roles/supervisor.md
+ai/rules/conventions-project.md
 ai/rules/conventions.md
 ai/rules/investigate.md
 ai/rules/laws.md

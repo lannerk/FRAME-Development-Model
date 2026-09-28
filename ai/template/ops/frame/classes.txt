@@ -19,6 +19,10 @@ follow  ai/roles/*.md
 # 一条一条列 = 每加一份规矩文件就要记得回来加一行，**而忘了不会有任何症状**。
 follow  ai/rules/*.md
 seed    ai/rules/maintenance-log.md
+# 🔴 **项目自己的实现纪律与自检清单**（需求方 2026-09-27 拍板「拆出去」）：`conventions.md` 是 follow，
+# 而这几节的条目是每个项目自己填的——混在一份 follow 文件里，实测两个后果：**每次分发都报「目标改过」要人合**，
+# 而 `push=yes` 的项目反过来把自己的命令推进 FRAME。分成两份之后，机制不用每轮问人。
+seed    ai/rules/conventions-project.md
 follow  ai/mail/README.md
 follow  ai/bugs/README.md
 follow  ai/RandD/README.md
