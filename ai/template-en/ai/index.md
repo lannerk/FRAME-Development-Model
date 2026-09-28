@@ -12,7 +12,7 @@
 | **Researcher** | `roles/researcher.md` | **The R&D line**: takes an idea that has no name yet to a project that can be started; an extra seat, **the four powers do not change** | `ai/RandD/` (it writes nowhere else) |
 | **Maintainer** | `roles/maintainer.md` | **maintains this development model itself**, does not develop, does not touch requirements | `ai/rules/` · `ai/roles/` · `ai/template/` |
 
-All four must obey: `rules/laws.md` (the hard laws) · `rules/conventions.md` (engineering conventions) · `rules/workflow.md` (how to work together) · `rules/layout.md` (where things go) · **`rules/investigate.md` (how to investigate an "it's broken")**
+All four must obey: `rules/laws.md` (the hard laws) · `rules/conventions.md` (engineering conventions) · `rules/conventions-project.md` (**this project's own discipline and self-check**) · `rules/workflow.md` (how to work together) · `rules/layout.md` (where things go) · **`rules/investigate.md` (how to investigate an "it's broken")**
 
 ## Looking for something → go here
 

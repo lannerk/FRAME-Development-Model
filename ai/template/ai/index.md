@@ -12,7 +12,7 @@
 | **研究者** | `roles/researcher.md` | **R&D 线**：把还没名字的想法带到能开工的项目；编外座位，**四权结构不改** | `ai/RandD/`（只写这里） |
 | **维护者** | `roles/maintainer.md` | **维护这套开发模式本身**，不参与开发、不碰需求 | `ai/rules/` · `ai/roles/` · `ai/template/` |
 
-四方都要遵守：`rules/laws.md`（铁律）· `rules/conventions.md`（工程约定）· `rules/workflow.md`（怎么配合）· `rules/layout.md`（东西放哪）· **`rules/investigate.md`（怎么查一个「坏了」）**
+四方都要遵守：`rules/laws.md`（铁律）· `rules/conventions.md`（工程约定）· `rules/conventions-project.md`（**本项目的实现纪律与交付自检**）· `rules/workflow.md`（怎么配合）· `rules/layout.md`（东西放哪）· **`rules/investigate.md`（怎么查一个「坏了」）**
 
 ## 找东西 → 去哪
 
