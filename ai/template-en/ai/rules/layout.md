@@ -242,7 +242,7 @@ table — **never keep a second copy inside a script**), and `conformance sweep`
 | `ai/index.md` · `ai/glossary.md` · `ai/frame-manifest.txt` · `ai/check-links.sh` | Maintainer seat |
 | `ai/rules/*` · `ai/roles/*` · `ai/mail/README.md` | Maintainer seat |
 | `ai/template/*` · `ai/template-en/*` | Maintainer seat |
-| `ops/verify/*` · `ops/scripts/*` · `ops/frame/*` · `ops/README.md` · `docs/guide/*` · `claude-outputs/README.md` · `claude-outputs/maintainer/*` · `.gitignore` · `ai/frame-repo.conf` | Maintainer seat |
+| `ops/verify/*` · `ops/scripts/*` · `ops/frame/*` · `ops/README.md` · `docs/guide/*` · `claude-outputs/README.md` · `claude-outputs/maintainer/*` · `.gitignore` · `ai/frame-repo.conf` · `ai/FRAME-VERSION` | Maintainer seat |
 | `ai/tasks/*` · `ai/bugs/*` · `ai/decisions/*` · `ai/specs/*` · `ai/state/*` | Reviewer seat |
 | `product/*` · `claude-outputs/reviewer/*` | Reviewer seat |
 | `src/*` · `dist/*` · `claude-outputs/developer/*` | Developer seat |
