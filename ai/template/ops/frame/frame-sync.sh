@@ -521,7 +521,7 @@ if [ "$DIST" != 1 ] && { [ "$MODE" = sync ] || [ "$MODE" = adopt ]; }; then
 
   # ── 铁律 1/2：两边都必须干净 ──
   # 🔴 consumer 的 FRAME 落在项目根，`${SBASE#$SRC/}` 就成了整个仓库——于是**任何一席没提交的业务文件**
-  #    （bug 单、信箱、记忆……）都会把同步拦住（takiro 2026-09-30 实测：8 份审查席 / 监督席在写的文件拦下了一次纯拉回）。
+  #    （bug 单、信箱、记忆……）都会把同步拦住（某个 consumer 项目 2026-09-30 实测：8 份审查席 / 监督席在写的文件拦下了一次纯拉回）。
   #    要保的是「只认已提交的 **FRAME**」：consumer 只看清单里 follow 类的那些（同步只会写它们）。
   if [ "$SROLE" = consumer ]; then
     FFOL=(); while IFS= read -r r; do [ "$(class_of "$r" consumer)" = follow ] && FFOL+=("$r"); done < <(list_files "$SRC" consumer)

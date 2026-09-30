@@ -565,7 +565,7 @@ if [ "$DIST" != 1 ] && { [ "$MODE" = sync ] || [ "$MODE" = adopt ]; }; then
 
   # -- iron rules 1 and 2: both sides must be clean --
   # 🔴 A consumer's FRAME sits at the project root, so `${SBASE#$SRC/}` becomes the whole repo -- and **any seat's uncommitted
-  #    business file** (bug reports, mail, memory...) blocks the sync (takiro 2026-09-30, measured: 8 files the Reviewer / Supervisor seats were
+  #    business file** (bug reports, mail, memory...) blocks the sync (measured in a consumer project, 2026-09-30: 8 files the Reviewer / Supervisor seats were
   #    writing blocked a pure pull). What is kept is "only committed **FRAME** counts": a consumer looks only at the manifest's follow-class files
   #    (the only ones a sync writes).
   if [ "$SROLE" = consumer ]; then
