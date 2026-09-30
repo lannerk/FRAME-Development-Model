@@ -70,10 +70,21 @@ PY
 fi
 
 # ── ③ 画像必须是 seed，且不在顾问库里 ───────────────────────────
-if [ -f "$CLASSES" ]; then
-  if ! grep -qE "^seed[[:space:]]+${PROFILE//\//\\/}$" "$CLASSES"; then
-    echo "  ✗  $PROFILE 在 $CLASSES 里不是 seed —— 画像是项目私有内容，"
+# 🔴 **判生效的分类，不判那一行的字面**（FRAME 1.11.0 定的「分类只有一处出处」，
+# 来源是 `ops/frame/frame-sync.sh --classify`）。原来这里 `grep '^seed <路径>$'`——判的是**文本影子**：
+# `classes.txt` 是「**最后匹配的那条胜出**」，所以 `seed` 那一行写着也可能被后面一条 glob 覆盖成 follow，
+# 而 grep 照样绿（**这种坏法没有症状，而它保的是不可逆的泄露**）；反过来，那一行写成
+# `seed@host` 或路径带了别的写法，它就误报。
+# 🔴 `--classes "$CLASSES"` 一定要带上：`CLASSES_FILE` 这个口子就是为**反向断言**开的，
+# 不传过去的话守门查的是真表、而造错造在拷贝上，**那条造错永远不会被看见**（判据自己就成了摆设）。
+if [ -x ops/frame/frame-sync.sh ] && [ -f "$CLASSES" ]; then
+  pcls="$(bash ops/frame/frame-sync.sh --classes "$CLASSES" --classify 2>/dev/null | awk -F'\t' -v p="$PROFILE" '$2==p{print $1}' | tail -1)"
+  if [ -z "$pcls" ]; then
+    echo "  ·  $PROFILE 不在同步清单里（模板里没有这一份）—— 分类这一条跳过"
+  elif [ "$pcls" != seed ]; then
+    echo "  ✗  $PROFILE 生效的分类是 $pcls，不是 seed —— 画像是项目私有内容，"
     echo "     标成 follow 会把需求方的偏好**推回开源仓库**（这条是不可逆的泄露）。"
+    echo "     注意 $CLASSES 是「最后匹配的那条胜出」：写了 seed 也可能被后面一条 glob 盖掉。"
     bad=$((bad+1))
   fi
 fi

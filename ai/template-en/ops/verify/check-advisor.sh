@@ -76,10 +76,23 @@ PY
 fi
 
 # -- (3) the profile must be class seed, and must not live in the library ----
-if [ -f "$CLASSES" ]; then
-  if ! grep -qE "^seed[[:space:]]+${PROFILE//\//\\/}$" "$CLASSES"; then
-    echo "  x  $PROFILE is not class seed in $CLASSES -- the profile is private project content,"
+# 🔴 **Judge the effective class, not the text of one line** (FRAME 1.11.0: a class has exactly one
+# source of truth, and it is `ops/frame/frame-sync.sh --classify`). This used to `grep '^seed <path>$'`,
+# which judges a **text shadow**: `classes.txt` is **last match wins**, so the `seed` line can be there
+# and still be overridden into follow by a later glob -- and the grep stays green (**that failure has no
+# symptom, and what it guards is an irreversible leak**). The other way round, writing that line as
+# `seed@host`, or spelling the path differently, makes it a false red.
+# 🔴 `--classes "$CLASSES"` must be passed on: the `CLASSES_FILE` hook exists for the **reverse
+# assertion**, and without it the guard reads the real table while the break was made on a copy --
+# so **that break can never be seen**, and the criterion becomes decoration.
+if [ -x ops/frame/frame-sync.sh ] && [ -f "$CLASSES" ]; then
+  pcls="$(bash ops/frame/frame-sync.sh --classes "$CLASSES" --classify 2>/dev/null | awk -F'\t' -v p="$PROFILE" '$2==p{print $1}' | tail -1)"
+  if [ -z "$pcls" ]; then
+    echo "  .  $PROFILE is not in the sync list (the template does not carry it) -- class check skipped"
+  elif [ "$pcls" != seed ]; then
+    echo "  x  $PROFILE's effective class is $pcls, not seed -- the profile is private project content,"
     echo "     and marking it follow would push the Requester's preferences **into the open-source repo** (an irreversible leak)."
+    echo "     Remember $CLASSES is last-match-wins: a seed line can still be overridden by a later glob."
     bad=$((bad+1))
   fi
 fi
