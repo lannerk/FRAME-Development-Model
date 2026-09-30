@@ -20,19 +20,16 @@ cd "$ROOT" || exit 2
 CL="ops/frame/classes.txt"; MF="ai/frame-manifest.txt"; VF="ai/FRAME-VERSION"
 [ -f "$CL" ] && [ -f "$MF" ] || { echo "FRAME-VERSION-SKIP (no $CL or $MF; not a FRAME repo)"; exit 0; }
 git rev-parse --is-inside-work-tree >/dev/null 2>&1 || { echo "FRAME-VERSION-SKIP (not in git)"; exit 0; }
-role="$(grep -E '^role=' ai/frame-repo.conf 2>/dev/null | head -1 | cut -d= -f2-)"; role="${role:-consumer}"
-class_of() { local p="$1" m=seed mode pat mrole
-  while read -r mode pat; do
-    case "$mode" in ''|'#'*) continue;; esac; [ -n "${pat:-}" ] || continue
-    mrole=""; case "$mode" in *@*) mrole="${mode#*@}"; mode="${mode%@*}";; esac
-    [ -n "$mrole" ] && [ "$mrole" != "$role" ] && continue
-    if [ "$pat" = '**' ]; then m="$mode"; else case "$p" in $pat) m="$mode";; esac; fi
-  done < <(tr -d '\r' < "$CL"); echo "$m"; }
+# Classification comes only from `ops/frame/frame-sync.sh --classify` (FRAME 1.11.0: one source for classification) -- **no second copy of
+# the glob matching here**: a copy is a second criterion, a change to classes.txt reaches only one side, and the mismatch has no symptom
+# (the 1.7.0 version of this script carried such a copy).
+[ -f ops/frame/frame-sync.sh ] || { echo "FRAME-VERSION-SKIP (no ops/frame/frame-sync.sh)"; exit 0; }
 F=()
-while IFS= read -r rel; do
+while IFS=$'\t' read -r cls rel; do
+  rel="${rel%$'\r'}"; [ "$cls" = follow ] || continue
   [ "$rel" = "$VF" ] && continue; [ -f "$rel" ] || continue
-  [ "$(class_of "$rel")" = follow ] && F+=("$rel")
-done < <(grep -vE '^[[:space:]]*(#|$)' "$MF" | tr -d '\r' | LC_ALL=C sort -u)
+  F+=("$rel")
+done < <(bash ops/frame/frame-sync.sh --classify 2>/dev/null)
 [ "${#F[@]}" -gt 0 ] || { echo "FRAME-VERSION-SKIP (no follow-class files in the manifest)"; exit 0; }
 lf="$(git log -1 --format=%H -- "${F[@]}" 2>/dev/null)"
 [ -n "$lf" ] || { echo "FRAME-VERSION-OK (the FRAME body has no commits yet)"; exit 0; }

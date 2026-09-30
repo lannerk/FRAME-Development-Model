@@ -19,19 +19,15 @@ cd "$ROOT" || exit 2
 CL="ops/frame/classes.txt"; MF="ai/frame-manifest.txt"; VF="ai/FRAME-VERSION"
 [ -f "$CL" ] && [ -f "$MF" ] || { echo "FRAME-VERSION-SKIP（没有 $CL 或 $MF，不是 FRAME 仓库）"; exit 0; }
 git rev-parse --is-inside-work-tree >/dev/null 2>&1 || { echo "FRAME-VERSION-SKIP（不在 git 里）"; exit 0; }
-role="$(grep -E '^role=' ai/frame-repo.conf 2>/dev/null | head -1 | cut -d= -f2-)"; role="${role:-consumer}"
-class_of() { local p="$1" m=seed mode pat mrole
-  while read -r mode pat; do
-    case "$mode" in ''|'#'*) continue;; esac; [ -n "${pat:-}" ] || continue
-    mrole=""; case "$mode" in *@*) mrole="${mode#*@}"; mode="${mode%@*}";; esac
-    [ -n "$mrole" ] && [ "$mrole" != "$role" ] && continue
-    if [ "$pat" = '**' ]; then m="$mode"; else case "$p" in $pat) m="$mode";; esac; fi
-  done < <(tr -d '\r' < "$CL"); echo "$m"; }
+# 分类只问 `ops/frame/frame-sync.sh --classify`（FRAME 1.11.0：分类只有一处出处）——**不在这里再抄一份 glob 匹配**，
+# 抄一份就是两套判据，改了 classes.txt 只有一边跟上，而两边不一致没有任何症状（这份脚本 1.7.0 版就抄过一份）。
+[ -f ops/frame/frame-sync.sh ] || { echo "FRAME-VERSION-SKIP（没有 ops/frame/frame-sync.sh）"; exit 0; }
 F=()
-while IFS= read -r rel; do
+while IFS=$'\t' read -r cls rel; do
+  rel="${rel%$'\r'}"; [ "$cls" = follow ] || continue
   [ "$rel" = "$VF" ] && continue; [ -f "$rel" ] || continue
-  [ "$(class_of "$rel")" = follow ] && F+=("$rel")
-done < <(grep -vE '^[[:space:]]*(#|$)' "$MF" | tr -d '\r' | LC_ALL=C sort -u)
+  F+=("$rel")
+done < <(bash ops/frame/frame-sync.sh --classify 2>/dev/null)
 [ "${#F[@]}" -gt 0 ] || { echo "FRAME-VERSION-SKIP（清单里没有 follow 类文件）"; exit 0; }
 lf="$(git log -1 --format=%H -- "${F[@]}" 2>/dev/null)"
 [ -n "$lf" ] || { echo "FRAME-VERSION-OK（FRAME 本体还没有提交）"; exit 0; }
