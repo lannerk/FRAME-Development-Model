@@ -86,6 +86,12 @@ The one-line test: 🔴 **would a new reader following the README walk into some
    (structure/roles=major · rule semantics=minor · wording=patch), run `bash ops/frame/frame-sync.sh --stamp <version>`,
    and **put the version in the commit message**. Guard: `check-frame-version.sh` goes red when the last FRAME-body commit is newer than the last stamp
    (Requester 2026-09-28: "you updated the source FRAME without updating the version number" -- that round edited the source repo directly, skipped the "sync FRAME" command, and so skipped its step-8 bump).
+4. 🔴 **Sessions change, accounts change; only the repository stays** -- so **at every wrap-up, write what is in flight into
+   `claude-outputs/maintainer/<date>-maintainer-handover.md`** (this handbook covers "how to do it", that file covers
+   "how far it got, what is odd about this machine, and what the Requester has already settled so nobody asks again").
+   The criterion: **a fresh session runs the three verification commands in that file, and if the numbers match it can carry straight on**;
+   if they do not match, that file is stale -- update it first. **Do not put any of this in the handbook or `CLAUDE.md`**:
+   it changes every round, and the opening read has a hard cap.
 🔴 **`--accept` is the last action, not a button that turns the check green**: run it only after all three copies are changed and you have looked at both templates.
 **Accepting first and remembering the English copy afterwards means erasing the only evidence with your own hands** — the fingerprints get flattened and that criterion goes mute
 (this really happened on 2026-09-15; it was only recovered because the **structural check** reported `layout.md` table rows 71 Chinese / 68 English — see `ai/memory.md`, type 4, entry 6).
