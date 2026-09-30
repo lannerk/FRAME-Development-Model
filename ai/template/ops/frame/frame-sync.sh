@@ -202,6 +202,19 @@ PUSH_OK="$(conf_get "$SRC" push)"
 if [ -z "$PUSH_OK" ]; then
   if [ "$SROLE" = consumer ]; then PUSH_OK=no; else PUSH_OK=yes; fi
 fi
+# 🔴 **「能不能推」与「该不该碰上游的这几样」是两件事**（2026-09-30 实测，一个消费项目撞上）。
+# `push=` 说的是**权限**（我有没有那个仓库的提交权）；而**根文件投影**和**上游那份版本文件**
+# 还多一层**身份**判断：它们是「源仓库自己的门面」，只有**带着模板的那一侧**（home／host）才有资格生成。
+# 实测那次：一个 consumer 显式写了 `push=yes`，`--sync --apply` 于是**把它自己的 `README.md`
+# 投影进了源仓库根上的 `README-zh_CN.md`**——根因有两层：
+#   ⑴ `roots_project` 里 `srcf="$SBASE/${tplrel#ai/template/}"`，**consumer 的 `$SBASE` 就是项目根**，
+#      于是「模板里的 README」解析成了「这个项目自己的 README」；
+#   ⑵ 两处调用只判 `push=`，没判角色——`push=yes` 就一路走到写。
+# 所以立一个共用判据：**consumer 一侧永不做根文件投影、也永不改上游的版本文件**
+# （单向拉回时那两样都不该动）。判的是**身份**，不是权限。
+UPSTREAM_OK=yes
+[ "$PUSH_OK" = no ] && UPSTREAM_OK=no
+[ "$SROLE" = consumer ] && UPSTREAM_OK=no
 SBASE="$(base_of "$SRC" "$SROLE")"
 [ -d "$SBASE" ] || { echo "🔴 本仓库找不到 FRAME 落点：$SBASE"; exit 2; }
 
@@ -310,6 +323,10 @@ git_untracked() { [ -d "$1/.git" ] || return 1
 #    整仓判定会让同一次同步的前半步（刚写完模板）把后半步挡在门外（实测撞上过）。
 roots_project() { # roots_project <源FRAME仓库> <要不要写>
   local HR="$1" DOIT="$2" mline rootf tplrel srcf proj pl expr before n=0 fail=0 dirtyf
+  # 🔴 第二道保险（上面两处调用已经按 UPSTREAM_OK 截住了）：**consumer 一侧永不投影根文件**。
+  # 放在函数里，是为了以后新增调用点时不会再漏一次——这个缺陷就是「两处调用各判一遍」漏出来的。
+  [ "$SROLE" = consumer ] && return 0
+  [ "$PUSH_OK" = no ] && return 0
   # ── 源仓库的根文件（map= / patch=）是**同一次同步的一部分**，同轮投影 ──
   # 【为什么不放到「分发」那一侧去做】放那边要再跑一条命令，而那时源仓库已经被这一步写脏了，
   # 铁律 2 会把它自己挡在门外（实测撞上过）。**一次同步就该让两边都到位。**
@@ -351,12 +368,14 @@ if [ "$MODE" = stamp ]; then
   [ -d "$HOME_REPO" ] || { echo "🔴 找不到源 FRAME 仓库"; exit 2; }
   HROLE="$(role_of "$HOME_REPO")"
   ver_write "$SRC" "$SROLE" "$STAMP_V" "$(conf_get "$SRC" home)" "$(fp_of "$HOME_REPO" "$HROLE")"
-  # push=no：上游那份版本文件不是我们的，别动
-  [ "$PUSH_OK" = no ] || ver_write "$HOME_REPO" "$HROLE" "$STAMP_V" "$SRC" "$(fp_of "$SRC" "$SROLE")"
+  # 上游那份版本文件不是我们的，别动：push=no 是权限，consumer 是身份（见 UPSTREAM_OK 那段）。
+  # 🔴 2026-09-30 实测：一个 consumer 写了 `push=yes`，`--stamp` 就把**源仓库的 ai/FRAME-VERSION 改了**——
+  # 单向拉回的一侧盖的是「我跟到哪一版」，不是「这一版是什么」，它没有资格改上游那份。
+  [ "$UPSTREAM_OK" = yes ] && ver_write "$HOME_REPO" "$HROLE" "$STAMP_V" "$SRC" "$(fp_of "$SRC" "$SROLE")"
   # 🔴 **说出来的必须是真做了的**：push=no 时上游那份没盖，还说「两边都盖上」就是在撒谎，
   # 而人下一步会按这句话以为源仓库也到位了。
-  if [ "$PUSH_OK" = no ]; then
-    echo "✅ 本项目盖上 $STAMP_V（push=no：源那份版本文件没动）：指纹 $(fp_of "$SRC" "$SROLE")"
+  if [ "$UPSTREAM_OK" != yes ]; then
+    echo "✅ 本项目盖上 $STAMP_V（$([ "$SROLE" = consumer ] && echo "consumer：单向拉回" || echo "push=no")，源那份版本文件没动）：指纹 $(fp_of "$SRC" "$SROLE")"
     echo "   source_fingerprint 记的是源那边现在的指纹 $(fp_of "$HOME_REPO" "$HROLE")"
   else
     echo "✅ 两边都盖上 $STAMP_V：本项目指纹 $(fp_of "$SRC" "$SROLE")   源 $(fp_of "$HOME_REPO" "$HROLE")"
@@ -388,7 +407,7 @@ if [ "$DIST" != 1 ] && { [ "$MODE" = sync ] || [ "$MODE" = adopt ]; }; then
   echo "源FRAME: $HOME_REPO   角色 $HROLE   版本 $(ver_read "$HOME_REPO" "$HROLE")   指纹 $HFP"
   # 指纹一样也要看一眼根文件（它们不进指纹，但属于这一套 FRAME）
   if [ "$SFP" = "$HFP" ] && [ "$MODE" = sync ]; then
-    [ "$PUSH_OK" = no ] || roots_project "$HOME_REPO" "$APPLY"
+    [ "$UPSTREAM_OK" = yes ] && roots_project "$HOME_REPO" "$APPLY"
     echo "✅ 两边指纹相同 —— 已经是同一套 FRAME，无需同步（一个文件都没动）。"; exit 0; fi
 
 # 🔴 **一份模板一份基线**：两份模板的相对路径是一样的（`ai/rules/laws.md` 在中英两边都叫这个名），
@@ -527,8 +546,8 @@ if [ "$DIST" != 1 ] && { [ "$MODE" = sync ] || [ "$MODE" = adopt ]; }; then
   else
     echo "  ✅ 写完：拉回 ${#PULL[@]} · 推出 ${#PUSH[@]}（🔴 从不删除：源删了只在上面报告）"
   fi
-  # 🔴 根文件投影是往上游写，push=no 就不做（那是源仓库维护者的活）
-  [ "$PUSH_OK" = no ] || roots_project "$HOME_REPO" 1
+  # 🔴 根文件投影是往上游写**源仓库自己的门面**：`push=no` 不做（没权限），**consumer 也不做**（没身份）——见 UPSTREAM_OK 那段
+  [ "$UPSTREAM_OK" = yes ] && roots_project "$HOME_REPO" 1
   NFP="$(fp_of "$SRC" "$SROLE")"; NHFP="$(fp_of "$HOME_REPO" "$HROLE")"
   echo "  重算指纹：本项目 $NFP   源 $NHFP"
   if [ "$PUSH_OK" = no ]; then

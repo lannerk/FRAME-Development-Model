@@ -1,8 +1,8 @@
-version: 1.9.3
+version: 1.9.4
 date: 2026-09-30
 role: home
-fingerprint: ee3b597bfb0bfe37
-source_fingerprint: ee3b597bfb0bfe37
+fingerprint: 69676af9d400abdd
+source_fingerprint: 69676af9d400abdd
 synced_with: INOS
 # version 由维护席 bump：结构/角色变=major · 规矩语义变=minor · 措辞=patch
 # 🔴 fingerprint 自动算、别手改，且**只和同 role 的仓库比**；

@@ -226,6 +226,20 @@ PUSH_OK="$(conf_get "$SRC" push)"
 if [ -z "$PUSH_OK" ]; then
   if [ "$SROLE" = consumer ]; then PUSH_OK=no; else PUSH_OK=yes; fi
 fi
+# 🔴 **"May I push" and "should I touch these particular upstream things" are two different questions**
+# (measured 2026-09-30 on a real consumer project). `push=` is about **permission** (do I have commit rights);
+# the **root-file projection** and **upstream's version file** carry one more test -- **identity**: they are the
+# source repository's own shop window, and only the side that CARRIES THE TEMPLATES (home/host) may generate them.
+# What happened: a consumer with an explicit `push=yes` ran `--sync --apply` and **projected its OWN `README.md`
+# into the source repo's root `README-zh_CN.md`**. Two roots:
+#   (1) inside `roots_project`, `srcf="$SBASE/${tplrel#ai/template/}"` -- on a consumer **`$SBASE` IS the project
+#       root**, so "the template's README" resolved to "this project's own README";
+#   (2) both call sites tested `push=` only, never the role -- with `push=yes` it walked straight through to the write.
+# Hence one shared criterion: **a consumer side never projects root files and never rewrites upstream's version file**
+# (a one-way pull must touch neither). It judges **identity**, not permission.
+UPSTREAM_OK=yes
+[ "$PUSH_OK" = no ] && UPSTREAM_OK=no
+[ "$SROLE" = consumer ] && UPSTREAM_OK=no
 SBASE="$(base_of "$SRC" "$SROLE")"
 [ -d "$SBASE" ] || { echo "🔴 this repo has no FRAME root: $SBASE"; exit 2; }
 
@@ -340,6 +354,11 @@ git_untracked() { [ -d "$1/.git" ] || return 1
 #    a repo-wide check would let the first half of one sync (the template just written) lock out its second half (measured).
 roots_project() { # roots_project <source FRAME repo> <write or not>
   local HR="$1" DOIT="$2" mline rootf tplrel srcf proj pl expr before n=0 fail=0 dirtyf
+  # 🔴 Second line of defence (both call sites already gate on UPSTREAM_OK): **a consumer never projects root files.**
+  # It lives inside the function so a future call site cannot miss it again -- this defect came precisely from
+  # "two call sites, each testing it separately".
+  [ "$SROLE" = consumer ] && return 0
+  [ "$PUSH_OK" = no ] && return 0
   # -- The source repo's root files are projected in the same run --
   # 【Why not on the distribution side】That needs a second command, by which time this step has made the source dirty,
   # so iron rule 2 would lock it out of its own repo (measured). **One sync should leave both sides in place.**
@@ -382,12 +401,14 @@ if [ "$MODE" = stamp ]; then
   [ -d "$HOME_REPO" ] || { echo "🔴 cannot find the source FRAME repo"; exit 2; }
   HROLE="$(role_of "$HOME_REPO")"
   ver_write "$SRC" "$SROLE" "$STAMP_V" "$(conf_get "$SRC" home)" "$(fp_of "$HOME_REPO" "$HROLE")"
-  # push=no: the upstream version file is not ours to touch
-  [ "$PUSH_OK" = no ] || ver_write "$HOME_REPO" "$HROLE" "$STAMP_V" "$SRC" "$(fp_of "$SRC" "$SROLE")"
+  # Upstream's version file is not ours to touch: `push=no` is permission, `consumer` is identity (see UPSTREAM_OK).
+  # 🔴 Measured 2026-09-30: a consumer with `push=yes` ran `--stamp` and **rewrote the source repo's
+  # ai/FRAME-VERSION** -- the one-way-pull side stamps "which version I follow", not "what this version is".
+  [ "$UPSTREAM_OK" = yes ] && ver_write "$HOME_REPO" "$HROLE" "$STAMP_V" "$SRC" "$(fp_of "$SRC" "$SROLE")"
   # 🔴 **Only say what was actually done**: with push=no the upstream file was not stamped, and
   # saying "both sides stamped" is a lie the reader then acts on, believing the source is in order.
-  if [ "$PUSH_OK" = no ]; then
-    echo "✅ this project stamped $STAMP_V (push=no: the source's version file was not touched): fingerprint $(fp_of "$SRC" "$SROLE")"
+  if [ "$UPSTREAM_OK" != yes ]; then
+    echo "✅ stamped $STAMP_V here ($([ "$SROLE" = consumer ] && echo "consumer: one-way pull" || echo "push=no"); upstream's version file untouched): fingerprint $(fp_of "$SRC" "$SROLE")"
     echo "   source_fingerprint holds the source's current fingerprint $(fp_of "$HOME_REPO" "$HROLE")"
   else
     echo "✅ both sides stamped $STAMP_V: this project $(fp_of "$SRC" "$SROLE")   source $(fp_of "$HOME_REPO" "$HROLE")"
@@ -421,7 +442,7 @@ if [ "$DIST" != 1 ] && { [ "$MODE" = sync ] || [ "$MODE" = adopt ]; }; then
   echo "source FRAME: $HOME_REPO   role $HROLE   version $(ver_read "$HOME_REPO" "$HROLE")   fingerprint $HFP"
   # Even with equal fingerprints, check the root files (they are outside the fingerprint but part of this FRAME)
   if [ "$SFP" = "$HFP" ] && [ "$MODE" = sync ]; then
-    [ "$PUSH_OK" = no ] || roots_project "$HOME_REPO" "$APPLY"
+    [ "$UPSTREAM_OK" = yes ] && roots_project "$HOME_REPO" "$APPLY"
     echo "✅ identical fingerprints -- already the same FRAME; nothing to sync (not one file touched)."; exit 0; fi
 
 # 🔴 **One baseline per template**: the two templates use identical relative paths (`ai/rules/laws.md` exists in
@@ -570,7 +591,7 @@ if [ "$DIST" != 1 ] && { [ "$MODE" = sync ] || [ "$MODE" = adopt ]; }; then
     echo "  ✅ written: pulled in ${#PULL[@]} · pushed out ${#PUSH[@]} (🔴 never deletes: a file dropped in the source is only reported above)"
   fi
   # 🔴 Projecting root files writes upstream, so push=no skips it (that is the source maintainer's job)
-  [ "$PUSH_OK" = no ] || roots_project "$HOME_REPO" 1
+  [ "$UPSTREAM_OK" = yes ] && roots_project "$HOME_REPO" 1
   NFP="$(fp_of "$SRC" "$SROLE")"; NHFP="$(fp_of "$HOME_REPO" "$HROLE")"
   echo "  fingerprints recomputed: this project $NFP   source $NHFP"
   if [ "$PUSH_OK" = no ]; then

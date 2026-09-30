@@ -350,5 +350,3 @@ bash ops/verify/check-all.sh                       # 规矩变了，守门也跟
 
 **完整设计说明**：根目录 [FRAME-Development-Model-Spec-Zh_CN.md](/FRAME-Development-Model-Spec-Zh_CN.md)
 **初始化流程**：`docs/guide/project-init.md`
-
-<!-- 沙箱：把源仓库根文件改脏一行，看 host 会不会照旧投影回去 -->
