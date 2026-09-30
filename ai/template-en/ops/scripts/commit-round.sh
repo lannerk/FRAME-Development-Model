@@ -1,6 +1,8 @@
 #!/usr/bin/env bash
 # commit-round: once the Reviewer seat has called a round, commit that round's changes to the **local** git.
-# Usage: bash ops/scripts/commit-round.sh "<one-line title>"   [--dry]
+# Usage: bash ops/scripts/commit-round.sh "<one-line title>" --seat <seat>   [--dry] [-- <only these paths...>]
+#        Reviewer commits the Developer's work: bash ops/scripts/commit-round.sh ["<title>"] --seat developer --by reviewer --for "T-0010 B-0019"
+#          (in the round that passes it; with no title, the first line of the code block in ai/state/now.md §7 is used; workflow.md §7b)
 # Exit codes: 0 = committed (or the --dry run passed); 1 = a precondition is not met (exits as-is, nothing touched); 2 = the structure is wrong.
 #
 # [The boundary, not a word past it]
@@ -29,9 +31,13 @@ set -u
 # locks; a real `add`/`commit` still takes its own lock and is unaffected.
 export GIT_OPTIONAL_LOCKS=0
 ROOT="$(cd "$(dirname "$0")/../.." && pwd)"; cd "$ROOT" || exit 2
-TITLE=""; DRY=0; SEAT="${SEAT:-}"; ALLSEATS=0
+TITLE=""; DRY=0; SEAT="${SEAT:-}"; ALLSEATS=0; BY=""; FOR=""; NARROW=()
+START=$(date +%s)
 while [ $# -gt 0 ]; do
   case "$1" in
+    --) shift; NARROW=("$@"); break;;
+    --by) shift; BY="${1:-}";;
+    --for) shift; FOR="${1:-}";;
     --dry) DRY=1;;
     --all-seats) ALLSEATS=1;;
     --seat) shift; SEAT="${1:-}";;
@@ -58,6 +64,20 @@ G() {
   fi
 }
 
+# -- Committing on another seat's behalf: exactly one legal form (Requester 2026-09-30: once the review passes, the Reviewer seat commits the Developer's code too) --
+# The Developer seat does not commit (committing your own work = bypassing review); its changes are committed by the Reviewer seat in the round
+# that passes (task) or closes (bug) them -- **one commit for the Developer's files, one for the Reviewer's own**. No other "X commits for Y" is opened:
+# that would empty the "Seat" line of meaning.
+if [ -n "$BY" ]; then
+  case "$BY" in reviewer|Reviewer|审查席) BY=Reviewer;; *) echo "STOP --by takes only reviewer (the only form is the Reviewer committing for the Developer)"; exit 2;; esac
+  case "$SEAT" in developer|Developer|开发席) ;; *) echo "STOP --by reviewer goes only with --seat developer"; exit 2;; esac
+  printf '%s' "$FOR" | grep -qE '(T|B)-[0-9]{4}' || { echo "STOP say which items passed: --for \"T-#### B-####\""; exit 2; }
+  if [ -z "$TITLE" ] && [ -f ai/state/now.md ]; then
+    TITLE="$(awk '/^## (七|7[.、])/{f=1;next} f&&/^## /{exit} f&&/^```/{c++;next} f&&c==1&&NF{print;exit}' ai/state/now.md)"
+    [ -n "$TITLE" ] || { echo "STOP no title given, and the code block in ai/state/now.md §7 has no line to take"; exit 2; }
+  fi
+fi
+
 # -- preflight checks --
 if [ -f .git/index.lock ]; then
   age=$(( $(date +%s) - $(stat -c %Y .git/index.lock) ))
@@ -81,12 +101,24 @@ br=$(G symbolic-ref --quiet --short HEAD || true)
 # -- a red guard blocks the commit --
 # "Red means not done" is this method's basic criterion; committing with a red guard writes
 # "not done" into history, and the next person to clone it thinks this is a clean baseline.
-GUARD="$(bash ops/verify/check-all.sh 2>/dev/null | grep -oE 'ALL-(OK|FAIL).*' | head -1)"
+# 🔴 **Reuse the guard run** (Reviewer seat 2026-09-30, measured: on the mounted share check-all takes ~2 min, the script used to run it
+# a second time on red just to list the red rows, and with `git commit` on top one call ran past the sandbox's 180 s limit, was killed and left locks).
+# check-all writes every run to tmp/.check-all.last; **a result younger than 20 min is used as is** (CHECK_ALL_MAX_AGE seconds), otherwise it runs now.
+# What is judged is "are the guards green before committing", not "run them once more".
+LAST=tmp/.check-all.last; MAXAGE="${CHECK_ALL_MAX_AGE:-1200}"
+if [ -f "$LAST" ] && [ $(( $(date +%s) - $(head -1 "$LAST" | cut -d' ' -f1) )) -le "$MAXAGE" ] 2>/dev/null; then
+  GUARD_SRC="reusing the run from $(( ($(date +%s) - $(head -1 "$LAST" | cut -d' ' -f1)) / 60 )) min ago"
+else
+  bash ops/verify/check-all.sh >/dev/null 2>&1; GUARD_SRC="run now"
+fi
+GUARD="$(grep -aoE 'ALL-(OK|FAIL).*' "$LAST" 2>/dev/null | head -1)"
+[ -n "$GUARD" ] || { echo "STOP no guard result ($LAST was not written)"; exit 2; }
+GUARD="$GUARD ($GUARD_SRC)"
 case "$GUARD" in
   ALL-FAIL*)
     if [ "${ANYWAY:-0}" != 1 ]; then
       echo "BLOCKED: a guard is red: $GUARD"
-      bash ops/verify/check-all.sh 2>/dev/null | grep '❌' | sed 's/^/   /'
+      grep -a '❌' "$LAST" | sed 's/^/   /'
       echo "   Make it green first. **If you really must commit with it red** (say this round is the fix):"
       echo "   ANYWAY=1 bash $0 \"<title>\"   -- the commit message will say it went in red."
       exit 1
@@ -139,16 +171,28 @@ OWNERSHIP_SPLIT() {
 
 # --dry **never touches the index**: the Requester may already have staged exactly what he wants
 # in SourceTree, and add -A followed by reset would wipe that choice (learned the hard way).
+# 🔴 **Scan only what needs scanning** (Reviewer seat 2026-09-30, measured: on the mounted share a whole-repo `git diff --name-only` ran past 175 s,
+# per package 0–21 s). With `-- <paths...>` only those are looked at; with --seat only the ownership table's paths for **that seat and "shared"**
+# (the only files it may commit anyway); only with neither is the whole repo scanned. Cost: with --seat, "left for other seats" counts only that range.
+SCOPE=()
+if [ "${#NARROW[@]}" -gt 0 ]; then SCOPE=("${NARROW[@]}")
+elif [ -n "$SEAT" ] && [ "$ALLSEATS" != 1 ]; then
+  case "$SEAT" in maintainer|Maintainer|维护席) S0=Maintainer;; reviewer|Reviewer|审查席) S0=Reviewer;; developer|Developer|开发席) S0=Developer;;
+    supervisor|Supervisor|监督席) S0=Supervisor;; researcher|Researcher|研究席) S0=Researcher;; *) S0="$SEAT";; esac
+  while IFS= read -r ps; do [ -n "$ps" ] && SCOPE+=("$ps"); done < <(awk -v s="$S0" -F'|' '
+    /^\|/ && !/^\|---/ { o=$3; if (o !~ s && o !~ /shared/) next
+      n=split($2, ps, "·"); for (i=1;i<=n;i++){ p=ps[i]; gsub(/[` ]/,"",p); gsub(/^\*\*|\*\*$/,"",p); if (p!="") print p } }' ai/rules/layout.md | sort -u)
+fi
 if [ "$DRY" = 1 ]; then
-  D_STAT="$(G diff HEAD --shortstat | sed 's/^ *//')"
+  D_STAT="$(G diff HEAD --shortstat -- "${SCOPE[@]}" | sed 's/^ *//')"
   # [Why untracked files are included] `git diff` **cannot see newly created files**, so a task opened this round
   # was never picked up in --dry (measured and reported by the Reviewer seat, 2026-09-15). A real commit sees it
   # via `add -A`, so **only the rehearsal was blind** -- and a rehearsal that disagrees with the real commit is worse than none.
-  D_FILES="$({ G diff HEAD --name-only; G ls-files --others --exclude-standard; } | grep . | sort -u)"
+  D_FILES="$({ G diff HEAD --name-only -- "${SCOPE[@]}"; G ls-files --others --exclude-standard -- "${SCOPE[@]}"; } | grep . | sort -u)"
   [ -z "$D_FILES" ] && { echo "nothing to commit (the working tree is clean)."; exit 0; }
   CAND="$D_FILES"
 else
-  CAND="$({ G diff HEAD --name-only; G ls-files --others --exclude-standard; } | grep . | sort -u)"
+  CAND="$({ G diff HEAD --name-only -- "${SCOPE[@]}"; G ls-files --others --exclude-standard -- "${SCOPE[@]}"; } | grep . | sort -u)"
   [ -z "$CAND" ] && { echo "nothing to commit (the working tree is clean)."; exit 0; }
 fi
 
@@ -184,11 +228,13 @@ fi
 
 if [ "$DRY" != 1 ]; then
   if [ -n "$MINE" ]; then
-    printf '%s\n' "$MINE" | grep . | while IFS= read -r f; do G add -- "$f"; done
+    set --; while IFS= read -r f; do [ -n "$f" ] && set -- "$@" "$f"; done <<< "$(printf '%s\n' "$MINE" | grep .)"
+    GIT_LITERAL_PATHSPECS=1 G add -A -- "$@"
   else
     G add -A
   fi
-  if G diff --cached --quiet; then
+  if [ -n "$MINE" ]; then CHK=(-- "$@"); else CHK=(); fi
+  if GIT_LITERAL_PATHSPECS=1 G diff --cached --quiet HEAD "${CHK[@]}"; then
     echo "nothing to commit (the working tree is clean)."; exit 0
   fi
 fi
@@ -217,6 +263,11 @@ fi
 files=$(printf '%s\n' "$names" | grep -c .)
 tasks=$(printf '%s\n' "$names" | grep -oE 'T-[0-9]{4}' | sort -u | paste -sd' ' -)
 bugs=$(printf '%s\n' "$names"  | grep -oE 'B-[0-9]{4}' | sort -u | paste -sd' ' -)
+# When committing for the Developer its files mostly live under src/ with no task ID in the name -- use the IDs from --for (that is "what passed this time")
+if [ -n "$BY" ]; then
+  tasks=$(printf '%s\n' "$FOR $tasks" | grep -oE 'T-[0-9]{4}' | sort -u | paste -sd' ' -)
+  bugs=$(printf '%s\n' "$FOR $bugs" | grep -oE 'B-[0-9]{4}' | sort -u | paste -sd' ' -)
+fi
 # [Decision IDs: judge "what was decided this round", not "what the prose mentions"]
 # The old criterion `^\+.*\bAD[0-9]{3,4}\b` harvested a textual shadow; the Reviewer seat reported three false positives
 # on 2026-09-15: (1) the diff's own `+++ b/ai/decisions/AD0501-0600.md` line, split into AD0501 / AD600;
@@ -243,7 +294,7 @@ Tasks:     ${tasks:-—}
 bug:       ${bugs:-—}
 Decisions: ${ads:-—}
 Guards:    $GUARD
-Seat:      ${SEAT:-unspecified (--all-seats, or only one seat has changes)}${OTHERS:+
+Seat:      ${SEAT:-unspecified (--all-seats, or only one seat has changes)}${BY:+ (committed by $BY after the review passed; for $FOR)}${OTHERS:+
 Left for other seats (not committed here): $(printf '%s\n' "$OTHERS" | awk -F"|" '{c[$1]++} END {for (k in c) printf "%s %d · ", k, c[k]}' | sed 's/ · $//')}
 
 Generated by the Reviewer seat after calling a round; **not pushed** -- confirm in SourceTree, then push.
@@ -256,20 +307,39 @@ if [ "$DRY" = 1 ]; then
   echo "-- dry run, nothing committed, **the index was not touched** --"; echo "$MSG"; echo; echo "(the file count on the Scope line is this same number, one source)"; exit 0
 fi
 
+# 🔴 **The real commit uses plumbing, not `git commit`** (Reviewer seat 2026-09-30, measured: on the mounted share `git commit` ran past 175 s three times
+# in a row and was killed, leaving index.lock / HEAD.lock that block SourceTree; it is slow because it refreshes the whole index and stats the whole
+# working tree). The four plumbing steps touch only these files, 1–10 s: a temporary index read from HEAD -> add only this commit's files ->
+# write-tree -> commit-tree -> update-ref **with the old value** (compare-and-swap: if someone committed meanwhile it fails and changes nothing).
+# **The temporary index** keeps whatever another seat staged in SourceTree out of this commit (what `git commit -- <paths>` --only used to mean).
+MSGF="$(mktemp "${TMPDIR:-/tmp}/cr_msg.XXXXXX")" && TIDX="$(mktemp "${TMPDIR:-/tmp}/cr_idx.XXXXXX")" || { echo "STOP cannot create temp files; nothing committed."; exit 1; }
+printf '%s\n' "$MSG" > "$MSGF"
+OLD="$(G rev-parse --verify HEAD)"
+ok=1
 if [ -n "$MINE" ]; then
-  # **path-limited commit**: another seat may already have staged things in SourceTree, and a commit without paths
-  # would take them along.
-  # 🔴 **Keep the file list in the positional parameters; never write it to a temp file.** Measured twice on a
-  #   real project: `> /tmp/.cr_mine.$$` collides (PIDs are small and get reused in a sandbox, and a leftover
-  #   file owned by someone else cannot be written or removed) -- with `|| true` swallowing the failure, the
-  #   next line commits **another session's file list** under your own commit message. And `$(tr '\n' ' ')`
-  #   splits on spaces, so a path containing a space was committed wrong anyway.
-  set --
-  while IFS= read -r f; do [ -n "$f" ] && set -- "$@" "$f"; done <<< "$(printf '%s\n' "$MINE" | grep .)"
-  G commit -q -m "$MSG" -- "$@" || { echo "the commit failed; nothing was changed."; exit 1; }
+  GIT_INDEX_FILE="$TIDX" G read-tree HEAD || ok=0
+  [ "$ok" = 1 ] && { GIT_INDEX_FILE="$TIDX" GIT_LITERAL_PATHSPECS=1 G add -A -- "$@" || ok=0; }
+  [ "$ok" = 1 ] && TREE="$(GIT_INDEX_FILE="$TIDX" G write-tree)" || ok=0
 else
-  G commit -q -m "$MSG" || { echo "the commit failed; nothing was changed."; exit 1; }
+  TREE="$(G write-tree)" || ok=0
 fi
+[ "$ok" = 1 ] && NEW="$(G commit-tree "$TREE" -p "$OLD" -F "$MSGF")" || ok=0
+[ "$ok" = 1 ] && { G update-ref -m "commit (commit-round): $TITLE" "refs/heads/$br" "$NEW" "$OLD" || ok=0; }
+rm -f "$MSGF" "$TIDX" 2>/dev/null
+[ "$ok" = 1 ] || { echo "the commit failed; the branch did not move ($br is still ${OLD:0:7})."; exit 1; }
+
+# -- Wrap-up: locks and temp objects this run left behind --
+# With no delete permission in the sandbox, git can create locks it cannot remove (memory, type 6). **Only what appeared during this run**
+# (mtime >= start) is touched; an older lock may be SourceTree's and is left alone. If one cannot be removed, say so, before the Requester hits it.
+left=""
+for l in .git/index.lock .git/HEAD.lock ".git/refs/heads/$br.lock" .git/objects/maintenance.lock .git/next-index-*.lock; do
+  [ -e "$l" ] || continue
+  [ "$(stat -c %Y "$l")" -ge "$START" ] || continue
+  rm -f "$l" 2>/dev/null || left="$left $l"
+done
+tmpn=0; while IFS= read -r t; do rm -f "$t" 2>/dev/null || tmpn=$((tmpn+1)); done < <(find .git/objects -name 'tmp_obj_*' -newermt "@$START" 2>/dev/null)
+[ -n "$left" ] && echo "⚠️  committed, but the locks this run left cannot be removed:$left -- ask once for delete permission on this folder, then remove them (this run created them)"
+[ "$tmpn" -gt 0 ] && echo "⚠️  $tmpn .git/objects/**/tmp_obj_* left by this run (harmless; remove them once you have delete permission)"
 echo "✅ committed to the local branch $br: $(G rev-parse --short HEAD)"
 echo "   $TITLE"
-echo "   **not pushed** -- take a look in SourceTree before you push."
+echo "   **not pushed** -- take a look in SourceTree before you push. ($(( $(date +%s) - START )) s)"

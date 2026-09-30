@@ -9,21 +9,35 @@
 # This one runs **everything a machine can judge in one go** and answers with one table; **only the red ones are worth a human's time**.
 set -u
 ROOT="$(cd "$(dirname "$0")/../.." && pwd)"; cd "$ROOT" || exit 2
+# [Every run is saved to tmp/.check-all.last] (first line: the start epoch and HEAD, then the whole table)
+# The commit script uses it for 20 minutes instead of running everything again -- on the mounted share this table takes two minutes, and running it
+# again at commit time makes one call time out, get killed and leave locks (Reviewer seat 2026-09-30, measured). The start time is stored: conservative.
+if [ -z "${CHECK_ALL_INNER:-}" ]; then
+  # 🔴 **Write to a temp file unique to this run, then rename it over the result**: several seats running the guards at once is normal, and a shared
+  # intermediate file gets truncated under each other, leaving NUL holes (Maintainer seat 2026-09-30, measured: one .last with 653 NULs and the first
+  # 6 rows gone, so the commit script could not read the verdict line).
+  mkdir -p tmp; t0=$(date +%s); body="$(mktemp "${TMPDIR:-/tmp}/check-all.XXXXXX")"
+  CHECK_ALL_INNER=1 bash "$0" "$@" | tee "$body"; rc=${PIPESTATUS[0]}
+  nf="$(mktemp tmp/.check-all.last.XXXXXX)" && { echo "$t0 $(git rev-parse --short HEAD 2>/dev/null)"; cat "$body"; } > "$nf" && mv -f "$nf" tmp/.check-all.last
+  rm -f "$body" 2>/dev/null
+  exit "$rc"
+fi
 V=0; [ "${1:-}" = "-v" ] && V=1
 pass=0; fail=0; out=""
 
 run() { # $1=name $2...=command
   local name="$1"; shift
-  local o rc
-  o=$("$@" 2>&1); rc=$?
+  local o rc t1 dt
+  t1=$(date +%s); o=$("$@" 2>&1); rc=$?; dt=$(( $(date +%s) - t1 ))
+  # every row carries its time: on the mounted share the slowest few (ledger, links) count against the 180 s per call; seen, they can be managed
   if [ "$rc" -eq 0 ]; then
-    printf '  ✅ %-22s %s\n' "$name" "$(tail -1 <<< "$o")"
+    printf '  ✅ %-22s %s (%ss)\n' "$name" "$(tail -1 <<< "$o")" "$dt"
     pass=$((pass+1))
   else
     # The summary for a red row takes the **verdict line** (`*-FAIL...`), not the second-to-last line --
     # that one picks up a blank line or a hint (measured: the ledger cell was blank every time). **All four seats read this table, so the summary has to say "how many".**
     local sum; sum=$(grep -E '\-FAIL' <<< "$o" | tail -1); [ -n "$sum" ] || sum=$(tail -2 <<< "$o" | head -1)
-    printf '  ❌ %-22s %s\n' "$name" "$sum"
+    printf '  ❌ %-22s %s (%ss)\n' "$name" "$sum" "$dt"
     fail=$((fail+1))
     out="$out
 ── $name ──
@@ -73,8 +87,8 @@ done
 echo
 if [ "$fail" -gt 0 ]; then
   [ "$V" = 1 ] && { echo "$out"; echo; }
-  echo "ALL-FAIL ($pass green / $fail red)"
+  echo "ALL-FAIL ($pass green / $fail red · ${SECONDS}s total)"
   [ "$V" = 0 ] && echo "  For the detail: bash ops/verify/check-all.sh -v"
   exit 1
 fi
-echo "ALL-OK ($pass guards all green)"
+echo "ALL-OK ($pass guards all green · ${SECONDS}s total)"

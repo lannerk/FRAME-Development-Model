@@ -182,9 +182,9 @@ If "Bugs fixed" in the development report is not `none`, **you retest this round
 5. The verdict lands **in the same task file**, not a new one; sync the status in the index.
 6. A new settled call → record a decision (take the number from the top of `ai/decisions/index.md`, and increment it once used).
 7. Run the self-checks at the end of §4; all green.
-8. **Commit to the local git**: `bash ops/scripts/commit-round.sh "<one-line title>"`.
-   **add + commit only, never push** — pushing is the Requester's business (`ai/rules/workflow.md` §7b).
-   On hitting `.git/index.lock`, exit as-is and **do not go deleting that lock**; SourceTree has it open.
+8. **Commit to the local git**: `bash ops/scripts/commit-round.sh "<one-line title>" --seat reviewer`.
+   **If this round passed or closed Developer work, commit that first**: `--seat developer --by reviewer --for "T-#### B-####"` (no title = copy `now.md` §7), **then your own** -- two commits, never one (Requester 2026-09-30).
+   **add + commit only, never push** (pushing is the Requester's business, `workflow.md` §7b); on hitting someone else's `.git/index.lock`, exit as-is and **do not delete it**.
 9. End the round with one line: **"review complete, development may continue."**
 
 ## 8. Token discipline (you burn the most)

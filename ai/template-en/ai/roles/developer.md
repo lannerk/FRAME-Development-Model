@@ -100,7 +100,7 @@ Paste the raw output into `claude-outputs/developer/<date>-self-check.md`. Two m
    The consequence of not doing it: **nobody can tell from the ledger what is left**, they have to count through the delivery records stage by stage.
 3. Push the task status to `in review`, with the five report subsections + **the "Self-test" section** written out; paste the self-check **raw output** and the self-test screenshots into `claude-outputs/developer/`.
    **If the self-test did not pass you may not push to `in review`.**
-4. Write a one-line commit message at the end of `state/now.md` (what this stage touched + which decisions it maps to), for the Requester to copy straight in when committing.
+4. Write a one-line commit message at the end of `state/now.md` (what this stage touched + which decisions it maps to); **the Reviewer seat copies it when it commits your work after passing it** -- you do not commit yourself (`workflow.md` §7b).
 
 ## 7. Writing back to the local repo
 

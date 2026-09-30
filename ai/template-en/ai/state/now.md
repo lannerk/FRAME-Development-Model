@@ -57,7 +57,7 @@
 
 -
 
-## 7. This stage's commit message (the Requester copies it straight out when committing)
+## 7. This stage's commit message (the Reviewer seat copies it when committing it)
 
 ```
 <one line: what this stage touched + which decisions it maps to>

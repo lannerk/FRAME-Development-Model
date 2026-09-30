@@ -1,6 +1,8 @@
 #!/usr/bin/env bash
 # commit-round: 审查席一轮拍板完，把这一轮的改动提交到**本地** git。
-# 用法：bash ops/scripts/commit-round.sh "<一句话标题>"   [--dry]
+# 用法：bash ops/scripts/commit-round.sh "<一句话标题>" --seat <席>   [--dry] [-- <只看这些路径…>]
+#       审查席代提开发席：bash ops/scripts/commit-round.sh ["<标题>"] --seat 开发席 --by 审查席 --for "T-0010 B-0019"
+#         （审查通过那一轮；不给标题就取 ai/state/now.md 第七节代码块的第一行；workflow.md §七之二）
 # 退出码 0 = 提交好了（或 --dry 演练通过）；1 = 前置条件不满足（原样退出，什么都没动）；2 = 结构不对。
 #
 # 【边界，一个字都不许越】
@@ -28,9 +30,13 @@ set -u
 # 照常拿它自己的锁，不受影响。
 export GIT_OPTIONAL_LOCKS=0
 ROOT="$(cd "$(dirname "$0")/../.." && pwd)"; cd "$ROOT" || exit 2
-TITLE=""; DRY=0; SEAT="${SEAT:-}"; ALLSEATS=0
+TITLE=""; DRY=0; SEAT="${SEAT:-}"; ALLSEATS=0; BY=""; FOR=""; NARROW=()
+START=$(date +%s)
 while [ $# -gt 0 ]; do
   case "$1" in
+    --) shift; NARROW=("$@"); break;;
+    --by) shift; BY="${1:-}";;
+    --for) shift; FOR="${1:-}";;
     --dry) DRY=1;;
     --all-seats) ALLSEATS=1;;
     --seat) shift; SEAT="${1:-}";;
@@ -55,6 +61,19 @@ G() {
   fi
 }
 
+# ── 代提：只有一种合法形态（需求方 2026-09-30 定：审查过了由审查席连同开发席的代码一起提交）──
+# 开发席不提交（自己写的自己提交＝绕过审查）；它的改动在审查席判「过」/「关闭」那一轮由审查席代提，
+# **开发席一份、审查席一份，两次提交**。别的「谁替谁提」一律不开——那会让「提交席」这一栏失去意义。
+if [ -n "$BY" ]; then
+  case "$BY" in 审|审查|审查席|reviewer) BY=审查席;; *) echo "⛔ --by 只认 审查席（代提只有「审查席代提开发席」这一种）"; exit 2;; esac
+  case "$SEAT" in 开|开发|开发席|developer) ;; *) echo "⛔ --by 审查席 只能配 --seat 开发席"; exit 2;; esac
+  printf '%s' "$FOR" | grep -qE '(T|B)-[0-9]{4}' || { echo "⛔ 代提要写明是哪几条过了：--for \"T-#### B-####\""; exit 2; }
+  if [ -z "$TITLE" ] && [ -f ai/state/now.md ]; then
+    TITLE="$(awk '/^## (七|7[.、])/{f=1;next} f&&/^## /{exit} f&&/^```/{c++;next} f&&c==1&&NF{print;exit}' ai/state/now.md)"
+    [ -n "$TITLE" ] || { echo "⛔ 没给标题，ai/state/now.md 第七节代码块里也没有一行可抄"; exit 2; }
+  fi
+fi
+
 # ── 前置检查 ──
 if [ -f .git/index.lock ]; then
   age=$(( $(date +%s) - $(stat -c %Y .git/index.lock) ))
@@ -78,12 +97,23 @@ br=$(G symbolic-ref --quiet --short HEAD || true)
 # ── 守门红着不许提交 ──
 # 「红着就是没做完」是这套方法的基本判据；带着红灯提交，等于把「没做完」写进历史，
 # 而且下一个人 clone 下来会以为这是个干净的基线。
-GUARD="$(bash ops/verify/check-all.sh 2>/dev/null | grep -oE 'ALL-(OK|FAIL).*' | head -1)"
+# 🔴 **巡检结果可复用**（审查席 2026-09-30 实测：挂载盘上 check-all 约 2 分钟，脚本原来红时还要再跑一遍列红项，
+# 加上 git commit 本身，一次调用超过沙箱 180 s 上限被杀、留锁）。check-all 每跑一次都把结果写进 tmp/.check-all.last；
+# **20 分钟内的结果直接用**（CHECK_ALL_MAX_AGE 秒可调），过期或没有才现跑。判的是「提交前守门绿不绿」，不是「现跑一遍」。
+LAST=tmp/.check-all.last; MAXAGE="${CHECK_ALL_MAX_AGE:-1200}"
+if [ -f "$LAST" ] && [ $(( $(date +%s) - $(head -1 "$LAST" | cut -d' ' -f1) )) -le "$MAXAGE" ] 2>/dev/null; then
+  GUARD_SRC="沿用 $(( ($(date +%s) - $(head -1 "$LAST" | cut -d' ' -f1)) / 60 )) 分钟前的巡检"
+else
+  bash ops/verify/check-all.sh >/dev/null 2>&1; GUARD_SRC="现跑"
+fi
+GUARD="$(grep -aoE 'ALL-(OK|FAIL).*' "$LAST" 2>/dev/null | head -1)"
+[ -n "$GUARD" ] || { echo "⛔ 拿不到巡检结果（$LAST 没写出来）"; exit 2; }
+GUARD="$GUARD（$GUARD_SRC）"
 case "$GUARD" in
   ALL-FAIL*)
     if [ "${ANYWAY:-0}" != 1 ]; then
       echo "⛔ 守门有红的：$GUARD"
-      bash ops/verify/check-all.sh 2>/dev/null | grep '❌' | sed 's/^/   /'
+      grep -a '❌' "$LAST" | sed 's/^/   /'
       echo "   先修绿再提交。**确实要带着红灯提交**（例如这一轮就是为了修它）："
       echo "   ANYWAY=1 bash $0 \"<标题>\"   —— 提交信息里会写明带红提交。"
       exit 1
@@ -135,16 +165,28 @@ OWNERSHIP_SPLIT() {   # $1=文件清单（每行一个）→ 打印「席位: �
 
 # --dry **绝不碰暂存区**：需求方可能已经在 SourceTree 里挑好了要暂存哪些，
 # 先 add -A 再 reset 会把他挑的结果抹掉（这条是实跑时踩出来的）。
+# 🔴 **只扫该扫的路径**（审查席 2026-09-30 实测：挂载盘上全仓 `git diff --name-only` 超过 175 s，按包逐个 0–21 s）。
+# 给了 `-- <路径…>` 就只看那些；给了 --seat 就只看归属表里**这一席与共写**的路径（它能提交的本来就只有这些）；
+# 两样都没给才全仓扫。代价：--seat 时「留给别席的改动」只数得到这个范围里的。
+SCOPE=()
+if [ "${#NARROW[@]}" -gt 0 ]; then SCOPE=("${NARROW[@]}")
+elif [ -n "$SEAT" ] && [ "$ALLSEATS" != 1 ]; then
+  case "$SEAT" in 维|维护|维护席|maintainer) S0=维护席;; 审|审查|审查席|reviewer) S0=审查席;; 开|开发|开发席|developer) S0=开发席;;
+    监|监督|监督席|supervisor) S0=监督席;; 研|研究|研究席|researcher) S0=研究席;; *) S0="$SEAT";; esac
+  while IFS= read -r ps; do [ -n "$ps" ] && SCOPE+=("$ps"); done < <(awk -v s="$S0" -F'|' '
+    /^\|/ && !/^\|---/ { o=$3; if (o !~ s && o !~ /共写/) next
+      n=split($2, ps, "·"); for (i=1;i<=n;i++){ p=ps[i]; gsub(/[` ]/,"",p); gsub(/^\*\*|\*\*$/,"",p); if (p!="") print p } }' ai/rules/layout.md | sort -u)
+fi
 if [ "$DRY" = 1 ]; then
-  D_STAT="$(G diff HEAD --shortstat | sed 's/^ *//')"
+  D_STAT="$(G diff HEAD --shortstat -- "${SCOPE[@]}" | sed 's/^ *//')"
   # 【为什么要带上未跟踪文件】`git diff` **看不见新建的文件**，于是本轮新开的 `T-0038` 在 --dry 里
   # 永远捞不到（审查席 2026-09-15 实测报来）。真提交时 `add -A` 会把它纳入，**只有演练是瞎的**——
   # 演练和真提交说法不一致，比不演练更糟。
-  D_FILES="$({ G diff HEAD --name-only; G ls-files --others --exclude-standard; } | grep . | sort -u)"
+  D_FILES="$({ G diff HEAD --name-only -- "${SCOPE[@]}"; G ls-files --others --exclude-standard -- "${SCOPE[@]}"; } | grep . | sort -u)"
   [ -z "$D_FILES" ] && { echo "没有要提交的改动（工作区是干净的）。"; exit 0; }
   CAND="$D_FILES"
 else
-  CAND="$({ G diff HEAD --name-only; G ls-files --others --exclude-standard; } | grep . | sort -u)"
+  CAND="$({ G diff HEAD --name-only -- "${SCOPE[@]}"; G ls-files --others --exclude-standard -- "${SCOPE[@]}"; } | grep . | sort -u)"
   [ -z "$CAND" ] && { echo "没有要提交的改动（工作区是干净的）。"; exit 0; }
 fi
 
@@ -181,11 +223,13 @@ fi
 if [ "$DRY" != 1 ]; then
   if [ -n "$MINE" ]; then
     # 只暂存自己的那几份；**不动别席已经暂存的东西**（不许 reset，SourceTree 安全五不许）
-    printf '%s\n' "$MINE" | grep . | while IFS= read -r f; do G add -- "$f"; done
+    set --; while IFS= read -r f; do [ -n "$f" ] && set -- "$@" "$f"; done <<< "$(printf '%s\n' "$MINE" | grep .)"
+    GIT_LITERAL_PATHSPECS=1 G add -A -- "$@"
   else
     G add -A
   fi
-  if G diff --cached --quiet; then
+  if [ -n "$MINE" ]; then CHK=(-- "$@"); else CHK=(); fi
+  if GIT_LITERAL_PATHSPECS=1 G diff --cached --quiet HEAD "${CHK[@]}"; then
     echo "没有要提交的改动（工作区是干净的）。"; exit 0
   fi
 fi
@@ -218,6 +262,11 @@ fi
 files=$(printf '%s\n' "$names" | grep -c .)
 tasks=$(printf '%s\n' "$names" | grep -oE 'T-[0-9]{4}' | sort -u | paste -sd' ' -)
 bugs=$(printf '%s\n' "$names"  | grep -oE 'B-[0-9]{4}' | sort -u | paste -sd' ' -)
+# 代提时开发席的文件多半在 src/ 下，文件名里没有任务号——用 --for 给的号（那才是「这次过了哪几条」）
+if [ -n "$BY" ]; then
+  tasks=$(printf '%s\n' "$FOR $tasks" | grep -oE 'T-[0-9]{4}' | sort -u | paste -sd' ' -)
+  bugs=$(printf '%s\n' "$FOR $bugs" | grep -oE 'B-[0-9]{4}' | sort -u | paste -sd' ' -)
+fi
 # 【AD 编号：判「这一轮定了什么」，不判「正文里提到了什么」】
 # 旧判据 `^\+.*\bAD[0-9]{3,4}\b` 捞的是文本影子，审查席 2026-09-15 实测报来三种假阳：
 #   ① diff 的 `+++ b/ai/decisions/AD0501-0600.md` 这一行，把**号段文件名**拆成 AD0501 / AD600；
@@ -245,7 +294,7 @@ $TITLE
 bug:  ${bugs:-—}
 决策: ${ads:-—}
 守门: $GUARD
-提交席: ${SEAT:-未指定（--all-seats 或全仓只有一席的改动）}${OTHERS:+
+提交席: ${SEAT:-未指定（--all-seats 或全仓只有一席的改动）}${BY:+（$BY 代提：审查通过后一并提交；对应 $FOR）}${OTHERS:+
 留给别席的改动（本次没有提交）: $(printf '%s\n' "$OTHERS" | awk -F"|" '{c[$1]++} END {for (k in c) printf "%s %d 个 · ", k, c[k]}' | sed 's/ · $//')}
 
 本次提交由 AI 会话（审查席 / 维护席）自动生成；**未推送**，请在 SourceTree 里确认后 push。
@@ -258,20 +307,39 @@ if [ "$DRY" = 1 ]; then
   echo "── 演练，没有提交，**暂存区一个字都没动** ──"; echo "$MSG"; echo; echo "（「范围」那行的文件数就是它，同一个来源）"; exit 0
 fi
 
+# 🔴 **真提交走底层命令，不用 `git commit`**（审查席 2026-09-30 实测：挂载盘上 `git commit` 连续三次超过 175 s 被杀，
+# 留下 index.lock / HEAD.lock 挡住 SourceTree；它慢在提交前刷新整个索引、逐个 stat 工作区。底层四步只碰这几份文件，1–10 s）：
+#   临时索引从 HEAD 读起 → 只把本次的文件加进去 → write-tree → commit-tree → update-ref（带旧值：比较后交换，
+#   别人在这期间提交过就失败、什么都不改）。**用临时索引**是为了不把别人在 SourceTree 里暂存的东西带进来
+#   （原来 `git commit -- <路径>` 的 --only 语义，就是这个意思）。
+MSGF="$(mktemp "${TMPDIR:-/tmp}/cr_msg.XXXXXX")" && TIDX="$(mktemp "${TMPDIR:-/tmp}/cr_idx.XXXXXX")" || { echo "⛔ 建不了临时文件，没有提交。"; exit 1; }
+printf '%s\n' "$MSG" > "$MSGF"
+OLD="$(G rev-parse --verify HEAD)"
+ok=1
 if [ -n "$MINE" ]; then
-  # **路径限定提交**：别席可能已经在 SourceTree 里暂存了东西，无路径的 commit 会把它们一起提交。
-  # 🔴 **文件清单走位置参数，不落临时文件**（2026-09-27，另一个项目的维护席实测出的两个缺陷）：
-  #   甲·原来写 `> /tmp/.cr_mine.$$`——沙箱里 PID 很小而且会复用，别的会话留下的同名文件
-  #     属主不是自己、删不掉也写不进去，而 `|| true` 把这个失败吞了；下一行就读了**别人那一轮的
-  #     文件清单**去做路径限定提交：提交信息是自己的，挑的文件是按别人清单挑的。
-  #   乙·`$(tr '\n' ' ')` 还会按空格再切一次，所以**带空格的路径本来就提交不对**。
-  #   位置参数一次解决两件事：没有临时文件可撞、没有 `|| true` 可吞、也不再按空格切词。
-  set --
-  while IFS= read -r f; do [ -n "$f" ] && set -- "$@" "$f"; done <<< "$(printf '%s\n' "$MINE" | grep .)"
-  G commit -q -m "$MSG" -- "$@"
+  GIT_INDEX_FILE="$TIDX" G read-tree HEAD || ok=0
+  [ "$ok" = 1 ] && { GIT_INDEX_FILE="$TIDX" GIT_LITERAL_PATHSPECS=1 G add -A -- "$@" || ok=0; }
+  [ "$ok" = 1 ] && TREE="$(GIT_INDEX_FILE="$TIDX" G write-tree)" || ok=0
 else
-  G commit -q -m "$MSG"
-fi || { echo "提交失败，什么都没改。"; exit 1; }
+  TREE="$(G write-tree)" || ok=0
+fi
+[ "$ok" = 1 ] && NEW="$(G commit-tree "$TREE" -p "$OLD" -F "$MSGF")" || ok=0
+[ "$ok" = 1 ] && { G update-ref -m "commit (commit-round): $TITLE" "refs/heads/$br" "$NEW" "$OLD" || ok=0; }
+rm -f "$MSGF" "$TIDX" 2>/dev/null
+[ "$ok" = 1 ] || { echo "提交失败，分支没动（$br 仍是 ${OLD:0:7}）。"; exit 1; }
+
+# ── 收尾：本脚本自己留下的锁与临时对象 ──
+# 沙箱默认没有删除权限时，git 建得出锁、删不掉（memory 类型 6）。**只动这次运行期间新出现的**（mtime ≥ 开始时刻），
+# 更早的锁可能是 SourceTree 的，不碰。删不掉就明说，别让需求方下一次在 SourceTree 里撞上。
+left=""
+for l in .git/index.lock .git/HEAD.lock ".git/refs/heads/$br.lock" .git/objects/maintenance.lock .git/next-index-*.lock; do
+  [ -e "$l" ] || continue
+  [ "$(stat -c %Y "$l")" -ge "$START" ] || continue
+  rm -f "$l" 2>/dev/null || left="$left $l"
+done
+tmpn=0; while IFS= read -r t; do rm -f "$t" 2>/dev/null || tmpn=$((tmpn+1)); done < <(find .git/objects -name 'tmp_obj_*' -newermt "@$START" 2>/dev/null)
+[ -n "$left" ] && echo "⚠️  提交成功，但删不掉本次留下的锁：$left —— 申请一次这个文件夹的删除权限再删（它们是这次运行建的）"
+[ "$tmpn" -gt 0 ] && echo "⚠️  还有 $tmpn 个本次留下的 .git/objects/**/tmp_obj_*（无害，有删除权限时顺手删）"
 echo "✅ 已提交到本地分支 $br：$(G rev-parse --short HEAD)"
 echo "   $TITLE"
-echo "   **没有推送** —— 去 SourceTree 看一眼再 push。"
+echo "   **没有推送** —— 去 SourceTree 看一眼再 push。（用时 $(( $(date +%s) - START )) 秒）"

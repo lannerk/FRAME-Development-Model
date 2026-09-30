@@ -25,13 +25,20 @@ binaries and upgrade packages (those go in `dist/`, not committed).
 |---|---|
 | **Reviewer seat** | After a review round ends and the verdict is given |
 | **Maintainer seat** | **After changing the rules** (rules, role handbooks, `CLAUDE.md`, guard scripts, both templates, the maintenance log). The title says which rule changed |
-| Developer seat | **Does not commit.** Its changes go in with the Reviewer seat's round — **committing your own work is bypassing the review** |
+| Developer seat | **Does not commit.** In the round that passes / closes its work the Reviewer seat **commits it on its behalf** (`--seat developer --by reviewer --for "T-####"`; one commit for the Developer, one for the Reviewer) — **committing your own work is bypassing the review** |
 
 **Run it once**:
 
 ```
-bash ops/scripts/commit-round.sh "<one-line title>"      # want to see what the commit message looks like first: add --dry
+bash ops/scripts/commit-round.sh "<one-line title>" --seat <your seat>   # want to see what the commit message looks like first: add --dry
+#   --seat maintainer/reviewer/developer/supervisor: commit only what is yours (ownership table ai/rules/layout.md §7)
+#   Reviewer committing the Developer's work: --seat developer --by reviewer --for "T-0010 B-0019" (no title = copy now.md §7)
+#   Only look at some paths: append -- <paths...> (a whole-repo scan is slow on a mounted share; --seat scans only that seat's and shared paths)
 ```
+
+**Why it finishes on a mounted share** (Reviewer seat 2026-09-30, measured: `git commit` ran past 175 s three times and was killed, leaving locks):
+the real commit is `read-tree` (temporary index) -> `add` this commit's files -> `write-tree` -> `commit-tree` -> `update-ref` (with the old value: if someone committed first it fails and changes nothing);
+the guard result in `tmp/.check-all.last` is reused for 20 minutes (`check-all.sh` writes it on every run, each row with its time); at the end it removes **the locks and `tmp_obj_*` this run left**, and says so when it cannot.
 
 It only does **`add` + `commit`**, and **never pushes**. Pushing is the Requester's business.
 
@@ -43,7 +50,7 @@ It only does **`add` + `commit`**, and **never pushes**. Pushing is the Requeste
 | **No amend / rebase / reset / cherry-pick / force** | Those **rewrite history**. SourceTree has this repo open, and a rewritten history shows up there as a tangle that has to be restored by hand |
 | **No touching `git config`** | `core.autocrlf` and the like are the Requester's Windows-side settings; touch them and the screen fills with fake diffs |
 | **No creating or switching branches** | Commit on the current branch; switch and the Requester will not find his own changes in SourceTree |
-| **No deleting `.git/index.lock`** | That lock means **some git is working** (most likely SourceTree). Grabbing it makes it error out on the spot. On hitting the lock the script exits as-is |
+| **No deleting `.git/index.lock`** | That lock means **some git is working** (most likely SourceTree). Grabbing it makes it error out on the spot. On hitting the lock the script exits as-is. **The one exception: what this run itself left behind** (mtime after the script started; left only because the sandbox could not delete it) is removed at the end |
 
 **A red guard blocks the commit.** "Red means not done" — committing red writes "not done" into history,
 and the next person to clone it still thinks this is a clean baseline. If you really must commit red (say this round is the fix for it):

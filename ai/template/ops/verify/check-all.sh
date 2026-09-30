@@ -9,21 +9,34 @@
 # 这一份把能机器判的**一次跑完**，只回一张表；**只有红的才值得人去看**。
 set -u
 ROOT="$(cd "$(dirname "$0")/../.." && pwd)"; cd "$ROOT" || exit 2
+# 【每跑一次都把结果存进 tmp/.check-all.last】（第一行：开始时刻的 epoch 与 HEAD，下面是整张表）
+# 提交脚本 20 分钟内直接用它，不再现跑一遍——挂载盘上这张表要跑两分钟，提交时再跑一遍会让一次调用超时、被杀、留锁
+# （审查席 2026-09-30 实测）。存的是「开跑时刻」，偏保守。
+if [ -z "${CHECK_ALL_INNER:-}" ]; then
+  # 🔴 **先写进本次独有的临时文件，再整份改名覆盖**：几席同时跑巡检是常态，共用一个中间文件会互相截断、
+  # 写出带 NUL 空洞的结果（维护席 2026-09-30 实测：一份 .last 里 653 个 NUL、前 6 格整行丢失，提交脚本读不出判据行）。
+  mkdir -p tmp; t0=$(date +%s); body="$(mktemp "${TMPDIR:-/tmp}/check-all.XXXXXX")"
+  CHECK_ALL_INNER=1 bash "$0" "$@" | tee "$body"; rc=${PIPESTATUS[0]}
+  nf="$(mktemp tmp/.check-all.last.XXXXXX)" && { echo "$t0 $(git rev-parse --short HEAD 2>/dev/null)"; cat "$body"; } > "$nf" && mv -f "$nf" tmp/.check-all.last
+  rm -f "$body" 2>/dev/null
+  exit "$rc"
+fi
 V=0; [ "${1:-}" = "-v" ] && V=1
 pass=0; fail=0; out=""
 
 run() { # $1=名字 $2...=命令
   local name="$1"; shift
-  local o rc
-  o=$("$@" 2>&1); rc=$?
+  local o rc t1 dt
+  t1=$(date +%s); o=$("$@" 2>&1); rc=$?; dt=$(( $(date +%s) - t1 ))
+  # 每格带耗时：挂载盘上最慢的几道（台账对账、引用完整性）要算进「一次调用 180 s」里，看得见才管得住
   if [ "$rc" -eq 0 ]; then
-    printf '  ✅ %-22s %s\n' "$name" "$(tail -1 <<< "$o")"
+    printf '  ✅ %-22s %s（%ss）\n' "$name" "$(tail -1 <<< "$o")" "$dt"
     pass=$((pass+1))
   else
     # 红行的摘要取**判据行**（`*-FAIL…`），不是倒数第二行——
     # 后者会取到空行或提示语（实测：台账对账那一格一直是空白）。**四席都会读这张表，摘要必须说出「几处」。**
     local sum; sum=$(grep -E '\-FAIL' <<< "$o" | tail -1); [ -n "$sum" ] || sum=$(tail -2 <<< "$o" | head -1)
-    printf '  ❌ %-22s %s\n' "$name" "$sum"
+    printf '  ❌ %-22s %s（%ss）\n' "$name" "$sum" "$dt"
     fail=$((fail+1))
     out="$out
 ── $name ──
@@ -71,8 +84,8 @@ done
 echo
 if [ "$fail" -gt 0 ]; then
   [ "$V" = 1 ] && { echo "$out"; echo; }
-  echo "ALL-FAIL（$pass 绿 / $fail 红）"
+  echo "ALL-FAIL（$pass 绿 / $fail 红 · 共 ${SECONDS}s）"
   [ "$V" = 0 ] && echo "  看详情：bash ops/verify/check-all.sh -v"
   exit 1
 fi
-echo "ALL-OK（$pass 条守门全绿）"
+echo "ALL-OK（$pass 条守门全绿 · 共 ${SECONDS}s）"

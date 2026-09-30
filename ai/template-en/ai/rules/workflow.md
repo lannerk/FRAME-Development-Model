@@ -333,7 +333,7 @@ while three more sat in the queue untouched — **each sentence was right, toget
 2. Change the **"implementation" column of every AD** this stage touched (in the matching number-range file under `ai/decisions/`; don't miss one).
 3. Push the task status to `in review`, with the five report subsections + **the "Self-test" section** written out; paste the **raw output** of the self-check and the self-test screenshots into `claude-outputs/developer/<date>-self-check.md`.
    **A failed self-test may not be pushed to `in review`.**
-4. Write a one-line commit message at the end of `state/now.md`; the Requester copies it straight when committing.
+4. Write a one-line commit message at the end of `state/now.md`; **the Reviewer seat copies it when it commits your work after passing it** (`--by reviewer` with no title takes it).
 
 Miss one of the four and whoever takes over next stage has to dig through the code to rebuild the current state — far more expensive than writing these four.
 
@@ -341,8 +341,9 @@ Miss one of the four and whoever takes over next stage has to dig through the co
 
 Three rules; the detail and the commands are all in `ops/README.md`:
 
-1. **Whoever made the change commits it**: the Reviewer seat commits when a round ends, **the Maintainer seat commits its own rule changes**, **the Developer seat does not commit**
-   (committing your own work = bypassing the review). Run `bash ops/scripts/commit-round.sh "<title>"`,
+1. **Whoever made the change commits it**: the Reviewer seat commits when a round ends, **the Maintainer seat commits its own rule changes**, **the Developer seat does not commit** (committing your own work = bypassing the review) --
+   **the Developer's changes are committed by the Reviewer seat in the round that passes (task) or closes (bug) them**: `--seat developer --by reviewer --for "T-#### B-####"`,
+   **one commit for the Developer, one for the Reviewer** (Requester 2026-09-30). Run `bash ops/scripts/commit-round.sh "<title>" --seat <your seat>` (**ownership table in `ai/rules/layout.md` §7; spanning two seats stops the script**),
    **`add` + `commit` only, never push**; **a red guard blocks the commit**; **the five SourceTree safety prohibitions**.
 2. **What you change on the real machine must get back into the repo**: write back the same round + reconcile with `sha256sum -c`. If none of the four steps works, park it in
    `tmp/writeback-pending/`; **parked is not delivered, and the Reviewer seat may not pass it**.

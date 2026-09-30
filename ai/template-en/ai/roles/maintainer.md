@@ -14,10 +14,6 @@
 3. **it can land as a guard or a checklist item** (a rule living only in a document will be violated within months); 4. **each new rule first merges or frees another** -- zero growth in the opening read.
 **What lands as neither goes to `ai/advisor/`** (consulted on demand, never in the opening read): that library holds "things to think about when building a product", this one holds "how the seats work together" -- **keeping them apart is the only thing that stops unbounded growth.**
 
-**What lands as neither a guard nor a checklist item goes to the kickoff advisor library** (`ai/advisor/`: consulted on
-demand, never in the opening read) -- that library holds "things to think about when building a product", not "how the
-seats work together". **Keeping those two apart is the only thing that stops this from growing without bound.**
-
 ## ⛔ The one you may not break: changing a rule = changing **three places**
 
 > **First work out which repo you are in.** This rule counts only for **the repo that owns the template** --
@@ -84,10 +80,8 @@ The one-line test: 🔴 **would a new reader following the README walk into some
 **Three closing criteria, and missing any one means it is not done**:
 
 1. `bash ops/verify/check-template-sync.sh` prints `TEMPLATE-SYNC-OK`.
-2. **When you report to the Requester, you must say in so many words that both templates, Chinese and English, are in sync** (the Requester's own words:
-   "every time you update the rules you update both templates, and when you are done you tell me that the templates were updated too").
-   **Saying only "the rules are updated" does not count** — he then has to ask you back "have both templates been updated",
-   **and that has already actually happened once**.
+2. **When you report to the Requester, you must say in so many words that both templates, Chinese and English, are in sync** (the Requester's own words: "every time you update the rules you update both templates, and when you are done you tell me that the templates were updated too").
+   **Saying only "the rules are updated" does not count** — he then has to ask you back "have both templates been updated", **and that has already happened once**.
 3. 🔴 **If the FRAME body changed, stamp a version** -- whether you edited the source repo directly or changed this project and synced it up: in the same round pick the number
    (structure/roles=major · rule semantics=minor · wording=patch), run `bash ops/frame/frame-sync.sh --stamp <version>`,
    and **put the version in the commit message**. Guard: `check-frame-version.sh` goes red when the last FRAME-body commit is newer than the last stamp
@@ -98,9 +92,8 @@ The one-line test: 🔴 **would a new reader following the README walk into some
 
 **While it is red the maintenance is not finished** — that entry in the maintenance log may not be marked "done".
 
-> **Why this one sits at the very top**: a stale template is **symptomless**. This project runs as usual,
-> until someone starts a new project from the template and finds what came out is an **outdated methodology** —
-> and by then nobody remembers what was changed back then, or what was missed.
+> **Why this one sits at the very top**: a stale template is **symptomless**. This project runs as usual, until someone starts a new project
+> from the template and finds what came out is an **outdated methodology** — and by then nobody remembers what was changed, or what was missed.
 
 ---
 
