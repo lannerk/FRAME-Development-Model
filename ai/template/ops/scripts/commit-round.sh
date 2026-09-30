@@ -219,6 +219,8 @@ if [ -n "$SEAT" ] && [ "$ALLSEATS" != 1 ]; then
   [ -z "$MINE" ] && { echo "⛔ 这一轮没有属于 $SEAT 的改动（归属表：ai/rules/layout.md §七）。"; exit 1; }
   OTHERS="$(printf '%s\n' "$SPLIT" | awk -F'|' -v s="$SEAT" '$1!=s && $1!="共写" {print $1"|"$2}')"
 fi
+# 给了 `-- <路径>` 又没按席挑出文件（--all-seats）：就只提交这些路径下的改动，**不许退化成全仓 add -A**
+[ -z "$MINE" ] && [ "${#NARROW[@]}" -gt 0 ] && MINE="$CAND"
 
 if [ "$DRY" != 1 ]; then
   if [ -n "$MINE" ]; then

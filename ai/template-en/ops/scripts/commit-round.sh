@@ -225,6 +225,8 @@ if [ -n "$SEAT" ] && [ "$ALLSEATS" != 1 ]; then
   [ -z "$MINE" ] && { echo "STOP nothing in this round belongs to $SEAT (ownership table: ai/rules/layout.md §7)."; exit 1; }
   OTHERS="$(printf '%s\n' "$SPLIT" | awk -F'|' -v s="$SEAT" '$1!=s && $1!="shared" {print $1"|"$2}')"
 fi
+# With `-- <paths>` but no per-seat pick (--all-seats): commit only what changed under those paths; **never fall back to a whole-repo add -A**
+[ -z "$MINE" ] && [ "${#NARROW[@]}" -gt 0 ] && MINE="$CAND"
 
 if [ "$DRY" != 1 ]; then
   if [ -n "$MINE" ]; then
