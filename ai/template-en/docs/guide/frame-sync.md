@@ -21,7 +21,7 @@ When this project has not changed FRAME, the very same rules produce **a one-way
 4. **Same fingerprint → answer "already current", touch not one file, done.**
 5. `--sync`: the three-way merge produces three lists — **pull in / push out / 🔴 needs a human**.
 6. Anything needing a human → **report, write nothing**, hand over the `--diff` command, stop (say the command word again once it is handled).
-7. Otherwise → show the report to the Requester → he confirms → `--sync --apply` writes both directions.
+7. Otherwise → show the report to the Requester → he confirms → `--sync --apply` writes both directions. **A pure pull (0 pushed, 0 needing a human) needs no confirmation**: apply it and list the pulled files in the report (Requester 2026-09-30, after being asked three times in one day about pure pulls: "don't ask again"); **anything that pushes to the source is still confirmed first.**
 8. Recompute both fingerprints (they should match) → **the Maintainer bumps the version** → write `ai/FRAME-VERSION` on both sides.
 9. Re-record the baseline (`--apply` does it); 🔴 **then run `bash ops/verify/check-template-sync.sh` again** — the `--sync` report only covers "template ↔ source", and **the host's own side is a second net**: when a file comes back into the template and the host copy is never wired up, the report says nothing about it (hit for real on 2026-09-30: **the `frame-sync.sh` the host was running was one patch older than the template it ships**, so what went out was right and what ran here was wrong — nobody else will catch that for you); and add one line to `ai/rules/maintenance-log.md` on each side.
 10. 🔴 Commit the source side and **push it to GitHub** (it is the open-source repository).
