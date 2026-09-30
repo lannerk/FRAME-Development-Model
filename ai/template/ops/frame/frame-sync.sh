@@ -520,8 +520,17 @@ if [ "$DIST" != 1 ] && { [ "$MODE" = sync ] || [ "$MODE" = adopt ]; }; then
     rm -f "$TMPBL"; [ ${#CONF[@]} -gt 0 ] && exit 1; exit 0; fi
 
   # ── 铁律 1/2：两边都必须干净 ──
-  if git_dirty "$SRC" "${SBASE#$SRC/}"; then
-    echo "🔴 本项目的 FRAME 有未提交改动——拒绝写。**只认已提交的 FRAME**，先提交再同步。"; rm -f "$TMPBL"; exit 1; fi
+  # 🔴 consumer 的 FRAME 落在项目根，`${SBASE#$SRC/}` 就成了整个仓库——于是**任何一席没提交的业务文件**
+  #    （bug 单、信箱、记忆……）都会把同步拦住（takiro 2026-09-30 实测：8 份审查席 / 监督席在写的文件拦下了一次纯拉回）。
+  #    要保的是「只认已提交的 **FRAME**」：consumer 只看清单里 follow 类的那些（同步只会写它们）。
+  if [ "$SROLE" = consumer ]; then
+    FFOL=(); while IFS= read -r r; do [ "$(class_of "$r" consumer)" = follow ] && FFOL+=("$r"); done < <(list_files "$SRC" consumer)
+    SDIRTY="$( [ "${#FFOL[@]}" -gt 0 ] && cd "$SRC" && git status --porcelain -- "${FFOL[@]}" 2>/dev/null | grep -v '^??')"
+  else
+    SDIRTY="$(git_dirty "$SRC" "${SBASE#$SRC/}" && echo dirty)"
+  fi
+  if [ -n "$SDIRTY" ]; then
+    echo "🔴 本项目的 FRAME 有未提交改动——拒绝写。**只认已提交的 FRAME**，先提交再同步。"; [ "$SROLE" = consumer ] && printf '%s\n' "$SDIRTY" | head -10 | sed 's/^/     /'; rm -f "$TMPBL"; exit 1; fi
   # 🔴 拿**本项目的基线**去判源仓库的脏：基线记的就是「上次两边一致的那份内容」，
   #    源仓库里内容等于它的那几份，正是上一轮同步自己写进去的。用源仓库自己那份分发基线会判错
   #    （那一份记的是「分发之前目标长什么样」）。

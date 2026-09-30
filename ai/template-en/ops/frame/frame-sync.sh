@@ -564,8 +564,18 @@ if [ "$DIST" != 1 ] && { [ "$MODE" = sync ] || [ "$MODE" = adopt ]; }; then
     rm -f "$TMPBL"; [ ${#CONF[@]} -gt 0 ] && exit 1; exit 0; fi
 
   # -- iron rules 1 and 2: both sides must be clean --
-  if git_dirty "$SRC" "${SBASE#$SRC/}"; then
-    echo "🔴 this project has uncommitted FRAME changes -- refusing to write. **Only committed FRAME counts**; commit first."; rm -f "$TMPBL"; exit 1; fi
+  # 🔴 A consumer's FRAME sits at the project root, so `${SBASE#$SRC/}` becomes the whole repo -- and **any seat's uncommitted
+  #    business file** (bug reports, mail, memory...) blocks the sync (takiro 2026-09-30, measured: 8 files the Reviewer / Supervisor seats were
+  #    writing blocked a pure pull). What is kept is "only committed **FRAME** counts": a consumer looks only at the manifest's follow-class files
+  #    (the only ones a sync writes).
+  if [ "$SROLE" = consumer ]; then
+    FFOL=(); while IFS= read -r r; do [ "$(class_of "$r" consumer)" = follow ] && FFOL+=("$r"); done < <(list_files "$SRC" consumer)
+    SDIRTY="$( [ "${#FFOL[@]}" -gt 0 ] && cd "$SRC" && git status --porcelain -- "${FFOL[@]}" 2>/dev/null | grep -v '^??')"
+  else
+    SDIRTY="$(git_dirty "$SRC" "${SBASE#$SRC/}" && echo dirty)"
+  fi
+  if [ -n "$SDIRTY" ]; then
+    echo "🔴 this project has uncommitted FRAME changes -- refusing to write. **Only committed FRAME counts**; commit first."; [ "$SROLE" = consumer ] && printf '%s\n' "$SDIRTY" | head -10 | sed 's/^/     /'; rm -f "$TMPBL"; exit 1; fi
   # 🔴 Judge the source repo's dirt against **this project's baseline**: it holds "the content both sides last
   #    agreed on", so anything in the source matching it is exactly what the last sync wrote. The source's own
   #    distribution baseline would judge it wrong (that one records what the target looked like *before* a push).
