@@ -28,6 +28,31 @@ Write four things for each kind; miss one and that kind does not count as settle
 | **Action** | Which command to run / which path to click / what request to send. **Someone else must be able to re-run it from this** |
 | **Evidence** | What is left behind afterwards: command output / request and response / screenshots / numbers. Put it in `claude-outputs/reviewer/<date>-testing/` |
 
+## §0a Three general criteria (they hold for any project)
+
+> These are places other people have already fallen into, and fallen into expensively. They judge **the way you test**,
+> not any particular project's features.
+
+**R1 · Judge in the real environment.**
+Measure interface criteria **in the real host** (a real window, a real page, a real device), not in a rig you assembled;
+🔴 **a rig may never supply the thing under test with something its real environment does not give it** -- that turns
+every result into "it works on my rig". The rig's **first step is to assert that it really reached the state under test**
+(the pre-assertion); if that fails, nothing measured afterwards is a conclusion -- it only means your rig never started.
+
+**R2 · Survey, don't sample; guards use the roster method.**
+When the Requester says "all / every / the whole thing", **do a full survey and hand over the item-by-item list** --
+no sampling, no "a few representative ones". A guard for "this shape must not appear" covers **every place it could
+appear**, not "the files this round happens to touch".
+🔴 **A guard must report how many files it scanned, and go red on an empty scan or a count that does not match the
+roster** -- **a guard that scans nothing is green forever**, and that is the most dangerous green there is.
+A roster may **only shrink** (delete an entry when it is fixed); growing it needs a reason. Scanning nothing at all
+means "the scanner is broken": fix the scanner, do not trust that green.
+
+**R3 · A bulk replacement or migration ships with a guard for "what the replacement itself can introduce", in the same round.**
+Not afterwards: the mistakes in bulk edits **all look alike** (half of them missed, a self-reference created, something
+that should not have changed changed too), and human eyes stop seeing them around the thirtieth file.
+**Without that guard it is not done.**
+
 ## §0 What to test: the generic eight (moved from `ai/roles/reviewer.md` §6)
 
 | # | What to test | What counts as tested |
