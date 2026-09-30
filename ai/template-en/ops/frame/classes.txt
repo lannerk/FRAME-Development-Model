@@ -77,6 +77,15 @@ skip    ops/verify/.private-words
 # and are never overwritten by it. That is what the name hook buys: to register your own guard,
 # use this name -- do not edit check-all.sh.
 skip    ops/verify/check-project-*.sh
+# 🔴 **Only home/host has templates**, so these two are **host-only** and never enter a template
+# (written down on 2026-09-30): `check-template-sync.sh` exits 2 ("wrong structure") in a project with no
+# `ai/template/`, so distributing it means one red line in every consumer's `check-all`; and
+# `template-diverge.txt` is its exception list, same thing.
+# 【Why write it down】They were already absent from the templates -- but **because nobody ever added them**,
+# not because anyone judged it. A default with no symptom is exactly what this table is for:
+# **written as skip, the intent stops being an accident and becomes a decision.**
+skip    ops/verify/check-template-sync.sh
+skip    ops/verify/template-diverge.txt
 
 # 🔴 **Placeholder directories that initialization renames: never re-created by a distribution**
 # (2026-09-28, measured on a real project). The two files under `product/design/prototype/_PROJECT_/`

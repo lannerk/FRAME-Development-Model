@@ -71,6 +71,13 @@ skip    ops/verify/.private-words
 # 🔴 项目自己的守门（`check-all.sh` 自动发现它们）：**永不进模板、也永不被模板覆盖**。
 # 口子开在文件名上就是为了这一行：想注册自己的守门，起这个名字，别去改 check-all.sh。
 skip    ops/verify/check-project-*.sh
+# 🔴 **只有 home/host 才有模板**，所以这两份是**宿主专属**、不进模板（2026-09-30 补写）：
+# `check-template-sync.sh` 在没有 `ai/template/` 的项目里直接 exit 2（结构不对），
+# 一分发过去就是每个 consumer 的 `check-all` 都红一条；`template-diverge.txt` 是它的例外表，同理。
+# 【为什么要写下来】它们本来就没在模板里——但那是**因为没人加过**，不是因为判过。
+# 「没有症状的默认」正是这张表存在的理由：**写成 skip，意图就从「碰巧」变成「判过」。**
+skip    ops/verify/check-template-sync.sh
+skip    ops/verify/template-diverge.txt
 
 # 🔴 **初始化时要改名的占位目录：分发永不再建**（2026-09-28，一个消费项目的维护席实测）。
 # `product/design/prototype/_PROJECT_/` 那两份是 seed：项目按 project-init 第 8 条把它改成项目名之后，

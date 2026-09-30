@@ -8,6 +8,7 @@
 #   bash ops/frame/frame-sync.sh --adopt <仓库>            把「现在两边这样」收为基线（首次用，先看过再认）
 #   bash ops/frame/frame-sync.sh --adopt-mine              同上，但基线记**本项目这一份**
 #                                                          （从 GitHub 拿这套的人首次用这个：以后源那边的变化都算「源改的」→ 拉回来）
+#   bash ops/frame/frame-sync.sh --classify                每一份模板文件的分类（follow/seed/skip），给守门用
 #   bash ops/frame/frame-sync.sh --diff <仓库> <相对路径>   某一份到底差在哪
 #   bash ops/frame/frame-sync.sh --dry-run <目标…>         **分发**给别的项目，只报不写（home/host 才有意义）
 #   bash ops/frame/frame-sync.sh --dist --apply <目标…>    **分发**并写入目标
@@ -44,7 +45,7 @@ SAW_APPLY=0; SAW_SYNC=0; SAW_DIST=0
 while [ $# -gt 0 ]; do
   case "$1" in
     --sync) MODE="sync"; SAW_SYNC=1 ;;
-    --status|--fingerprint|--adopt) MODE="${1#--}" ;;
+    --status|--fingerprint|--adopt|--classify) MODE="${1#--}" ;;
     --adopt-mine) MODE="adopt"; ADOPT_MINE=1 ;;
     --stamp) MODE="stamp"; STAMP_V="${2:-}"; shift ;;
     --dist) DIST=1; SAW_DIST=1 ;;   # 分发给别的项目这一侧（默认是与源仓库双向对账）
@@ -359,6 +360,16 @@ roots_project() { # roots_project <源FRAME仓库> <要不要写>
 
 
 # ══ 双向同步（口令「同步 FRAME」）═══════════════════════════════════
+# ══ 只报分类（给守门用）══════════════════════════════════════════
+# 🔴 **分类只有一处出处**：`classes.txt` 由这个脚本解释，别的脚本要用分类就来问它，
+#    **不许自己再抄一份 glob 匹配**——抄一份就是两套判据，改了 `classes.txt` 只有一边跟上，
+#    而两边不一致**没有任何症状**（`layout.md` 的预算表里那几条「唯一出处」就是这么来的）。
+# 输出一行一份：`<分类><TAB><模板里的相对路径>`。
+if [ "$MODE" = classify ]; then
+  while IFS= read -r rel; do printf '%s\t%s\n' "$(class_of "$rel" "$SROLE")" "$rel"; done < <(list_files "$SRC" "$SROLE")
+  exit 0
+fi
+
 # ══ 盖版本号（口令那十步的第 8 步）══════════════════════════════════
 # 🔴 **版本号人 bump，指纹机器算**：这一条命令把两边的 ai/FRAME-VERSION 写成同一个版本，
 # 指纹各自现算（两边应当相同）。版本文件自己不进指纹，所以盖完指纹不变。

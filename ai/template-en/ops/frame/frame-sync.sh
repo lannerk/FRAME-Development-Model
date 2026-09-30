@@ -9,6 +9,7 @@
 #   bash ops/frame/frame-sync.sh --adopt <repo>             take "what both sides look like now" as the baseline (first run; look before you adopt)
 #   bash ops/frame/frame-sync.sh --adopt-mine               the same, but the baseline records **this project's copy**
 #                                                           (whoever took this from GitHub uses this on the first run: later source changes count as "the source changed it" -> pulled in)
+#   bash ops/frame/frame-sync.sh --classify                 each template file's class (follow/seed/skip), for the guards
 #   bash ops/frame/frame-sync.sh --diff <repo> <rel-path>   what exactly differs in one file
 #   bash ops/frame/frame-sync.sh --dry-run <targets...>    **distribute** to other projects, report only (home/host)
 #   bash ops/frame/frame-sync.sh --dist --apply <targets...>  **distribute** and write into the targets
@@ -51,7 +52,7 @@ SAW_APPLY=0; SAW_SYNC=0; SAW_DIST=0
 while [ $# -gt 0 ]; do
   case "$1" in
     --sync) MODE="sync"; SAW_SYNC=1 ;;
-    --status|--fingerprint|--adopt) MODE="${1#--}" ;;
+    --status|--fingerprint|--adopt|--classify) MODE="${1#--}" ;;
     --adopt-mine) MODE="adopt"; ADOPT_MINE=1 ;;
     --stamp) MODE="stamp"; STAMP_V="${2:-}"; shift ;;
     --dist) DIST=1; SAW_DIST=1 ;;   # the distribution side (the default is two-way reconciliation with the source)
@@ -391,6 +392,17 @@ roots_project() { # roots_project <source FRAME repo> <write or not>
 
 
 # == Two-way sync (the command word "sync FRAME") =========================
+# == Report the classes only (for the guards) =============================
+# 🔴 **A class has exactly one source of truth**: `classes.txt` is interpreted by this script, and any
+#    other script that needs a class asks this one. **It must not copy the glob matching**: a copy is a
+#    second set of criteria, and when `classes.txt` changes only one of them follows -- with **no symptom
+#    at all** (that is where the "single source of truth" rows in `layout.md`'s budget table came from).
+# One line per file: `<class><TAB><path relative to the template>`.
+if [ "$MODE" = classify ]; then
+  while IFS= read -r rel; do printf '%s\t%s\n' "$(class_of "$rel" "$SROLE")" "$rel"; done < <(list_files "$SRC" "$SROLE")
+  exit 0
+fi
+
 # == Stamp the version (step 8 of the ten) ================================
 # 🔴 **People bump the version, the machine computes the fingerprint**: this command writes the same version
 # into ai/FRAME-VERSION on both sides, each with its freshly computed fingerprint (they should match).
