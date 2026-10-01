@@ -120,6 +120,8 @@ ops/paths.ps1
 ops/scripts/.gitkeep
 ops/scripts/clear-build.bat
 ops/scripts/clear-build.sh
+ops/scripts/clear-dist.bat
+ops/scripts/clear-dist.sh
 ops/scripts/clear-to-delete.bat
 ops/scripts/clear-to-delete.sh
 ops/scripts/commit-round.sh

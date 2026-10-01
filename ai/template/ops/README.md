@@ -4,7 +4,7 @@
 |---|---|
 | `machines.json` | **测试机清单——全项目唯一的机器信息出处**（见下） |
 | `paths.ps1` | **仓库内路径只在这里定义一次**，所有 `.ps1` 开头 dot-source 它（见 `docs/ops/realmachine.md` §四） |
-| `scripts/` | 部署运维脚本的**真实实现**。另有两支**给需求方用的清理脚本**，`.sh` 与 Windows 双击的 `.bat` 各一份、判据相同，**只删 git 不收的**：`clear-to-delete`（会话删不掉而挪进 `_to_delete/` 的东西，里面有被跟踪的文件就跳过）· `clear-build`（`node_modules`、子目录里的 `dist` 等依赖与构建产物，只认 git 忽略的）。默认先列出来再问一句，`-y` / `/y` 不问 |
+| `scripts/` | 部署运维脚本的**真实实现**。另有三支**给需求方用的清理脚本**，`.sh` 与 Windows 双击的 `.bat` 各一份、判据相同，**只删 git 不收的**：`clear-to-delete`（会话删不掉而挪进 `_to_delete/` 的东西，里面有被跟踪的文件就跳过）· `clear-build`（`node_modules`、各类缓存这些依赖与构建临时目录）· `clear-dist`（`dist`、`build`、`out` 这些构建产物，分开是因为产物有时要留着；仓库根 `dist/` 只删里面的东西、留 `README.md`）。后两支只认 git 忽略的。默认先列出来再问一句，`-y` / `/y` 不问 |
 | `verify/` | 守门脚本：`check-paths.sh`（写死的 IP 与旧目录名）· `check-inbox.sh`（收件簿有没有漏）· `check-bugs.sh`（bug 闭环断没断）· `check-entrypoints.sh`（别名入口还是不是指针）· `frame-scan.sh`（初始化时分辨谁是谁）· `check-template-sync.sh`（模板跟没跟上） |
 | `units/` | 服务单元（systemd 等） |
 
