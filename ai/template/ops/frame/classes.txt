@@ -45,6 +45,8 @@ follow  ai/frame-manifest.txt
 seed    ai/.linkcheck-ignore
 follow  ops/verify/*.sh
 follow  ops/scripts/*.sh
+# 需求方在 Windows 上双击用的清理脚本（2026-10-01）：与同名 .sh 同一个判据，一起跟着走。
+follow  ops/scripts/*.bat
 follow  ops/frame/*.sh
 follow  ops/frame/classes.txt
 follow  ops/.pathcheck-ignore

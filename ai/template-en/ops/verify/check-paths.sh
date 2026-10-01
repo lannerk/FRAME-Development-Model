@@ -18,6 +18,22 @@ set -u
 export GIT_OPTIONAL_LOCKS=0
 ROOT="$(cd "$(dirname "$0")/../.." && pwd)"
 cd "$ROOT" || exit 2
+# 【Only what git can see】= tracked files (still present in the worktree) + untracked files not stopped by .gitignore
+# (a freshly written file is exactly there). This used to `find` the whole tree: tmp/, node_modules/, build output and
+# the to-be-deleted folders that sessions leave behind were all walked, although the criteria exclude them anyway -- and they were
+# the bulk (measured: 65% of one repo's 25,000 files were git-ignored; on a mounted disk one guard took over a minute and
+# the full guard table no longer fit in one call). **What git ignores never enters the repo; checking it is wasted.**
+# The exclusions below are unchanged -- they just no longer have to be walked first. Outside a git repo (before
+# `git init` at initialization) this falls back to find.
+# A tracked file just deleted from the worktree stays in the list (`ls-files -d` costs 39 s on a mounted disk):
+# reading it yields nothing, so no criterion is affected.
+VIS="$(mktemp)"; trap 'rm -f "$VIS"' EXIT
+if git rev-parse --is-inside-work-tree >/dev/null 2>&1; then
+  { git -c core.quotepath=false ls-files -c; git -c core.quotepath=false ls-files -o --exclude-standard; } 2>/dev/null \
+    | LC_ALL=C sort -u | sed 's|^|./|' > "$VIS"
+else
+  find . \( -path ./.git -o -name node_modules \) -prune -o -type f -print 2>/dev/null > "$VIS"
+fi
 
 # Retired directory names + any absolute drive path; paths must come from ops/paths.ps1.
 # In scripts: no retired names, no absolute drive paths, no hard-coded IPs -- scripts execute, a wrong one really runs wrong.
@@ -52,7 +68,8 @@ while IFS= read -r f; do
   skip "$f" && continue
   # The single sources exempt themselves: paths.ps1 owns paths, machines.json owns machines;
   case "$f" in
-    ./ops/paths.ps1|./ops/machines.json|./ops/verify/check-paths.sh|./ops/verify/check-root.sh|./docs/ops/realmachine.md|./MIGRATION.md) continue;;
+    # clear-to-delete.sh joined 2026-10-01: its whole job is to find the `_to_delete/` sessions leave behind, so the name has to be in it.
+    ./ops/paths.ps1|./ops/machines.json|./ops/verify/check-paths.sh|./ops/verify/check-root.sh|./ops/scripts/clear-to-delete.sh|./docs/ops/realmachine.md|./MIGRATION.md) continue;;
     # Verbatim zone: not one word of the Requester's own words may change, including an IP he said out loud.
     # That is not configuration, it is a historical quote -- editing it falsifies the requirement record.
     ./product/requirements/inbox.md|./product/requirements/verbatim/*) continue;;
@@ -61,16 +78,7 @@ while IFS= read -r f; do
     *.md) scan "$f" "$BAD_DOC";;
     *)    scan "$f" "$BAD_SCRIPT";;
   esac
-done < <(find . \( -name '*.ps1' -o -name '*.sh' -o -name '*.service' -o -name '*.md' \) \
-          -not -path './.git/*' -not -path './tmp/*' -not -path './dist/*' \
-          -not -path './archive/*' -not -path './_newroot/*' \
-          | while IFS= read -r f; do
-              # [Why git-ignored paths are skipped] A bare `find .` also scans what `.gitignore` excludes,
-              # so a tool's own output directory gets judged red. **A guard should only judge what is in the repo**
-              # (same criterion as `check-root.sh`: a tracked file is still judged).
-              git ls-files --error-unmatch -- "$f" >/dev/null 2>&1 && { echo "$f"; continue; }
-              git check-ignore -q -- "$f" 2>/dev/null || echo "$f"
-            done)
+done < <(grep -E '\.(ps1|sh|service|md)$' "$VIS" | grep -vE '^\./\.git/.*$|^\./tmp/.*$|^\./dist/.*$|^\./archive/.*$|^\./_newroot/.*$')
 
 # -- 🔴 Third test: a script may not put a backtick inside a double-quoted echo ----------
 # [Why this exists] This is the same trap this method has now hit **six times**: writing a hint in markdown

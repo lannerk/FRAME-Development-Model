@@ -13,6 +13,23 @@ ROOT="$(cd "$(dirname "$0")" && pwd)"
 while [ "$ROOT" != "/" ] && [ ! -f "$ROOT/CLAUDE.md" ]; do ROOT="$(dirname "$ROOT")"; done
 [ -f "$ROOT/CLAUDE.md" ] || { echo "cannot find the repo root (no directory with CLAUDE.md)"; exit 2; }
 cd "$ROOT" || exit 2
+# 【Only what git can see】= tracked files (still present in the worktree) + untracked files not stopped by .gitignore
+# (a freshly written file is exactly there). This used to `find` the whole tree: tmp/, node_modules/, build output and
+# the to-be-deleted folders that sessions leave behind were all walked, although the criteria exclude them anyway -- and they were
+# the bulk (measured: 65% of one repo's 25,000 files were git-ignored; on a mounted disk one guard took over a minute and
+# the full guard table no longer fit in one call). **What git ignores never enters the repo; checking it is wasted.**
+# The exclusions below are unchanged -- they just no longer have to be walked first. Outside a git repo (before
+# `git init` at initialization) this falls back to find.
+# A tracked file just deleted from the worktree stays in the list (`ls-files -d` costs 39 s on a mounted disk):
+# reading it yields nothing, so no criterion is affected.
+export GIT_OPTIONAL_LOCKS=0
+VIS="$(mktemp)"; trap 'rm -f "$VIS"' EXIT
+if git rev-parse --is-inside-work-tree >/dev/null 2>&1; then
+  { git -c core.quotepath=false ls-files -c; git -c core.quotepath=false ls-files -o --exclude-standard; } 2>/dev/null \
+    | LC_ALL=C sort -u | sed 's|^|./|' > "$VIS"
+else
+  find . \( -path ./.git -o -name node_modules \) -prune -o -type f -print 2>/dev/null > "$VIS"
+fi
 OUT="$(mktemp)"
 
 # Only paths starting with these top-level directories count; path characters = anything but whitespace, backticks, quotes, brackets, commas, pipes
@@ -46,13 +63,7 @@ while IFS= read -r f; do
       echo "broken  $f  ->  $p"
     fi
   done
-done < <(find . -name node_modules -prune -o -name '*.md' \
-          -not -path './.git/*' -not -path './tmp/*' -not -path './dist/*' -not -path '*/node_modules/*' \
-          -not -path './archive/*' -not -path './*/archive/*' \
-          -not -path './ai/specs/*' -not -path './product/requirements/*' \
-          -not -path './claude-outputs/*' -not -path './src/*' \
-          -not -path './_newroot/*' \
-          -not -path './ai/template/*' -not -path './SYNC.md' -print) >> "$OUT"
+done < <(grep -E '\.md$' "$VIS" | grep -vE '^\./\.git/.*$|^\./tmp/.*$|^\./dist/.*$|^.*/node_modules/.*$|^\./archive/.*$|^\./.*/archive/.*$|^\./ai/specs/.*$|^\./product/requirements/.*$|^\./claude-outputs/.*$|^\./src/.*$|^\./_newroot/.*$|^\./ai/template/.*$|^\./SYNC\.md$') >> "$OUT"
 
 # ---- (2) section anchors: is the section it points at still there? ----
 # [Why this exists] The Supervisor seat reported on 2026-09-15: `laws.md` pointed at `conventions.md` §9,
@@ -75,8 +86,8 @@ while IFS= read -r f; do
     if [ -z "$t" ]; then
       # only a bare filename (`reviewer.md §6`): judge it only when the name is unique in the repo
       case "$p" in */*) continue;; esac
-      n=$(find ./ai ./docs ./product -name node_modules -prune -o -name "$p" -not -path './ai/template*' -print 2>/dev/null)
-      { [ -n "$n" ] && [ "$(wc -l <<< "$n")" -eq 1 ]; } && t="$n" || continue
+      n=$(awk -v n="$p" -F/ '$NF==n && $0 ~ /^\.\/(ai|docs|product)\// && $0 !~ /^\.\/ai\/template/' "$VIS")
+      { [ -n "$n" ] && [ "$(wc -l <<< "$n")" -eq 1 ] && [ -f "$n" ]; } && t="$n" || continue
     fi
     ok=0; s="$a"
     while [ -n "$s" ]; do
@@ -85,12 +96,7 @@ while IFS= read -r f; do
     done
     [ "$ok" -eq 1 ] || echo "broken anchor  $f:$ln  ->  $p §$a"
   done
-done < <(find . -name node_modules -prune -o -name '*.md' \
-          -not -path './.git/*' -not -path './tmp/*' -not -path './dist/*' -not -path '*/node_modules/*' \
-          -not -path './archive/*' -not -path './*/archive/*' \
-          -not -path './claude-outputs/*' -not -path './src/*' -not -path './_newroot/*' \
-          -not -path './ai/template/*' -not -path './SYNC.md' \
-          -not -name 'maintenance-log.md' -print) >> "$OUT"
+done < <(grep -E '\.md$' "$VIS" | grep -vE '^\./\.git/.*$|^\./tmp/.*$|^\./dist/.*$|^.*/node_modules/.*$|^\./archive/.*$|^\./.*/archive/.*$|^\./claude-outputs/.*$|^\./src/.*$|^\./_newroot/.*$|^\./ai/template/.*$|^\./SYNC\.md$|(^|/)maintenance\-log\.md$') >> "$OUT"
 
 if [ -s "$OUT" ]; then
   sort -u "$OUT"

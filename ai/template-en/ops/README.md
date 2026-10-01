@@ -4,7 +4,7 @@
 |---|---|
 | `machines.json` | **The test machine list — the one and only source of machine details in the whole project** (see below) |
 | `paths.ps1` | **In-repo paths are defined here once**, and every `.ps1` dot-sources it at the top (see `docs/ops/realmachine.md` §4) |
-| `scripts/` | The **real implementation** of the deployment and ops scripts |
+| `scripts/` | The **real implementation** of the deployment and ops scripts. Plus two **cleanup scripts for the Requester**, each as `.sh` and as a double-clickable Windows `.bat` with the same criterion, **deleting only what git does not hold**: `clear-to-delete` (what sessions could not delete and moved into `_to_delete/`; skipped if anything in it is tracked) · `clear-build` (`node_modules`, a sub-directory `dist` and other dependency/build output, only when git ignores it). By default they list first and ask once; `-y` / `/y` skips the question |
 | `verify/` | Guard scripts: `check-paths.sh` (hard-coded IPs and old directory names) · `check-inbox.sh` (anything missed in the inbox) · `check-bugs.sh` (bug loops left open) · `check-entrypoints.sh` (whether the alias entry points are still just pointers) · `frame-scan.sh` (tells what is what at initialization) · `check-template-sync.sh` (whether the template kept up) |
 | `units/` | Service units (systemd and the like) |
 

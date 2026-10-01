@@ -17,6 +17,19 @@ set -u
 export GIT_OPTIONAL_LOCKS=0
 ROOT="$(cd "$(dirname "$0")/../.." && pwd)"
 cd "$ROOT" || exit 2
+# 【只扫 git 看得见的文件】= 已跟踪的（工作区里还在的）＋ 未跟踪但没被 .gitignore 挡掉的（刚写的新文件正好在这里）。
+# 原来用 find 走整棵树：tmp/、node_modules/、构建产物、会话留下的待删目录一起走，判据本来就把它们排除了，却占了大头——
+# 实测一个仓库 2.5 万个文件里 65% 是 git 忽略的，挂载盘上一条守门就跑一分多钟，整张巡检表超过一次调用的上限。
+# **被忽略的东西进不了仓库，查它是白查**；下面的排除条件照旧，只是不再先把它们走一遍。
+# 已跟踪、但工作区里刚删掉的文件仍在清单里（`ls-files -d` 在挂载盘上要 39 秒，不划算）：读它什么也读不到，不影响判据。
+# 不在 git 仓库里（例如初始化还没 git init）时退回 find。
+VIS="$(mktemp)"; trap 'rm -f "$VIS"' EXIT
+if git rev-parse --is-inside-work-tree >/dev/null 2>&1; then
+  { git -c core.quotepath=false ls-files -c; git -c core.quotepath=false ls-files -o --exclude-standard; } 2>/dev/null \
+    | LC_ALL=C sort -u | sed 's|^|./|' > "$VIS"
+else
+  find . \( -path ./.git -o -name node_modules \) -prune -o -type f -print 2>/dev/null > "$VIS"
+fi
 
 # 旧目录名 + 任何绝对盘符路径；路径应当来自 ops/paths.ps1，不许各写各的
 # 脚本里：旧目录名 + 绝对盘符 + 写死 IP 都不许有（它们是可执行的，写错就真的跑错）
@@ -53,7 +66,8 @@ while IFS= read -r f; do
     # 【为什么这几份要跳过】它们的职责就是**提到**这些名字：机器清单、路径变量、守门自己的判据、真机文档。
     # `check-root.sh` 2026-09-16 加入这一行——它要判「旧名字有没有复活成真路径」，**名单必须写在它自己里**，
     # 不跳过就是「守门因为守门而报红」。
-    ./ops/paths.ps1|./ops/machines.json|./ops/verify/check-paths.sh|./ops/verify/check-root.sh|./docs/ops/realmachine.md|./MIGRATION.md) continue;;
+    # clear-to-delete.sh 2026-10-01 加入：它的职责就是找出会话留下的 `_to_delete/` 并删掉，名字只能写在它自己里。
+    ./ops/paths.ps1|./ops/machines.json|./ops/verify/check-paths.sh|./ops/verify/check-root.sh|./ops/scripts/clear-to-delete.sh|./docs/ops/realmachine.md|./MIGRATION.md) continue;;
     # 逐字记录区：需求方原话一个字都不许改，他嘴里说出来的 IP 也照抄。
     # 这不是配置，是历史引用——改了它就等于篡改需求记录。
     ./product/requirements/inbox.md|./product/requirements/verbatim/*) continue;;
@@ -62,17 +76,7 @@ while IFS= read -r f; do
     *.md) scan "$f" "$BAD_DOC";;
     *)    scan "$f" "$BAD_SCRIPT";;
   esac
-done < <(find . \( -name '*.ps1' -o -name '*.sh' -o -name '*.service' -o -name '*.md' \) \
-          -not -path './.git/*' -not -path './tmp/*' -not -path './dist/*' \
-          -not -path './archive/*' -not -path './_newroot/*' \
-          -not -path './ai/template/*' -not -path './ai/template-en/*' \
-          | while IFS= read -r f; do
-              # 【为什么要跳过 git 忽略的】裸 `find .` 连 `.gitignore` 掉的东西一起扫，
-              # 于是桌面端自动落盘的 `Claude outputs/`（里面是别席正在写的稿子）被判红——
-              # **守门只该管仓库里的东西**（和 `check-root.sh` 同一个判据：被跟踪的照样管）。
-              git ls-files --error-unmatch -- "$f" >/dev/null 2>&1 && { echo "$f"; continue; }
-              git check-ignore -q -- "$f" 2>/dev/null || echo "$f"
-            done)
+done < <(grep -E '\.(ps1|sh|service|md)$' "$VIS" | grep -vE '^\./\.git/.*$|^\./tmp/.*$|^\./dist/.*$|^\./archive/.*$|^\./_newroot/.*$|^\./ai/template/.*$|^\./ai/template-en/.*$')
 
 # ── 🔴 第三条：脚本里不许在双引号 echo 里写反引号 ──────────────────────
 # 【为什么要这条】这是本项目**踩了六次**的同一个坑（项目记忆第 3 条）：写提示文案时按 markdown 习惯

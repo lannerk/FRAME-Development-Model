@@ -13,6 +13,20 @@ ROOT="$(cd "$(dirname "$0")" && pwd)"
 while [ "$ROOT" != "/" ] && [ ! -f "$ROOT/CLAUDE.md" ]; do ROOT="$(dirname "$ROOT")"; done
 [ -f "$ROOT/CLAUDE.md" ] || { echo "找不到仓库根（没有 CLAUDE.md 的目录）"; exit 2; }
 cd "$ROOT" || exit 2
+# 【只扫 git 看得见的文件】= 已跟踪的（工作区里还在的）＋ 未跟踪但没被 .gitignore 挡掉的（刚写的新文件正好在这里）。
+# 原来用 find 走整棵树：tmp/、node_modules/、构建产物、会话留下的待删目录一起走，判据本来就把它们排除了，却占了大头——
+# 实测一个仓库 2.5 万个文件里 65% 是 git 忽略的，挂载盘上一条守门就跑一分多钟，整张巡检表超过一次调用的上限。
+# **被忽略的东西进不了仓库，查它是白查**；下面的排除条件照旧，只是不再先把它们走一遍。
+# 已跟踪、但工作区里刚删掉的文件仍在清单里（`ls-files -d` 在挂载盘上要 39 秒，不划算）：读它什么也读不到，不影响判据。
+# 不在 git 仓库里（例如初始化还没 git init）时退回 find。
+export GIT_OPTIONAL_LOCKS=0
+VIS="$(mktemp)"; trap 'rm -f "$VIS"' EXIT
+if git rev-parse --is-inside-work-tree >/dev/null 2>&1; then
+  { git -c core.quotepath=false ls-files -c; git -c core.quotepath=false ls-files -o --exclude-standard; } 2>/dev/null \
+    | LC_ALL=C sort -u | sed 's|^|./|' > "$VIS"
+else
+  find . \( -path ./.git -o -name node_modules \) -prune -o -type f -print 2>/dev/null > "$VIS"
+fi
 OUT="$(mktemp)"
 
 # 只认这几个顶级目录开头的路径；路径字符 = 除空白、反引号、引号、括号、逗号、竖线之外的一切（含中文）
@@ -44,14 +58,7 @@ while IFS= read -r f; do
       echo "断链  $f  ->  $p"
     fi
   done
-done < <(find . -name node_modules -prune -o -name '*.md' \
-          -not -path './.git/*' -not -path './tmp/*' -not -path './dist/*' -not -path '*/node_modules/*' \
-          -not -path './archive/*' -not -path './*/archive/*' \
-          -not -path './ai/specs/*' -not -path './product/requirements/*' \
-          -not -path './claude-outputs/*' -not -path './src/*' \
-          -not -path './_newroot/*' \
-          -not -path './ai/template/*' -not -path './ai/template-en/*' \
-          -not -name 'maintenance-log.md' -print) >> "$OUT"
+done < <(grep -E '\.md$' "$VIS" | grep -vE '^\./\.git/.*$|^\./tmp/.*$|^\./dist/.*$|^.*/node_modules/.*$|^\./archive/.*$|^\./.*/archive/.*$|^\./ai/specs/.*$|^\./product/requirements/.*$|^\./claude-outputs/.*$|^\./src/.*$|^\./_newroot/.*$|^\./ai/template/.*$|^\./ai/template-en/.*$|(^|/)maintenance\-log\.md$') >> "$OUT"
 
 # 【为什么把维护记录排除在第①段之外】它是**历史记录，不是导航**：
 # 每一条都逐字引用需求方当时的原话和当时的路径，而路径会随重构改名、消失。
@@ -78,8 +85,8 @@ while IFS= read -r f; do
     if [ -z "$t" ]; then
       # 只写了文件名的（`reviewer.md §六` 这种）：全仓唯一同名才敢判，不唯一就不判
       case "$p" in */*) continue;; esac
-      n=$(find ./ai ./docs ./product -name node_modules -prune -o -name "$p" -not -path './ai/template*' -print 2>/dev/null)
-      { [ -n "$n" ] && [ "$(wc -l <<< "$n")" -eq 1 ]; } && t="$n" || continue
+      n=$(awk -v n="$p" -F/ '$NF==n && $0 ~ /^\.\/(ai|docs|product)\// && $0 !~ /^\.\/ai\/template/' "$VIS")
+      { [ -n "$n" ] && [ "$(wc -l <<< "$n")" -eq 1 ] && [ -f "$n" ]; } && t="$n" || continue
     fi
     ok=0; s="$a"
     while [ -n "$s" ]; do
@@ -88,12 +95,7 @@ while IFS= read -r f; do
     done
     [ "$ok" -eq 1 ] || echo "锚点断链  $f:$ln  ->  $p §$a"
   done
-done < <(find . -name node_modules -prune -o -name '*.md' \
-          -not -path './.git/*' -not -path './tmp/*' -not -path './dist/*' -not -path '*/node_modules/*' \
-          -not -path './archive/*' -not -path './*/archive/*' \
-          -not -path './claude-outputs/*' -not -path './src/*' -not -path './_newroot/*' \
-          -not -path './ai/template/*' -not -path './ai/template-en/*' \
-          -not -name 'maintenance-log.md' -print) >> "$OUT"
+done < <(grep -E '\.md$' "$VIS" | grep -vE '^\./\.git/.*$|^\./tmp/.*$|^\./dist/.*$|^.*/node_modules/.*$|^\./archive/.*$|^\./.*/archive/.*$|^\./claude-outputs/.*$|^\./src/.*$|^\./_newroot/.*$|^\./ai/template/.*$|^\./ai/template-en/.*$|(^|/)maintenance\-log\.md$') >> "$OUT"
 
 if [ -s "$OUT" ]; then
   sort -u "$OUT"

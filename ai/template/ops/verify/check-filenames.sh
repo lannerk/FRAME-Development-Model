@@ -26,7 +26,22 @@ set -u
 export GIT_OPTIONAL_LOCKS=0
 ROOT="$(cd "$(dirname "$0")/../.." && pwd)"; cd "$ROOT" || exit 2
 bad=0
-list() { find . -path ./.git -prune -o -print 2>/dev/null | sed 's|^\./||' | grep -v '^\.$'; }
+# 【只扫 git 看得见的文件】= 已跟踪的（工作区里还在的）＋ 未跟踪但没被 .gitignore 挡掉的（刚写的新文件正好在这里）。
+# 原来用 find 走整棵树：tmp/、node_modules/、构建产物、会话留下的待删目录一起走，判据本来就把它们排除了，却占了大头——
+# 实测一个仓库 2.5 万个文件里 65% 是 git 忽略的，挂载盘上一条守门就跑一分多钟，整张巡检表超过一次调用的上限。
+# **被忽略的东西进不了仓库，查它是白查**；下面的排除条件照旧，只是不再先把它们走一遍。
+# 已跟踪、但工作区里刚删掉的文件仍在清单里（`ls-files -d` 在挂载盘上要 39 秒，不划算）：读它什么也读不到，不影响判据。
+# 不在 git 仓库里（例如初始化还没 git init）时退回 find。
+# 判的是「需求方在 Windows 上拉下来会不会炸」，所以只看会进仓库的路径（文件 ＋ 它们的上级目录）。
+VIS="$(mktemp)"; trap 'rm -f "$VIS"' EXIT
+if git rev-parse --is-inside-work-tree >/dev/null 2>&1; then
+  { git -c core.quotepath=false ls-files -c; git -c core.quotepath=false ls-files -o --exclude-standard; } 2>/dev/null \
+    | awk -F/ '{p=""; for(i=1;i<NF;i++){p=(i==1)?$1:p"/"$i; print p}; print}' \
+    | LC_ALL=C sort -u > "$VIS"
+else
+  find . -path ./.git -prune -o -print 2>/dev/null | sed 's|^\./||' | grep -v '^\.$' > "$VIS"
+fi
+list() { cat "$VIS"; }
 
 # ① 非法字符： < > : " | ? *  （/ 和 \ 是分隔符，不在这里判）
 while IFS= read -r p; do

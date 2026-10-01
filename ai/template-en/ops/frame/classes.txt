@@ -48,6 +48,8 @@ follow  ai/frame-manifest.txt
 seed    ai/.linkcheck-ignore
 follow  ops/verify/*.sh
 follow  ops/scripts/*.sh
+# Cleanup scripts the Requester double-clicks on Windows (2026-10-01): same criterion as the .sh of the same name, so they travel together.
+follow  ops/scripts/*.bat
 follow  ops/frame/*.sh
 follow  ops/frame/classes.txt
 follow  ops/.pathcheck-ignore

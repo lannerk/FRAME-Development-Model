@@ -27,7 +27,25 @@ set -u
 export GIT_OPTIONAL_LOCKS=0
 ROOT="$(cd "$(dirname "$0")/../.." && pwd)"; cd "$ROOT" || exit 2
 bad=0
-list() { find . -path ./.git -prune -o -print 2>/dev/null | sed 's|^\./||' | grep -v '^\.$'; }
+# 【Only what git can see】= tracked files (still present in the worktree) + untracked files not stopped by .gitignore
+# (a freshly written file is exactly there). This used to `find` the whole tree: tmp/, node_modules/, build output and
+# the to-be-deleted folders that sessions leave behind were all walked, although the criteria exclude them anyway -- and they were
+# the bulk (measured: 65% of one repo's 25,000 files were git-ignored; on a mounted disk one guard took over a minute and
+# the full guard table no longer fit in one call). **What git ignores never enters the repo; checking it is wasted.**
+# The exclusions below are unchanged -- they just no longer have to be walked first. Outside a git repo (before
+# `git init` at initialization) this falls back to find.
+# A tracked file just deleted from the worktree stays in the list (`ls-files -d` costs 39 s on a mounted disk):
+# reading it yields nothing, so no criterion is affected.
+# What is judged is "will a Windows checkout blow up", so only paths that can enter the repo count (files + their parent directories).
+VIS="$(mktemp)"; trap 'rm -f "$VIS"' EXIT
+if git rev-parse --is-inside-work-tree >/dev/null 2>&1; then
+  { git -c core.quotepath=false ls-files -c; git -c core.quotepath=false ls-files -o --exclude-standard; } 2>/dev/null \
+    | awk -F/ '{p=""; for(i=1;i<NF;i++){p=(i==1)?$1:p"/"$i; print p}; print}' \
+    | LC_ALL=C sort -u > "$VIS"
+else
+  find . -path ./.git -prune -o -print 2>/dev/null | sed 's|^\./||' | grep -v '^\.$' > "$VIS"
+fi
+list() { cat "$VIS"; }
 
 # (1) illegal characters: < > : " | ? *   (/ and \ are separators, not judged here)
 while IFS= read -r p; do
