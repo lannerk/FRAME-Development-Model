@@ -70,7 +70,7 @@ worst=0; worst_role=""
 # none tomorrow -- and it is written by **other seats**. Counting it against the cap had a measured consequence:
 # one ordinary reply pushed the most expensive seat to 662/660, and the only available fix became **cutting the
 # handbook** -- trading a long-lived rule for a temporary letter. A mailbox has its own bounds already
-# (`ai/mail/README.md`: at most 50 letters per drop-box, at most 55 lines per file); that rule governs it.
+# (`ai/mail/README.md`: at most 20 letters per drop-box, at most 25 lines per file); that rule governs it.
 for r in developer reviewer supervisor; do
   f="ai/roles/$r.md"; [ -e "$f" ] || continue
   t=$(( common + $(wc -l < "$f") ))

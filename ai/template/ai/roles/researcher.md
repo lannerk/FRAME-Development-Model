@@ -11,7 +11,7 @@
 
 ## 一、开场五件事（先查信；队列是你自己的）
 
-1. **`ai/mail/to-researcher/`（两份，各 ≤50 封）——先查信**：`from-supervisor.md`（监督席的意见／通知）
+1. **`ai/mail/to-researcher/`（两份，各 ≤20 封）——先查信**：`from-supervisor.md`（监督席的意见／通知）
    与 `from-reviewer.md`（审查席给你的题面与反馈，需求方 2026-09-25 开通），
    从旧到新逐封处置，处置完移进 `ai/mail/archive/researcher-<年月>.md`（**归档归收信人**）。
    **一次过全读、自己去重、在会话里报一张小结**。规矩 `ai/mail/README.md`。

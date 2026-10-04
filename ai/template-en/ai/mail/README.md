@@ -49,7 +49,7 @@ The mail lives in **`ai/mail/to-<recipient>/from-<sender>.md`** — three drop-b
 | Type | suggestion / hand-over / notice / request / reply |
 | Reply needed | yes / no |
 
-**Each drop-box holds at most 50 unhandled letters** (the file at most 55 lines; relaxed by the Requester on 2026-10-05 from "12 lines, and no more than 3 non-notice letters per sender": once asking the Supervisor for an opinion moved to the mail, those two filled up long before "nobody reads it" did). **When it is full the sender adds nothing new and folds it into their most recent letter** (see "before you send" below), and the recipient is due to clear it. **A letter left unhandled for 7 days goes red**: either handle it, or the sender withdraws it and takes another route.
+**Each drop-box holds at most 20 unhandled letters** (the file at most 25 lines; relaxed by the Requester on 2026-10-05 from "12 lines, and no more than 3 non-notice letters per sender": once asking the Supervisor for an opinion moved to the mail, those two filled up long before "nobody reads it" did). **When it is full the sender adds nothing new and folds it into their most recent letter** (see "before you send" below), and the recipient is due to clear it. **A letter left unhandled for 7 days goes red**: either handle it, or the sender withdraws it and takes another route.
 
 **Four rules for sending** (the same criteria as "passing something to another seat" in `ai/rules/requester.md`):
 
@@ -91,7 +91,7 @@ The Requester, 2026-09-15: "a sender sending one role several letters, or the sa
 | What you see | What to do |
 |---|---|
 | What you have to say **adds to or corrects** your previous letter, and they have not handled that one yet | **Edit that letter** (or append a dated section to the file it points at). **Do not send another.** The guard catches a word-for-word duplicate; **whether it is "an addition" is yours to judge** |
-| Their drop-box from you **already holds 50 letters** | **Add nothing new**: fold it into your most recent letter (number the items ①②③ under "what I have to do") and say in the session "their mailbox is full". Full means either they are slow or **you are using the mail as a ticket system** — work belongs in a task |
+| Their drop-box from you **already holds 20 letters** | **Add nothing new**: fold it into your most recent letter (number the items ①②③ under "what I have to do") and say in the session "their mailbox is full". Full means either they are slow or **you are using the mail as a ticket system** — work belongs in a task |
 | A different, unrelated thing, and the box is not full | **Send a separate letter** as before (one letter, one thing). The Requester, 2026-10-05: **merge by content, not by the clock** |
 
 **Notices (such as "reload the rules") may not be repeated either**: after three rounds of changes, edit that one letter's date and content — **the recipient will act once.**
@@ -119,7 +119,7 @@ Mail: 3 letters (Supervisor x2, Reviewer x1), 2 distinct things after de-duplica
 No replies needed: none of them is "a new question I cannot settle"
 ```
 
-🔴 **Report an abnormal inbox instead of carrying it**: if one drop-box **has filled up to 50 letters** (the guard reports it red),
+🔴 **Report an abnormal inbox instead of carrying it**: if one drop-box **has filled up to 20 letters** (the guard reports it red),
 or the same thing keeps arriving, **tell the Requester and the sender after checking the mail**: "stop sending it here; this belongs in a task".
 There are only three ways to handle a letter, and **when you are done you move that row out of the mailbox into `ai/mail/archive/<my seat>-<YYYY-MM>.md`** (append one row, with the outcome) —
 🔴 **the archive belongs to the recipient**: a letter the Maintainer seat sent to the Supervisor seat is archived by the **Supervisor seat** into `supervisor-<YYYY-MM>.md` — **a letter belongs to whoever it was sent to**, and the sender archives nothing (to look up what you sent, read the recipient's file). Archive header: `| Date | From | What had to be done | Where the detail is | Outcome |`.
@@ -128,9 +128,10 @@ There are only three ways to handle a letter, and **when you are done you move t
 | Outcome | When | What the archive row says |
 |---|---|---|
 | **Did it** | it can be done this round | `did it: <what you did>` |
-| **Turned it into work** | it is something that needs scheduling | `turned into T-#### / B-####` |
+| **Turned it into work** | it is something that needs scheduling — **an opinion you will take several rounds to digest counts too** (say, a batch of requested changes) | `turned into T-#### / B-####`, or `turned into work: recorded in <which task / which list>` |
 | **Refused** | not mine to do, or I disagree | `refused: <reason>`, and **send one "reply"** back |
 
+🔴 **Once you have read it and decided what to do with it, it is handled — archive it that round. Unfinished work is not a reason to leave the letter in the mailbox** (the Requester, 2026-10-05). What sits in a mailbox should only be "words nobody has picked up yet"; keep letters there as a to-do list and the box fills up with your own backlog, and on day 8 the "stale letter" guard goes red — a red that was meant for letters nobody is looking after.
 🔴 **Before moving, renaming or deleting a mailbox or archive file, `wc -l` it for data rows**; if it has any, **move the content first and only then remove the shell** — **judge what is inside the file, not what its name looks like** (a real case, 2026-09-15: judged "an empty shell" by its name and deleted, taking two archive rows the Supervisor seat had already written outcomes into; recovered only via `git show HEAD:`. The guard now enforces "the archive may only grow").
 🔴 **Another seat's live file may only be appended to, never rewritten whole** (later the same day, "restoring" that archive by rewriting it whole overwrote the version the Supervisor seat had just written — uncommitted, so not even in git). **To add a row, append; to change someone else's row, talk to them first.**
 
