@@ -15,7 +15,7 @@
 # of one file means git conflicts in the same hunk (the Requester works in Windows SourceTree, so resolving them lands on him).
 # Splitting to this level takes that to zero. **The sender is in the filename, so a letter no longer carries a "From" column.**
 #
-# [Twelve criteria] fields filled . paths resolve . never marked read in place . never left 7 days . never over 20 letters per file (25 lines) .
+# [Twelve criteria] fields filled . paths resolve . never marked read in place . never left 7 days . never over 50 letters per file (55 lines) .
 #   "what I have to do" is never just an ID (that is handing out work) . no courtesy receipts .
 #   a "reply" or a "notice" never asks for a reply (no chat loops) . the same letter is never sent twice .
 #   another project's drop-box is registered first and only writes to the Reviewer and the Supervisor . the recipient is a seat of this project .
@@ -37,13 +37,13 @@ D="${MAIL_DIR:-ai/mail}"
 # **real letters go with it**; that happened once in this very round.
 STALE_DAYS="${MAIL_STALE_DAYS:-7}"
 # Two bounds (relaxed by the Requester on 2026-10-05 from "12 lines per file, no more than 3 non-notice letters per sender"):
-# each drop-box holds **at most 20 unhandled letters**, the file 25 lines (5 header lines + 20 letters). The "3 non-notice
+# each drop-box holds **at most 50 unhandled letters**, the file 55 lines (5 header lines + 50 letters). The "3 non-notice
 # letters" rule is gone: once asking the Supervisor for an opinion moved to the mail, it and the 12 lines filled up before
 # "nobody reads it" did, leaving the sender to not send and ask the Requester to relay by word of mouth --
 # **a ruler that rings before the thing it protects is the wrong ruler**.
 # What a sender does when it is full is in ai/mail/README.md, "before you send".
-MAXMAIL="${MAIL_MAX:-20}"
-CAP="${MAIL_CAP:-25}"
+MAXMAIL="${MAIL_MAX:-50}"
+CAP="${MAIL_CAP:-55}"
 TYPES="suggestion hand-over notice request reply"
 SEATS="developer reviewer supervisor maintainer"
 # [The extra seat on the R&D line] The Researcher exchanges letters **only with the Supervisor and the

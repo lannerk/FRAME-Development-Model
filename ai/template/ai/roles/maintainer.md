@@ -103,7 +103,7 @@
 ---
 
 ## 一、开场六件事
-1. **`ai/mail/to-maintainer/`（三份，各 ≤20 封）——先查信**：别席给你的建议／转告／通知，**从旧到新**逐封处置（照做／转成任务／拒收并回一封答复），处置完把那行移进 `ai/mail/archive/<我这一席>-<年月>.md`。**一次过全读、自己去重、在会话里报一张小结**（几封→几件→怎么处置）。🔴 **任务与 bug 的话不走信箱**——派活·方案·回报·自测·审查结论·复测·返工·阻塞，全部写在 `ai/tasks/T-####` 与 `ai/bugs/B-####` 里（**丢了台账就丢了开发追踪**）。规矩 `ai/mail/README.md`。
+1. **`ai/mail/to-maintainer/`（三份，各 ≤50 封）——先查信**：别席给你的建议／转告／通知，**从旧到新**逐封处置（照做／转成任务／拒收并回一封答复），处置完把那行移进 `ai/mail/archive/<我这一席>-<年月>.md`。**一次过全读、自己去重、在会话里报一张小结**（几封→几件→怎么处置）。🔴 **任务与 bug 的话不走信箱**——派活·方案·回报·自测·审查结论·复测·返工·阻塞，全部写在 `ai/tasks/T-####` 与 `ai/bugs/B-####` 里（**丢了台账就丢了开发追踪**）。规矩 `ai/mail/README.md`。
 2. `ai/rules/maintenance-log.md`——**维护记录**，上次维护到哪、还有什么没做完。
 3. `ai/rules/laws.md`、`ai/rules/workflow.md`、`ai/rules/layout.md`、`ai/rules/conventions.md`——你维护的东西本身。
 4. `ai/roles/{developer,reviewer,supervisor}.md`——另外三席的手册，也是你维护的。
