@@ -200,8 +200,8 @@ yours.
 | `review done, continue` | Developer | Take the highest-priority item off the queue and carry on |
 | `review` | Reviewer | Review only: check the evidence, read the code, run the guards |
 | `review and test` | Reviewer | Review as usual, **then test everything testable across eight categories** |
-| `consult the supervisor on this` | Reviewer | Turn this conclusion into an **advisory task** for the Supervisor seat |
-| `look at the task` | Supervisor | Read the one advisory task assigned to it (**its only exception to not reading the queue**) |
+| `consult the supervisor on this` | Reviewer | Send the Supervisor seat a letter asking for its opinion; open an **advisory task** only to assign it a piece of work |
+| `look at the task` | Supervisor | Read the one advisory task assigned to it (**its only exception to not reading the queue**); for a plain consult say `check mail` |
 | `the supervisor has given its opinion` | Reviewer | Read the Supervisor's output and rule again with it in hand |
 | `reload rules` | any seat | The rules changed — **actually read them again** and say what changed |
 | `check mail` | any seat | Read `ai/mail/to-<your seat>/`: **read it all at once, de-duplicate, handle each letter**, then move the row into your own archive |

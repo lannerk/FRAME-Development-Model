@@ -14,10 +14,10 @@
 # git 会在同一个 hunk 上冲突（需求方用 Windows SourceTree，解冲突要落到他头上）。拆到这一层就归零了。
 # **发信人写在文件名里，所以信里不再有「谁发的」那一栏**（同一个事实不双写）。
 #
-# 【判十六条】字段齐 · 路径指得到 · 不许原处标已读 · 不许躺过 7 天 · 每份不许超 12 行 ·
+# 【判十六条】字段齐 · 路径指得到 · 不许原处标已读 · 不许躺过 7 天 · 每份不许超 20 封（文件 25 行）·
 #   「要我做什么」不许只是一个编号（那是派活）· 不许发客套回执 ·
 #   「答复」「通知」不许再要求回信（防对聊死循环）· 同一封信不许重复发 ·
-#   同一发信人非通知类不许堆过 3 封（收信异常要上报）· 四席各三份投递口都得在 ·
+#   外部项目的投递口先登记、只发给审查席与监督席 · 收信席得是本项目的席位 · 四席各三份投递口都得在 ·
 #   归档一席一月一份、每行带处置结果（共用一份必然 git 冲突）· **归档只许增不许减** ·
 #   **开发席↔审查席之间不许拿信箱谈任务/bug**（丢了台账就丢了开发追踪）·
 #   这一对**类型只许「请求」「通知」、未处置最多 1 封**（需求方：它们基本上不需要互相发信）。
@@ -34,8 +34,12 @@ D="${MAIL_DIR:-ai/mail}"
 [ -d "$D" ] || { echo "找不到 $D"; exit 2; }
 # 反向断言别在真信箱上造错、再用「删掉带某个词的行」收尾——**真的信会被一起删掉**，这一轮发生过一次。
 STALE_DAYS="${MAIL_STALE_DAYS:-7}"
-CAP="${MAIL_CAP:-12}"
-FLOOD="${MAIL_FLOOD:-3}"
+# 🔴 上限两个数（需求方 2026-10-05 从「文件 12 行、同一发信人非通知类 ≤3 封」放宽）：每份投递口**最多 20 封**未处置，
+# 文件 25 行（表头 5 行 ＋ 20 封）。「非通知类 ≤3 封」那条取消：请监督席给意见改走信之后，它和 12 行在「没人读」
+# 之前就先顶满，逼得发信人不发、请需求方口头转告——**尺子比要保的那件事先响，就是尺子错了**。
+# 满了之后发信人的出路写在 ai/mail/README.md「发信之前」：补充修改改原信，满了并进最近一封。
+MAXMAIL="${MAIL_MAX:-20}"
+CAP="${MAIL_CAP:-25}"
 TYPES="建议 转告 通知 请求 答复"
 SEATS="developer reviewer supervisor maintainer"
 # 【R&D 线的编外座位】研究席**只和监督席、审查席通信**（`ai/roles/researcher.md`：它写只在 `ai/RandD/`，
@@ -49,13 +53,41 @@ SEATS="developer reviewer supervisor maintainer"
 # 研究席 → 维护席（维护只管规矩）。**通信放开 ≠ 写权限放开**：研究席写 `ai/memory.md`、
 # 动 `ai/RandD/` 以外的目录，照旧要请监督席。
 RND_SEAT="${RND_SEAT:-researcher}"; RND_PEERS="${RND_PEERS:-supervisor reviewer}"
-bad=0
+# 【外部项目的投递口】别的项目（比如用到本项目产出的使用方）可以直接往本项目的信箱递话，**但口子要先登记**：
+# 项目名写进 ops/verify/paths.env 的 MAIL_EXT=（空格分隔；那一份是 seed，项目自己的清单，不进 FRAME）。
+# **没登记的陌生发信人 = 凭空多出来的投递口，报红**；外部信只许发给 MAIL_EXT_PEERS（默认审查席、监督席）——
+# 开发只从审查席接活，规矩的事找对方自己的维护席。环境变量优先于 paths.env（反向断言在拷贝上做时用）。
+_ext_env="${MAIL_EXT-__unset__}"
+[ -f ops/verify/paths.env ] && . ops/verify/paths.env
+[ "$_ext_env" != "__unset__" ] && MAIL_EXT="$_ext_env"
+MAIL_EXT="${MAIL_EXT:-}"; MAIL_EXT_PEERS="${MAIL_EXT_PEERS:-reviewer supervisor}"
+bad=0; nbox=0; nout=0
 today=$(date +%s)
 
 for f in "$D"/to-*/from-*.md; do
   [ -f "$f" ] || continue
   recv=$(basename "$(dirname "$f")"); recv=${recv#to-}
   sender=$(basename "$f" .md); sender=${sender#from-}
+  nbox=$((nbox+1))
+  # 收信席得是本项目的席位（给外部项目的答复写进**对方仓库**的信箱，不在这里开 to-<外部项目>/）
+  case " $SEATS $RND_SEAT " in
+    *" $recv "*) : ;;
+    *) echo "  ✗  $f —— 收信席「$recv」不是本项目的席位：给外部项目的答复写进对方仓库的信箱，这份不该存在"; bad=$((bad+1)) ;;
+  esac
+  # 发信人不是本项目的席位 = 外部项目：要先登记，且只许发给 MAIL_EXT_PEERS
+  case " $SEATS $RND_SEAT " in
+    *" $sender "*) : ;;
+    *)
+      case " $MAIL_EXT " in
+        *" $sender "*)
+          nout=$((nout+1))
+          case " $MAIL_EXT_PEERS " in
+            *" $recv "*) : ;;
+            *) echo "  ✗  $f —— 外部项目「$sender」只许发给：$MAIL_EXT_PEERS（开发只从审查席接活，规矩的事找对方自己的维护席）"; bad=$((bad+1)) ;;
+          esac ;;
+        *) echo "  ✗  $f —— 陌生投递口：发信人「$sender」不是本项目的席位，也没登记成外部项目（ops/verify/paths.env 的 MAIL_EXT=）。凭空多出来的投递口比没有更坏：需求方批了就登记，没批就删"; bad=$((bad+1)) ;;
+      esac ;;
+  esac
   # 研究席的投递口只许配监督席
   if [ "$recv" = "$RND_SEAT" ] || [ "$sender" = "$RND_SEAT" ]; then
     other="$sender"; [ "$sender" = "$RND_SEAT" ] && other="$recv"
@@ -101,7 +133,7 @@ for f in "$D"/to-*/from-*.md; do
     # 照做了／自己拍了板／只是通知，**一概不回**——**归档那一行就是回执**。
     if [ "$reply" = "要" ]; then
       case "$typ" in
-        答复|通知) echo "  ✗  $tag —— 类型「$typ」不许再要求回信（一来一回就到顶；还谈不完开任务/咨询单）"; bad=$((bad+1));;
+        答复|通知) echo "  ✗  $tag —— 类型「$typ」不许再要求回信（一来一回就到顶；还谈不完换轨：开任务，或请需求方拍板）"; bad=$((bad+1));;
       esac
     fi
     # 🔴 客套回执直接判红（需求方原话：「已收到，谢谢，你的提议很好之类的无任何作用的不需要回信」）。
@@ -145,6 +177,8 @@ for f in "$D"/to-*/from-*.md; do
     # ⑥ 不许在原处标已读
     case "$line" in *已读*|*'~~'*) echo "  ✗  $tag —— 信箱里不许标已读／划掉，处置完要移进 archive/"; bad=$((bad+1));; esac
   done < "$f"
+  # 🔴 封数上限：满了发信人别再新增（补充修改改原信，满了并进最近一封），收信人该清了
+  [ "$rows" -gt "$MAXMAIL" ] && { echo "  ✗  $f —— 未处置 $rows 封 / 上限 $MAXMAIL：发信人别再新增（并进自己最近那一封），收信人该清了；要动手的事开任务"; bad=$((bad+1)); }
 
   # 🔴 ⑦ 同一封信重复发（同一句「要我做什么」在这一份里出现两次以上）
   # 需求方 2026-09-15：「相同信息未读，有阻止发信的机制」。典型是维护席连改三轮规范、发了三条「重载规范」——
@@ -180,17 +214,7 @@ for f in "$D"/to-*/from-*.md; do
     fi
   fi
 
-  # 🔴 ⑧ 堆积：这一份里非通知类超过 MAIL_FLOOD 封没处置 = 收信异常，要上报
-  # 需求方 2026-09-15：「当角色发现收信异常（过多连续同一个角色非通知的信息），查信后要通知需求方或者发信人」。
-  # 堆到这个数，问题通常不在收信人手慢，而在**发信人把信箱当了工单系统**——该换轨了。
-  non=$(awk -F'|' -v n=0 '/^\|/ {
-      if ($0 ~ /^\|---/) next; if ($0 ~ /^\| *日期 /) next;
-      what=$3; typ=$5; gsub(/^[ \t]+|[ \t]+$/, "", what); gsub(/^[ \t]+|[ \t]+$/, "", typ);
-      if (what == "") next; if (typ == "通知") next; n++
-    } END { print n+0 }' "$f")
-  if [ "$non" -gt "$FLOOD" ]; then
-    echo "  ✗  $f —— 收信异常：$sender 堆了 $non 封非通知的信（上限 $FLOOD）；要么当轮处置掉，要么告诉需求方和发信人「别再往这儿发，换任务或咨询单」"; bad=$((bad+1))
-  fi
+  # ⑧（2026-10-05 取消）原来这里判「同一发信人非通知类堆过 3 封」；现在只有上面那条封数上限（MAIL_MAX）。
 done
 
 # 🔴 ⑨之二 归档只许增不许减（监督席 2026-09-15 提的，因为它的两行归档真的被删过一次）
@@ -253,4 +277,4 @@ if [ "$bad" -gt 0 ]; then
   echo "  规矩在 $D/README.md：只放未读 · 处置完移进 archive/<收信席>-<年月>.md · 信传话台账传活。"
   exit 1
 fi
-echo "MAIL-OK（未处置 $(cat "$D"/to-*/from-*.md 2>/dev/null | grep -cE '^\| 2[0-9]{3}-' || true) 封，都在期内）"
+echo "MAIL-OK（扫了 $nbox 份投递口（其中外部项目 $nout 份），未处置 $(cat "$D"/to-*/from-*.md 2>/dev/null | grep -cE '^\| 2[0-9]{3}-' || true) 封，都在期内）"

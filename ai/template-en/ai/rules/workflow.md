@@ -40,7 +40,7 @@ dropped: the requirement changed or another task superseded it (state which one 
 id: T-0042
 title: <one line saying what this task is>
 raised by: Reviewer            # Reviewer / Requester / Developer / Supervisor
-type: development       # development / advisory (advisory = a consult ticket assigned to the Supervisor seat, see §5b)
+type: development       # development / advisory (advisory = a piece of work assigned to the Supervisor seat; a plain consult goes by letter, see §5b)
 assigned to: developer  # developer / supervisor (advisory task)
 status: todo            # one of the six states
 priority: P1              # P0 right now / P1 this stage / P2 next stage / P3 when free / P4 don't forget
@@ -265,7 +265,7 @@ verification records go in `claude-outputs/reviewer/` → what holds up becomes 
 
 **Conflicts go only into the verification record, never into the task file development reads.** Development doesn't need to know which of the three parties was right, only what was finally decided.
 
-## 5b. The advisory task (consult ticket) — **how the Reviewer seat's own decisions get an independent look**
+## 5b. An independent look from the Supervisor seat — **an opinion goes by letter; an advisory task is for assigning it work**
 
 **This closes a gap in the separation of powers**: architecture, the database, technology choices, the UI rules —
 **the Reviewer seat sets them**; their implementation is **reviewed by the Reviewer seat**; and whether it passes is **judged by the Reviewer seat**.
@@ -279,23 +279,26 @@ One seat sets the standard and judges compliance with it, with no second pair of
 
 **The key is that it fires on demand, not an extra round on every item.** By default you make the call yourself; **only when you ask for a consult** does the path below run.
 
-### How it runs (five steps)
+🔴 **The channel as later amended** (the Requester: "from now on you talk to the supervisor by letter, not by having it look at a task"; "keep the advisory task; consulting the supervisor goes by letter,
+unless it is assigning the supervisor something to do — only that is an advisory task"). **One-line test: you only need its opinion → a letter; you are assigning it a piece of work → an advisory task.**
 
-| # | Who | What they do |
-|---|---|---|
-| 1 | **The Requester** | Says one line to the Reviewer seat: "**consult the supervisor on this**" |
-| 2 | **The Reviewer seat** | Opens an **advisory task**: `ai/tasks/T-####`, with `type: advisory` and `assigned to: supervisor`. **Use the existing task ledger, do not start a second one.** The task states: what it should look at, which constraints are known, and **which point you want it to challenge most** |
-| 3 | **The Requester → the Supervisor seat** | Says "**look at the task**" or "continue" |
-| 4 | **The Supervisor seat** | **Reads only the one assigned to it** (see below), gives its opinion and verdict → writes it into `claude-outputs/supervisor/<date>-<one line>.md`, leaves a line in the task file pointing at it, and pushes the status to `in review` |
-| 5 | **The Requester → the Reviewer seat** | Says "**the supervisor has given its opinion**" → the Reviewer seat reads that output, **gives its verdict taking that into account**, then closes the advisory task |
+### How it runs (two channels, the same five-step skeleton)
+
+| # | Who | **Consult (the default, by letter)** | **Advisory task (assigning it a piece of work)** |
+|---|---|---|---|
+| 1 | **The Requester** | Says to the Reviewer seat: "**consult the supervisor on this**" | The same line, stating what it is to **do** (an audit, a study, a document to produce) |
+| 2 | **The Reviewer seat** | Sends a "request" letter (`ai/mail/to-supervisor/from-reviewer.md`) with the detail in a file: what it should look at, which constraints are known, and **which point you want it to challenge most** | Opens `ai/tasks/T-####` with `type: advisory` and `assigned to: supervisor`, stating the same three things plus the acceptance criteria. **Use the existing task ledger, do not start a second one** |
+| 3 | **The Requester → the Supervisor seat** | Says "**check mail**" | Says "**look at the task**" |
+| 4 | **The Supervisor seat** | Writes its opinion into `claude-outputs/supervisor/<date>-<one line>.md` and sends back one "reply" pointing at it | **Reads only the one assigned to it** (see below), puts the output in the same place, leaves a line in the task file pointing at it, and pushes the status to `in review` |
+| 5 | **The Requester → the Reviewer seat** | Says "**the supervisor has given its opinion**" → the Reviewer seat checks the mail, **gives its verdict taking that into account**, and archives that reply | The same line → the Reviewer seat reads the task, **gives its verdict taking that into account**, then closes the task |
 
 ### Three hard rules
 
-- **This is the one exception to the Supervisor seat reading the queue**: when the Requester says "look at the task", it may
+- **The advisory task is the one exception to the Supervisor seat not reading the queue**: when the Requester says "look at the task", it may
   `grep -l 'assigned to: supervisor' ai/tasks/T-*.md` to find its own entry, and **read only that one**.
-  **It may not look at other tasks along the way, and it may not start scheduling from there** (`ai/roles/supervisor.md` §1).
-- **Closing authority is the Reviewer seat's** (it opened the ticket). The Supervisor seat can only push to `in review`.
-- **The Reviewer seat may decline to adopt it** — but it **must write into the task why it was rejected, with evidence**.
+  **It may not look at other tasks along the way, and it may not start scheduling from there** (`ai/roles/supervisor.md` §1). **A consult gives it no reason to read the queue** — everything it needs is in the letter and the detail file.
+- **Closing authority is the Reviewer seat's** (it opened the ticket, and it sent the letter). On an advisory task the Supervisor seat can only push to `in review`. **When unsure which channel, send a letter**; if the letter cannot settle it and the thing really is "a piece of work for it", turn it into an advisory task.
+- **The Reviewer seat may decline to adopt it** — but it **must write down why it was rejected, with evidence** (for a consult, in its own verdict; for an advisory task, in the task).
   This is the residual risk: the independent eyes looked, but whether it is adopted is still the Reviewer seat's call, and **the final backstop is the Requester**.
   So the verdict that comes out of step 5 is one **you can overturn outright**.
 
@@ -305,7 +308,7 @@ One seat sets the standard and judges compliance with it, with no second pair of
 
 ### The retrospective material is not summarized by the seat under review
 
-**The raw material** (verbatim quotes + a timeline, no assessment) comes from the seat under review, **committed under `claude-outputs/<seat>/`, never `tmp/`**; **the assessment comes from the Supervisor seat**, through the §5b consult ticket. **Why**: a self-assessment is written from inside the seat and **is structurally blind to a whole class of problem** (the evidence is in `claude-outputs/README.md`).
+**The raw material** (verbatim quotes + a timeline, no assessment) comes from the seat under review, **committed under `claude-outputs/<seat>/`, never `tmp/`**; **the assessment comes from the Supervisor seat**, through §5b (by default, a letter asking for its opinion). **Why**: a self-assessment is written from inside the seat and **is structurally blind to a whole class of problem** (the evidence is in `claude-outputs/README.md`).
 
 ## 6. Priority
 

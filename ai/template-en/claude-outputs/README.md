@@ -169,7 +169,7 @@ a frontend framework gets whatever its scaffolding generates.
 When the Requester wants a retrospective: **what the Reviewer seat hands in is the raw material** — verbatim quotes + a timeline, **with no assessment**,
 **committed under `claude-outputs/reviewer/`** (**never `tmp/`**: `tmp/` is not committed and is cleared every stage,
 and `ai/rules/layout.md` §6 says in so many words "nothing in `tmp/` may be referenced by anything").
-**The assessment comes from the Supervisor seat**, through the consult ticket of §5b.
+**The assessment comes from the Supervisor seat**, through `ai/rules/workflow.md` §5b (by default, a letter asking for its opinion).
 
 **Why**: a self-assessment is written **from inside the seat**. A real case — the Reviewer seat's nine-point self-assessment was perfectly sincere,
 but of the six further points the Supervisor seat caught it had listed **not one**, and those six all happened to be visible only **from outside the seat**

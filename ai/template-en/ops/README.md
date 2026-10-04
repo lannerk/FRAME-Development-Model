@@ -33,7 +33,7 @@ binaries and upgrade packages (those go in `dist/`, not committed).
 bash ops/scripts/commit-round.sh "<one-line title>" --seat <your seat>   # want to see what the commit message looks like first: add --dry
 #   --seat maintainer/reviewer/developer/supervisor: commit only what is yours (ownership table ai/rules/layout.md §7)
 #   Reviewer committing the Developer's work: --seat developer --by reviewer --for "T-0010 B-0019" (no title = copy now.md §7)
-#   Only look at some paths: append -- <paths...> (a whole-repo scan is slow on a mounted share; --seat scans only that seat's and shared paths)
+#   Only look at some paths: append -- <paths...> (a whole-repo scan is slow on a mounted share; --seat scans only that seat's and shared paths). **Shared files carrying your seat's name come along automatically; the rest are committed only when named here**
 ```
 
 **Why it finishes on a mounted share** (Reviewer seat 2026-09-30, measured: `git commit` ran past 175 s three times and was killed, leaving locks):

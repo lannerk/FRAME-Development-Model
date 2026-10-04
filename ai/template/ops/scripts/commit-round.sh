@@ -3,6 +3,7 @@
 # 用法：bash ops/scripts/commit-round.sh "<一句话标题>" --seat <席>   [--dry] [-- <只看这些路径…>]
 #       审查席代提开发席：bash ops/scripts/commit-round.sh ["<标题>"] --seat 开发席 --by 审查席 --for "T-0010 B-0019"
 #         （审查通过那一轮；不给标题就取 ai/state/now.md 第七节代码块的第一行；workflow.md §七之二）
+#       共写文件（信箱 · 归档 · 记忆）：**名字里带本席的自动带上，其余的在 `--` 后点名才提交**（见下「共写文件按文件名分」）
 # 退出码 0 = 提交好了（或 --dry 演练通过）；1 = 前置条件不满足（原样退出，什么都没动）；2 = 结构不对。
 #
 # 【边界，一个字都不许越】
@@ -214,9 +215,26 @@ if [ "$ALLSEATS" != 1 ] && [ "$NSEATS" -gt 1 ] && [ -z "$SEAT" ]; then
   echo "   【为什么要拦】提交信息是四席共用的历史，裹走别席的改动＝历史说谎（实测两次，见 layout.md §七）。"
   exit 1
 fi
+# 🔴 **共写文件按文件名分**（需求方 2026-10-05 定）。原来 --seat 把「共写」文件**整份**算成本席的，
+# 于是别席在信箱 / 归档 / 记忆里还没提交的改动被一起带走、署到本席名下（实测两次：内容没丢，历史署名错）。
+# 现在：**名字里带本席的自动带上**——自己发信的投递口 `to-*/from-<本席>.md`、自己收信的 `to-<本席>/`、
+# 自己的归档 `archive/<本席>-*`、自己的座位记忆 `seat-<本席>.md`；**其余共写文件**（`ai/memory.md` 这类分不出谁改的）
+# **只有在命令后 `-- <路径>` 点名才带**，没点名的列出来、留在工作区。
+# 拦不住的一种：同一份投递口两席同时在改（发信人加行、收信人移行），谁先提交谁带走——少见，提交前看一眼 --dry。
+SHARED_LEFT=""
+NOTE_SHARED() {
+  [ -n "$SHARED_LEFT" ] || return 0
+  echo "ℹ️  有 $(printf '%s\n' "$SHARED_LEFT" | grep -c .) 个共写文件改过、但名字里不带 $SEAT、也没点名，**这次没带**（是你改的就再跑一次，在命令后加 -- <路径…>）："
+  printf '%s\n' "$SHARED_LEFT" | sed 's/^/     /'
+}
 if [ -n "$SEAT" ] && [ "$ALLSEATS" != 1 ]; then
-  MINE="$(printf '%s\n' "$SPLIT" | awk -F'|' -v s="$SEAT" '$1==s || $1=="共写" {print $2}')"
-  [ -z "$MINE" ] && { echo "⛔ 这一轮没有属于 $SEAT 的改动（归属表：ai/rules/layout.md §七）。"; exit 1; }
+  case "$SEAT" in 维护席) SEAT_EN=maintainer;; 审查席) SEAT_EN=reviewer;; 开发席) SEAT_EN=developer;; 监督席) SEAT_EN=supervisor;; 研究席) SEAT_EN=researcher;; *) SEAT_EN="-";; esac
+  SHARED_AWK='function by_name(p) { return (p ~ ("^ai/mail/to-[^/]+/from-" en "[.]md$") || index(p, "ai/mail/to-" en "/") == 1 || index(p, "ai/mail/archive/" en "-") == 1 || p == ("ai/memory-archive/seat-" en ".md")) }'
+  MINE="$(printf '%s\n' "$SPLIT" | awk -F'|' -v s="$SEAT" -v en="$SEAT_EN" -v named="${#NARROW[@]}" "$SHARED_AWK"'
+    $1==s {print $2; next} $1=="共写" && (named > 0 || by_name($2)) {print $2}')"
+  SHARED_LEFT="$(printf '%s\n' "$SPLIT" | awk -F'|' -v en="$SEAT_EN" -v named="${#NARROW[@]}" "$SHARED_AWK"'
+    $1=="共写" && !(named > 0 || by_name($2)) {print $2}')"
+  [ -z "$MINE" ] && { echo "⛔ 这一轮没有属于 $SEAT 的改动（归属表：ai/rules/layout.md §七）。"; NOTE_SHARED; exit 1; }
   OTHERS="$(printf '%s\n' "$SPLIT" | awk -F'|' -v s="$SEAT" '$1!=s && $1!="共写" {print $1"|"$2}')"
 fi
 # 给了 `-- <路径>` 又没按席挑出文件（--all-seats）：就只提交这些路径下的改动，**不许退化成全仓 add -A**
@@ -306,7 +324,7 @@ EOM
 )
 
 if [ "$DRY" = 1 ]; then
-  echo "── 演练，没有提交，**暂存区一个字都没动** ──"; echo "$MSG"; echo; echo "（「范围」那行的文件数就是它，同一个来源）"; exit 0
+  echo "── 演练，没有提交，**暂存区一个字都没动** ──"; echo "$MSG"; echo; echo "（「范围」那行的文件数就是它，同一个来源）"; NOTE_SHARED; exit 0
 fi
 
 # 🔴 **真提交走底层命令，不用 `git commit`**（审查席 2026-09-30 实测：挂载盘上 `git commit` 连续三次超过 175 s 被杀，
@@ -345,3 +363,4 @@ tmpn=0; while IFS= read -r t; do rm -f "$t" 2>/dev/null || tmpn=$((tmpn+1)); don
 echo "✅ 已提交到本地分支 $br：$(G rev-parse --short HEAD)"
 echo "   $TITLE"
 echo "   **没有推送** —— 去 SourceTree 看一眼再 push。（用时 $(( $(date +%s) - START )) 秒）"
+NOTE_SHARED

@@ -15,10 +15,10 @@
 # of one file means git conflicts in the same hunk (the Requester works in Windows SourceTree, so resolving them lands on him).
 # Splitting to this level takes that to zero. **The sender is in the filename, so a letter no longer carries a "From" column.**
 #
-# [Twelve criteria] fields filled . paths resolve . never marked read in place . never left 7 days . never over 12 lines per file .
+# [Twelve criteria] fields filled . paths resolve . never marked read in place . never left 7 days . never over 20 letters per file (25 lines) .
 #   "what I have to do" is never just an ID (that is handing out work) . no courtesy receipts .
 #   a "reply" or a "notice" never asks for a reply (no chat loops) . the same letter is never sent twice .
-#   one sender never piles up more than 3 non-notice letters (an abnormal inbox gets reported) .
+#   another project's drop-box is registered first and only writes to the Reviewer and the Supervisor . the recipient is a seat of this project .
 #   all three drop-boxes exist for each of the four seats .
 #   the archive is one file per seat per month and every row states the outcome (one shared file guarantees git conflicts).
 set -u
@@ -36,8 +36,14 @@ D="${MAIL_DIR:-ai/mail}"
 # Do not break the real mailbox on purpose and then clean up by "deleting rows containing some word" --
 # **real letters go with it**; that happened once in this very round.
 STALE_DAYS="${MAIL_STALE_DAYS:-7}"
-CAP="${MAIL_CAP:-12}"
-FLOOD="${MAIL_FLOOD:-3}"
+# Two bounds (relaxed by the Requester on 2026-10-05 from "12 lines per file, no more than 3 non-notice letters per sender"):
+# each drop-box holds **at most 20 unhandled letters**, the file 25 lines (5 header lines + 20 letters). The "3 non-notice
+# letters" rule is gone: once asking the Supervisor for an opinion moved to the mail, it and the 12 lines filled up before
+# "nobody reads it" did, leaving the sender to not send and ask the Requester to relay by word of mouth --
+# **a ruler that rings before the thing it protects is the wrong ruler**.
+# What a sender does when it is full is in ai/mail/README.md, "before you send".
+MAXMAIL="${MAIL_MAX:-20}"
+CAP="${MAIL_CAP:-25}"
 TYPES="suggestion hand-over notice request reply"
 SEATS="developer reviewer supervisor maintainer"
 # [The extra seat on the R&D line] The Researcher exchanges letters **only with the Supervisor and the
@@ -56,13 +62,43 @@ SEATS="developer reviewer supervisor maintainer"
 # **Opening a channel is not opening write access**: writing `ai/memory.md` or touching anything outside
 # `ai/RandD/` still goes through the Supervisor.
 RND_SEAT="${RND_SEAT:-researcher}"; RND_PEERS="${RND_PEERS:-supervisor reviewer}"
-bad=0
+# [Drop-boxes from another project] another project (say, one that consumes what this project produces) may post
+# into this project's mail directly, **but the opening is registered first**: its name goes into MAIL_EXT= in
+# ops/verify/paths.env (space-separated; that file is seed -- the project's own list, never part of FRAME).
+# **An unregistered sender is a drop-box out of nowhere, and goes red**; outside letters may only go to MAIL_EXT_PEERS
+# (by default the Reviewer and the Supervisor) -- development takes work only from the Reviewer, and rules questions
+# go to their own Maintainer. An environment variable wins over paths.env (for reverse assertions run on a copy).
+_ext_env="${MAIL_EXT-__unset__}"
+[ -f ops/verify/paths.env ] && . ops/verify/paths.env
+[ "$_ext_env" != "__unset__" ] && MAIL_EXT="$_ext_env"
+MAIL_EXT="${MAIL_EXT:-}"; MAIL_EXT_PEERS="${MAIL_EXT_PEERS:-reviewer supervisor}"
+bad=0; nbox=0; nout=0
 today=$(date +%s)
 
 for f in "$D"/to-*/from-*.md; do
   [ -f "$f" ] || continue
   recv=$(basename "$(dirname "$f")"); recv=${recv#to-}
   sender=$(basename "$f" .md); sender=${sender#from-}
+  nbox=$((nbox+1))
+  # the recipient must be a seat of this project (a reply to another project goes into THEIR repo's mail, not a to-<project>/ here)
+  case " $SEATS $RND_SEAT " in
+    *" $recv "*) : ;;
+    *) echo "  x  $f -- recipient \"$recv\" is not a seat of this project: a reply to another project goes into their repo's mail; this drop-box should not exist"; bad=$((bad+1)) ;;
+  esac
+  # a sender that is not a seat of this project = another project: registered first, and only to MAIL_EXT_PEERS
+  case " $SEATS $RND_SEAT " in
+    *" $sender "*) : ;;
+    *)
+      case " $MAIL_EXT " in
+        *" $sender "*)
+          nout=$((nout+1))
+          case " $MAIL_EXT_PEERS " in
+            *" $recv "*) : ;;
+            *) echo "  x  $f -- the outside project \"$sender\" may only write to: $MAIL_EXT_PEERS (development takes work only from the Reviewer; rules questions go to their own Maintainer)"; bad=$((bad+1)) ;;
+          esac ;;
+        *) echo "  x  $f -- stranger's drop-box: sender \"$sender\" is not a seat of this project and is not registered as an outside project (MAIL_EXT= in ops/verify/paths.env). A drop-box out of nowhere is worse than none: register it if the Requester approved it, delete it if not"; bad=$((bad+1)) ;;
+      esac ;;
+  esac
   # the Researcher's drop-boxes may only pair with the peers listed above
   if [ "$recv" = "$RND_SEAT" ] || [ "$sender" = "$RND_SEAT" ]; then
     other="$sender"; [ "$sender" = "$RND_SEAT" ] && other="$recv"
@@ -108,7 +144,7 @@ for f in "$D"/to-*/from-*.md; do
     # if you did it, settled it yourself, or it was only a notice, **no reply at all** -- **the archive row is the receipt**.
     if [ "$reply" = "yes" ]; then
       case "$typ" in
-        reply|notice) echo "  x  $tag -- type \"$typ\" may not ask for a reply (one round trip is the limit; open a task or an advisory task instead)"; bad=$((bad+1));;
+        reply|notice) echo "  x  $tag -- type \"$typ\" may not ask for a reply (one round trip is the limit; if it cannot be settled, change tracks: open a task, or have the Requester call it)"; bad=$((bad+1));;
       esac
     fi
     # Courtesy receipts are red on sight (the Requester: "things like 'got it, thanks, great suggestion' that do nothing need no reply").
@@ -152,6 +188,8 @@ for f in "$D"/to-*/from-*.md; do
     # (6) never marked read in place
     case "$line" in *'~~'*) echo "  x  $tag -- the mailbox may not carry a strike-through; once handled, move it into archive/"; bad=$((bad+1));; esac
   done < "$f"
+  # the letter cap: when full the sender adds nothing new (folds into their most recent letter) and the recipient is due to clear it
+  [ "$rows" -gt "$MAXMAIL" ] && { echo "  x  $f -- $rows unhandled letters / cap $MAXMAIL: the sender adds nothing new (fold it into the most recent letter), the recipient is due to clear it; work belongs in a task"; bad=$((bad+1)); }
 
   # (7) the same letter sent twice (the same "what I have to do" appearing more than once in this file)
   dup=$(awk -F'|' '/^\|/ {
@@ -185,15 +223,7 @@ for f in "$D"/to-*/from-*.md; do
     fi
   fi
 
-  # (8) piling up: more than MAIL_FLOOD non-notice letters unhandled in this file = an abnormal inbox, to be reported
-  non=$(awk -F'|' '/^\|/ {
-      if ($0 ~ /^\|---/) next; if ($0 ~ /^\| *Date /) next;
-      what=$3; typ=$5; gsub(/^[ \t]+|[ \t]+$/, "", what); gsub(/^[ \t]+|[ \t]+$/, "", typ);
-      if (what == "") next; if (typ == "notice") next; n++
-    } END { print n+0 }' "$f")
-  if [ "$non" -gt "$FLOOD" ]; then
-    echo "  x  $f -- abnormal inbox: $sender has $non non-notice letters piled up (cap $FLOOD); either handle them this round, or tell the Requester and the sender \"stop sending here, open a task or an advisory task\""; bad=$((bad+1))
-  fi
+  # (8) (dropped 2026-10-05) this used to red "more than 3 non-notice letters from one sender"; only the letter cap above (MAIL_MAX) remains.
 done
 
 # (9) the archive: one file per seat per month, and every row states the outcome
@@ -239,4 +269,4 @@ if [ "$bad" -gt 0 ]; then
   echo "  The rules are in $D/README.md: unread only . move it into archive/<recipient>-<YYYY-MM>.md once handled . the mail carries words, the ledger carries work."
   exit 1
 fi
-echo "MAIL-OK ($(cat "$D"/to-*/from-*.md 2>/dev/null | grep -cE '^\| 2[0-9]{3}-' || true) unhandled, none overdue)"
+echo "MAIL-OK ($nbox drop-boxes scanned ($nout from outside projects), $(cat "$D"/to-*/from-*.md 2>/dev/null | grep -cE '^\| 2[0-9]{3}-' || true) unhandled, none overdue)"

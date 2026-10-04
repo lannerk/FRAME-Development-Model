@@ -3,6 +3,7 @@
 # Usage: bash ops/scripts/commit-round.sh "<one-line title>" --seat <seat>   [--dry] [-- <only these paths...>]
 #        Reviewer commits the Developer's work: bash ops/scripts/commit-round.sh ["<title>"] --seat developer --by reviewer --for "T-0010 B-0019"
 #          (in the round that passes it; with no title, the first line of the code block in ai/state/now.md §7 is used; workflow.md §7b)
+#        Shared files (mail . archive . memory): **those carrying your seat's name come along automatically; the rest only when named after `--`** (see "shared files are split by file name" below)
 # Exit codes: 0 = committed (or the --dry run passed); 1 = a precondition is not met (exits as-is, nothing touched); 2 = the structure is wrong.
 #
 # [The boundary, not a word past it]
@@ -220,9 +221,29 @@ if [ "$ALLSEATS" != 1 ] && [ "$NSEATS" -gt 1 ] && [ -z "$SEAT" ]; then
   echo "   [Why the stop] The commit message is history shared by all four seats; sweeping in another seat's work makes it lie (measured twice, see layout.md §7)."
   exit 1
 fi
+# 🔴 **Shared files are split by file name** (the Requester's ruling, 2026-10-05). --seat used to count a "shared" file as
+# wholly yours, so another seat's uncommitted change in the mail / archive / memory was swept along and signed with your
+# name (measured twice: nothing lost, but the history was signed wrong).
+# Now **files carrying your seat's name come along automatically** -- the drop-boxes you send from `to-*/from-<seat>.md`,
+# the ones you receive in `to-<seat>/`, your archive `archive/<seat>-*`, your seat memory `seat-<seat>.md`; **the other
+# shared files** (`ai/memory.md` and the like, where nobody can tell who changed them) **come along only when named after
+# `-- <paths>`**; the unnamed ones are listed and stay in the working tree.
+# One shape it cannot stop: two seats editing the same drop-box at once (the sender adds a row, the recipient moves one
+# out) -- whoever commits first takes both. Rare; look at --dry before committing.
+SHARED_LEFT=""
+NOTE_SHARED() {
+  [ -n "$SHARED_LEFT" ] || return 0
+  echo "NOTE $(printf '%s\n' "$SHARED_LEFT" | grep -c .) shared file(s) changed but neither carry $SEAT's name nor were named, so they were **left out** (if the change is yours, run again with -- <paths...>):"
+  printf '%s\n' "$SHARED_LEFT" | sed 's/^/     /'
+}
 if [ -n "$SEAT" ] && [ "$ALLSEATS" != 1 ]; then
-  MINE="$(printf '%s\n' "$SPLIT" | awk -F'|' -v s="$SEAT" '$1==s || $1=="shared" {print $2}')"
-  [ -z "$MINE" ] && { echo "STOP nothing in this round belongs to $SEAT (ownership table: ai/rules/layout.md §7)."; exit 1; }
+  case "$SEAT" in Maintainer) SEAT_EN=maintainer;; Reviewer) SEAT_EN=reviewer;; Developer) SEAT_EN=developer;; Supervisor) SEAT_EN=supervisor;; Researcher) SEAT_EN=researcher;; *) SEAT_EN="-";; esac
+  SHARED_AWK='function by_name(p) { return (p ~ ("^ai/mail/to-[^/]+/from-" en "[.]md$") || index(p, "ai/mail/to-" en "/") == 1 || index(p, "ai/mail/archive/" en "-") == 1 || p == ("ai/memory-archive/seat-" en ".md")) }'
+  MINE="$(printf '%s\n' "$SPLIT" | awk -F'|' -v s="$SEAT" -v en="$SEAT_EN" -v named="${#NARROW[@]}" "$SHARED_AWK"'
+    $1==s {print $2; next} $1=="shared" && (named > 0 || by_name($2)) {print $2}')"
+  SHARED_LEFT="$(printf '%s\n' "$SPLIT" | awk -F'|' -v en="$SEAT_EN" -v named="${#NARROW[@]}" "$SHARED_AWK"'
+    $1=="shared" && !(named > 0 || by_name($2)) {print $2}')"
+  [ -z "$MINE" ] && { echo "STOP nothing in this round belongs to $SEAT (ownership table: ai/rules/layout.md §7)."; NOTE_SHARED; exit 1; }
   OTHERS="$(printf '%s\n' "$SPLIT" | awk -F'|' -v s="$SEAT" '$1!=s && $1!="shared" {print $1"|"$2}')"
 fi
 # With `-- <paths>` but no per-seat pick (--all-seats): commit only what changed under those paths; **never fall back to a whole-repo add -A**
@@ -306,7 +327,7 @@ EOM
 )
 
 if [ "$DRY" = 1 ]; then
-  echo "-- dry run, nothing committed, **the index was not touched** --"; echo "$MSG"; echo; echo "(the file count on the Scope line is this same number, one source)"; exit 0
+  echo "-- dry run, nothing committed, **the index was not touched** --"; echo "$MSG"; echo; echo "(the file count on the Scope line is this same number, one source)"; NOTE_SHARED; exit 0
 fi
 
 # 🔴 **The real commit uses plumbing, not `git commit`** (Reviewer seat 2026-09-30, measured: on the mounted share `git commit` ran past 175 s three times
@@ -345,3 +366,4 @@ tmpn=0; while IFS= read -r t; do rm -f "$t" 2>/dev/null || tmpn=$((tmpn+1)); don
 echo "✅ committed to the local branch $br: $(G rev-parse --short HEAD)"
 echo "   $TITLE"
 echo "   **not pushed** -- take a look in SourceTree before you push. ($(( $(date +%s) - START )) s)"
+NOTE_SHARED

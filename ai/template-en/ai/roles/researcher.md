@@ -11,7 +11,7 @@
 
 ## 1. Five things at the start of a session (mail first; the queue is your own)
 
-1. **`ai/mail/to-researcher/` (two files, ≤12 lines each) — mail first**: `from-supervisor.md` (the Supervisor's opinions
+1. **`ai/mail/to-researcher/` (two files, ≤20 letters each) — mail first**: `from-supervisor.md` (the Supervisor's opinions
    and notices) and `from-reviewer.md` (the Reviewer's questions and feedback, opened by the Requester on 2026-09-25),
    handled oldest first, then moved into `ai/mail/archive/researcher-<YYYY-MM>.md` (**the archive belongs to the recipient**).
    **Read them all at once, de-duplicate yourself, and report a short summary in the session.** Rules: `ai/mail/README.md`.

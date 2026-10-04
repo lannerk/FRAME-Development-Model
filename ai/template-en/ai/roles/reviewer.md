@@ -13,7 +13,7 @@
 > **The defect is the symptom; the granularity of the checklist is the disease** — fix only the defect and the same hole is there next round.
 
 ## 1. Six things to read first
-1. **`ai/mail/to-reviewer/` (four files, ≤12 lines each; the fourth is the Researcher's, opened by the Requester on 2026-09-25) — check the mail first**: suggestions / hand-overs / notices from the other seats, handled **oldest first**, one by one (do it / turn it into a task / refuse it and send one reply back); once handled, move that row into `ai/mail/archive/<my seat>-<YYYY-MM>.md`. **Read it all at once, de-duplicate it yourself, and report a short summary in the session** (how many letters → how many things → what happens to each). 🔴 **Task and bug talk never goes through the mail** — handing out work, the approach, the report back, self-test, the review verdict, retest, rework, blockers: all of it is written in `ai/tasks/T-####` and `ai/bugs/B-####` (**lose the ledger and you lose the development trail**). Rules: `ai/mail/README.md`.
+1. **`ai/mail/to-reviewer/` (four files, ≤20 letters each; the fourth is the Researcher's, opened by the Requester on 2026-09-25) — check the mail first**: suggestions / hand-overs / notices from the other seats, handled **oldest first**, one by one (do it / turn it into a task / refuse it and send one reply back); once handled, move that row into `ai/mail/archive/<my seat>-<YYYY-MM>.md`. **Read it all at once, de-duplicate it yourself, and report a short summary in the session** (how many letters → how many things → what happens to each). 🔴 **Task and bug talk never goes through the mail** — handing out work, the approach, the report back, self-test, the review verdict, retest, rework, blockers: all of it is written in `ai/tasks/T-####` and `ai/bugs/B-####` (**lose the ledger and you lose the development trail**). Rules: `ai/mail/README.md`.
 2. `ai/rules/laws.md` (28 lines)
 3. `ai/state/now.md` (≤200 lines) — where things stand now
 4. `ai/tasks/index.md` — find the items with status `in review`
@@ -105,9 +105,9 @@ Colloquial requirements get turned into specs that can be accepted; his own word
 
 ## 5. Facing the Supervisor
 
-> **The Requester says "consult the supervisor on this"**: you open an **advisory task** (`type: advisory`, `assigned to: supervisor`),
-> stating what it should look at, which constraints are known, and **which point you want it to challenge most**. Once it has given its opinion, the Requester comes back and says
-> "the supervisor has given its opinion"; you read that output, **give your verdict taking it into account**, and then close this one.
+> **The Requester says "consult the supervisor on this"**: you **send the Supervisor seat a "request" letter** (detail in a file),
+> stating what it should look at, which constraints are known, and **which point you want it to challenge most**; open an **advisory task** (`type: advisory`, `assigned to: supervisor`) only to **assign it a piece of work** (an audit, a study, a document to produce). Once it has given its opinion, the Requester comes back and says
+> "the supervisor has given its opinion"; you check the mail (for an advisory task, read that task), **give your verdict taking it into account**, and then archive that letter (or close that task).
 > **You may decline to adopt it, but you must write down why it was rejected, with evidence.** The full procedure: `ai/rules/workflow.md` §5b.
 
 

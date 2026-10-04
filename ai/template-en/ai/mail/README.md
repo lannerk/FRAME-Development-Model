@@ -49,7 +49,7 @@ The mail lives in **`ai/mail/to-<recipient>/from-<sender>.md`** — three drop-b
 | Type | suggestion / hand-over / notice / request / reply |
 | Reply needed | yes / no |
 
-**Each drop-box is capped at 12 lines** (about 6 letters); full does not mean raise the cap, it means **nobody reads it or the letters are too fragmented**. **A letter left unhandled for 7 days goes red**: either handle it, or the sender withdraws it and takes another route.
+**Each drop-box holds at most 20 unhandled letters** (the file at most 25 lines; relaxed by the Requester on 2026-10-05 from "12 lines, and no more than 3 non-notice letters per sender": once asking the Supervisor for an opinion moved to the mail, those two filled up long before "nobody reads it" did). **When it is full the sender adds nothing new and folds it into their most recent letter** (see "before you send" below), and the recipient is due to clear it. **A letter left unhandled for 7 days goes red**: either handle it, or the sender withdraws it and takes another route.
 
 **Four rules for sending** (the same criteria as "passing something to another seat" in `ai/rules/requester.md`):
 
@@ -79,8 +79,8 @@ The Requester, 2026-09-15: **"this needs a boundary, otherwise it can turn into 
 | Reading it raised a new question you cannot settle | **One "request" letter** that asks it properly |
 
 - **A "reply" and a "notice" must themselves carry "reply needed: no"** — the guard reports it red.
-- **If it cannot be settled, change tracks**: open a `T-####` / `B-####` for work, or an **advisory task to the Supervisor seat**
-  (`ai/rules/workflow.md` §5b). **The mail is not a chat room**; it only puts one thing into the other seat's hands.
+- **If it cannot be settled, change tracks**: open a `T-####` / `B-####` for work, or an advisory task when the Supervisor seat is to **do a piece of work**
+  (`ai/rules/workflow.md` §5b; **asking for its opinion already goes by letter**). **The mail is not a chat room**; it only puts one thing into the other seat's hands.
 - **No second round because "you did not convince me"**. Still deadlocked = the Requester has to call it; write it into his inbox.
 - **No courtesy receipts** ("got it", "thanks", "great suggestion") — that is a token-burning loop with no content. The guard reports it red.
 
@@ -90,9 +90,9 @@ The Requester, 2026-09-15: "a sender sending one role several letters, or the sa
 
 | What you see | What to do |
 |---|---|
-| You already sent this thing and they have not handled it | **Edit that letter** (or the file it points at). **Do not send another.** The guard reports the duplicate red |
-| You already have 3 unhandled letters to them (non-notice, all in your own file) | **Stop.** This is not them being slow, it is **you using the mail as a ticket system** — open a task or an advisory task |
-| Your own file is already at 12 lines | Same as above: **wait for them to clear it, or change tracks now** |
+| What you have to say **adds to or corrects** your previous letter, and they have not handled that one yet | **Edit that letter** (or append a dated section to the file it points at). **Do not send another.** The guard catches a word-for-word duplicate; **whether it is "an addition" is yours to judge** |
+| Their drop-box from you **already holds 20 letters** | **Add nothing new**: fold it into your most recent letter (number the items ①②③ under "what I have to do") and say in the session "their mailbox is full". Full means either they are slow or **you are using the mail as a ticket system** — work belongs in a task |
+| A different, unrelated thing, and the box is not full | **Send a separate letter** as before (one letter, one thing). The Requester, 2026-10-05: **merge by content, not by the clock** |
 
 **Notices (such as "reload the rules") may not be repeated either**: after three rounds of changes, edit that one letter's date and content — **the recipient will act once.**
 
@@ -119,8 +119,8 @@ Mail: 3 letters (Supervisor x2, Reviewer x1), 2 distinct things after de-duplica
 No replies needed: none of them is "a new question I cannot settle"
 ```
 
-🔴 **Report an abnormal inbox instead of carrying it**: if one sender has **more than 3 non-notice letters** sitting unhandled (the guard reports it red),
-or the same thing keeps arriving, **tell the Requester and the sender after checking the mail**: "stop sending it here; this belongs in a task or an advisory task".
+🔴 **Report an abnormal inbox instead of carrying it**: if one drop-box **has filled up to 20 letters** (the guard reports it red),
+or the same thing keeps arriving, **tell the Requester and the sender after checking the mail**: "stop sending it here; this belongs in a task".
 There are only three ways to handle a letter, and **when you are done you move that row out of the mailbox into `ai/mail/archive/<my seat>-<YYYY-MM>.md`** (append one row, with the outcome) —
 🔴 **the archive belongs to the recipient**: a letter the Maintainer seat sent to the Supervisor seat is archived by the **Supervisor seat** into `supervisor-<YYYY-MM>.md` — **a letter belongs to whoever it was sent to**, and the sender archives nothing (to look up what you sent, read the recipient's file). Archive header: `| Date | From | What had to be done | Where the detail is | Outcome |`.
 **one archive per seat, not one shared file**: a shared file means all four seats appending to the same end of the same file, and **a git conflict is then a certainty** (pointed out by the Requester on 2026-09-15):
@@ -164,6 +164,14 @@ around) and Researcher → Maintainer (the Maintainer only owns the rules).
 **A drop-box nobody uses is worse than none** (it makes people think they may post there), so the gate reds both
 `to-researcher/from-<anyone but the Supervisor or the Reviewer>` and `to-<anyone but those two>/from-researcher`. Its archive is `archive/researcher-<YYYY-MM>.md`.
 🔴 **When its letter needs a long body, it points into `ai/RandD/<topic>/`** — `claude-outputs/` is the four development seats' scratch area; the Researcher does not write there.
+
+## 🔴 Letters from another project (a cross-repo drop-box)
+
+Another project (say, one that consumes what this project produces) may hand a seat of this project a letter directly — **the Requester need not be the relay** — but the opening has to be registered first:
+- **The drop-box** is `to-<recipient>/from-<their project name>.md`, written by **that project's seat**; its header says who they are, which seat writes it, and the day the Requester approved it. 🔴 **Only the Reviewer and the Supervisor may be written to** (development takes work only from the Reviewer; rules questions go to their own Maintainer).
+- **Register before opening**: **whether to open one is the Requester's call**; the Maintainer then adds the project name to `MAIL_EXT=` in `ops/verify/paths.env` (the project's own list, never part of FRAME). **An unregistered stranger's drop-box goes red** — a drop-box out of nowhere is worse than none.
+- **Format, cap, 7 days, read-all-and-de-duplicate, archiving** are exactly those of seat mail (the archive row names their project as the sender). **Requirements and bugs** arriving this way still go into the inbox through the Reviewer — the mail does not route around it.
+- **How the reply gets back**: if their repo is reachable → write it into their `ai/mail/to-<seat>/from-<this project's name>.md` (they register this project first); if not → write the reply as a file under your own `claude-outputs/`, put the path in the archive row, **and say so in the session** so the Requester can have them come and read it.
 
 ## One boundary you have to know
 

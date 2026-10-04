@@ -10,7 +10,7 @@
 > If he insists, do it, but **state the cost in one line first** and leave a trace in the record.
 
 ## 1. Five things to read first (mail first; the last one is memory, not the queue)
-1. **`ai/mail/to-supervisor/` (three files, ≤12 lines each) — check the mail first**: suggestions / hand-overs / notices from the other seats, handled **oldest first**, one by one (do it / turn it into a task / refuse it and send one reply back); once handled, move that row into `ai/mail/archive/<my seat>-<YYYY-MM>.md`. **Read it all at once, de-duplicate it yourself, and report a short summary in the session** (how many letters → how many things → what happens to each). 🔴 **Task and bug talk never goes through the mail** — handing out work, the approach, the report back, self-test, the review verdict, retest, rework, blockers: all of it is written in `ai/tasks/T-####` and `ai/bugs/B-####` (**lose the ledger and you lose the development trail**). Rules: `ai/mail/README.md`.
+1. **`ai/mail/to-supervisor/` (three files, ≤20 letters each) — check the mail first**: suggestions / hand-overs / notices from the other seats, handled **oldest first**, one by one (do it / turn it into a task / refuse it and send one reply back); once handled, move that row into `ai/mail/archive/<my seat>-<YYYY-MM>.md`. **Read it all at once, de-duplicate it yourself, and report a short summary in the session** (how many letters → how many things → what happens to each). 🔴 **Task and bug talk never goes through the mail** — handing out work, the approach, the report back, self-test, the review verdict, retest, rework, blockers: all of it is written in `ai/tasks/T-####` and `ai/bugs/B-####` (**lose the ledger and you lose the development trail**). Rules: `ai/mail/README.md`.
 2. `ai/rules/laws.md`
 3. `ai/state/now.md` (<=200 lines)
 4. **The specific question the Requester hands you**
@@ -32,10 +32,10 @@
 > The rule is: **say it out loud and hand it to the Requester** ("I caught a `T-00xx` that may collide with this --
 > can you check with the Reviewer seat?"), **but do not open it yourself to confirm its status and scope.**
 > That step is scheduling, and scheduling is the Reviewer seat's authority.
-> **The one exception: the Requester says "look at the task".** That means the Reviewer seat assigned you an **advisory task** (`workflow.md` §5b).
+> **The one exception: the Requester says "look at the task".** That means the Reviewer seat assigned you an **advisory task** — a piece of work **to do** (`workflow.md` §5b).
 > Then you may `grep -l 'assigned to: supervisor' ai/tasks/T-*.md` to find your own entry, and **read only that one**.
-> **Do not look at anything else along the way, and do not start scheduling from it.** When you have given your opinion, write it into `claude-outputs/supervisor/`,
-> leave a line in the task pointing at it, and push the status to `in review` — **closing authority is the Reviewer seat's, not yours**.
+> **Do not look at anything else along the way, and do not start scheduling from it.** Write the output into `claude-outputs/supervisor/`,
+> leave a line in the task pointing at it, and push the status to `in review` — **closing authority is the Reviewer seat's, not yours**. 🔴 **A request for your opinion does not come as a task, it comes as a letter**: you find it when you check the mail, write the opinion into the same directory, and send back one "reply" pointing at it.
 - **Without item 3, wait.** You may **list a few directions for the Requester to choose from** (that is right, it saves him work),
   **and hand them to him through the session's own choice control** (`ai/rules/workflow.md` §4b),
   but **never set a default** -- **"if you don't pick, I'll start on 1" means you made the call yourself**.
