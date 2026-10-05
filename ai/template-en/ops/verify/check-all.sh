@@ -45,29 +45,35 @@ $o"
   fi
 }
 
+# 🔴 **"Is it there" is tested with -f, not -x** (changed 2026-10-05): every guard is run as bash <script>, so the
+# executable bit is never needed — and the scripts are stored as 100644. On a Windows mounted share every file looks
+# executable, so nothing shows; clone on Linux / macOS (or unpack a git archive) and every executable-bit test is false:
+# **not a single guard runs, and the last line still prints "0 guards all green"** (measured).
+# That is exactly the shape "an empty scan must not report green" exists to stop, so one more gate at the end:
+# **zero guards run is red.**
 echo "Guard sweep · $(date '+%Y-%m-%d %H:%M')"
 echo
-[ -x ai/check-links.sh ]                  && run "link check"     bash ai/check-links.sh
-[ -x ops/verify/check-paths.sh ]          && run "hardcoded paths/IPs" bash ops/verify/check-paths.sh
-[ -x ops/verify/check-inbox.sh ]          && run "inbox"          bash ops/verify/check-inbox.sh
-[ -x ops/verify/check-bugs.sh ]           && run "bug loop"       bash ops/verify/check-bugs.sh
-[ -x ops/verify/check-ledger.sh ]         && run "ledger"         bash ops/verify/check-ledger.sh
-[ -x ops/verify/check-budget.sh ]         && run "line budget"    bash ops/verify/check-budget.sh
-[ -x ops/verify/check-filenames.sh ]      && run "filenames"         bash ops/verify/check-filenames.sh
-[ -x ops/verify/check-entrypoints.sh ]    && run "entry files"    bash ops/verify/check-entrypoints.sh
-[ -x ops/verify/check-root.sh ]           && run "repo root"        bash ops/verify/check-root.sh
-[ -x ops/verify/check-css-namespace.sh ]  && run "css namespace"    bash ops/verify/check-css-namespace.sh
-[ -x ops/verify/check-mirror.sh ]         && run "source vs mirror"  bash ops/verify/check-mirror.sh
-[ -x ops/verify/check-mail.sh ]           && run "seat mail"        bash ops/verify/check-mail.sh
-[ -x ops/verify/check-writeback.sh ]      && run "write-back parked" bash ops/verify/check-writeback.sh
-[ -x ops/verify/check-template-sync.sh ]  && run "template sync"  bash ops/verify/check-template-sync.sh
-[ -x ops/verify/check-cachebust.sh ]     && run "web cache-bust"  bash ops/verify/check-cachebust.sh
-[ -x ops/verify/check-randd.sh ]         && run "R&D line"       bash ops/verify/check-randd.sh
-[ -x ops/verify/check-frame-version.sh ] && run "FRAME version"  bash ops/verify/check-frame-version.sh
-[ -x ops/verify/check-shell-strict.sh ] && run "shell strict"  bash ops/verify/check-shell-strict.sh
-[ -x ops/verify/check-css-selfref.sh ]  && run "css self-ref"  bash ops/verify/check-css-selfref.sh
-[ -x ops/verify/check-advisor.sh ]       && run "kickoff advisor" bash ops/verify/check-advisor.sh
-[ -x ops/verify/check-debrand.sh ]       && run "de-branding   " bash ops/verify/check-debrand.sh
+[ -f ai/check-links.sh ]                  && run "link check"     bash ai/check-links.sh
+[ -f ops/verify/check-paths.sh ]          && run "hardcoded paths/IPs" bash ops/verify/check-paths.sh
+[ -f ops/verify/check-inbox.sh ]          && run "inbox"          bash ops/verify/check-inbox.sh
+[ -f ops/verify/check-bugs.sh ]           && run "bug loop"       bash ops/verify/check-bugs.sh
+[ -f ops/verify/check-ledger.sh ]         && run "ledger"         bash ops/verify/check-ledger.sh
+[ -f ops/verify/check-budget.sh ]         && run "line budget"    bash ops/verify/check-budget.sh
+[ -f ops/verify/check-filenames.sh ]      && run "filenames"         bash ops/verify/check-filenames.sh
+[ -f ops/verify/check-entrypoints.sh ]    && run "entry files"    bash ops/verify/check-entrypoints.sh
+[ -f ops/verify/check-root.sh ]           && run "repo root"        bash ops/verify/check-root.sh
+[ -f ops/verify/check-css-namespace.sh ]  && run "css namespace"    bash ops/verify/check-css-namespace.sh
+[ -f ops/verify/check-mirror.sh ]         && run "source vs mirror"  bash ops/verify/check-mirror.sh
+[ -f ops/verify/check-mail.sh ]           && run "seat mail"        bash ops/verify/check-mail.sh
+[ -f ops/verify/check-writeback.sh ]      && run "write-back parked" bash ops/verify/check-writeback.sh
+[ -f ops/verify/check-template-sync.sh ]  && run "template sync"  bash ops/verify/check-template-sync.sh
+[ -f ops/verify/check-cachebust.sh ]     && run "web cache-bust"  bash ops/verify/check-cachebust.sh
+[ -f ops/verify/check-randd.sh ]         && run "R&D line"       bash ops/verify/check-randd.sh
+[ -f ops/verify/check-frame-version.sh ] && run "FRAME version"  bash ops/verify/check-frame-version.sh
+[ -f ops/verify/check-shell-strict.sh ] && run "shell strict"  bash ops/verify/check-shell-strict.sh
+[ -f ops/verify/check-css-selfref.sh ]  && run "css self-ref"  bash ops/verify/check-css-selfref.sh
+[ -f ops/verify/check-advisor.sh ]       && run "kickoff advisor" bash ops/verify/check-advisor.sh
+[ -f ops/verify/check-debrand.sh ]       && run "de-branding   " bash ops/verify/check-debrand.sh
 
 # -- 🔴 The project's own guards: `ops/verify/check-project-*.sh` are auto-discovered ----------
 # 【Why this hook exists】the table above belongs to **FRAME itself** (class follow -- a sync overwrites it).
@@ -80,11 +86,15 @@ echo
 # **it never enters the template** (class skip in `ops/frame/classes.txt`).
 # Same contract as every row above: print one `*-OK` line when green, exit non-zero when red, SKIP when N/A.
 for pc in ops/verify/check-project-*.sh; do
-  [ -x "$pc" ] || continue
+  [ -f "$pc" ] || continue
   run "project guard" bash "$pc"
 done
 
 echo
+if [ $((pass+fail)) -eq 0 ]; then
+  echo "ALL-FAIL (not a single guard ran: this is not green, the patrol itself is broken — run it from the repo root and check the scripts under ops/verify/ are there)"
+  exit 1
+fi
 if [ "$fail" -gt 0 ]; then
   [ "$V" = 1 ] && { echo "$out"; echo; }
   echo "ALL-FAIL ($pass green / $fail red · ${SECONDS}s total)"

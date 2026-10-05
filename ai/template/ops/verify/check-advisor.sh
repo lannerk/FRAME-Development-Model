@@ -77,7 +77,7 @@ fi
 # `seed@host` 或路径带了别的写法，它就误报。
 # 🔴 `--classes "$CLASSES"` 一定要带上：`CLASSES_FILE` 这个口子就是为**反向断言**开的，
 # 不传过去的话守门查的是真表、而造错造在拷贝上，**那条造错永远不会被看见**（判据自己就成了摆设）。
-if [ -x ops/frame/frame-sync.sh ] && [ -f "$CLASSES" ]; then
+if [ -f ops/frame/frame-sync.sh ] && [ -f "$CLASSES" ]; then
   pcls="$(bash ops/frame/frame-sync.sh --classes "$CLASSES" --classify 2>/dev/null | awk -F'\t' -v p="$PROFILE" '$2==p{print $1}' | tail -1)"
   if [ -z "$pcls" ]; then
     echo "  ·  $PROFILE 不在同步清单里（模板里没有这一份）—— 分类这一条跳过"

@@ -44,29 +44,33 @@ $o"
   fi
 }
 
+# 🔴 **判「在不在」用 -f，不用 -x**（2026-10-05 改）：每一条都是 bash <脚本> 跑的，根本用不着可执行位；
+# 而脚本在库里存的是 100644——Windows 挂载盘上所有文件天生带 x 看不出来，换到 Linux / macOS 上克隆（或 git archive 解出来）
+# 每一格的可执行位判断全是假，**一条守门都没跑，末尾照样打印「0 条守门全绿」**（实测）。
+# 这正是「扫到空集不许报绿」要拦的形状，所以末尾再补一道：**一条都没跑到就是红**。
 echo "守门巡检 · $(date '+%Y-%m-%d %H:%M')"
 echo
-[ -x ai/check-links.sh ]                  && run "引用完整性"   bash ai/check-links.sh
-[ -x ops/verify/check-paths.sh ]          && run "写死的路径与IP" bash ops/verify/check-paths.sh
-[ -x ops/verify/check-inbox.sh ]          && run "收件簿"       bash ops/verify/check-inbox.sh
-[ -x ops/verify/check-bugs.sh ]           && run "bug 闭环"     bash ops/verify/check-bugs.sh
-[ -x ops/verify/check-ledger.sh ]         && run "台账对账"     bash ops/verify/check-ledger.sh
-[ -x ops/verify/check-budget.sh ]         && run "行数预算"     bash ops/verify/check-budget.sh
-[ -x ops/verify/check-filenames.sh ]      && run "文件名跨平台" bash ops/verify/check-filenames.sh
-[ -x ops/verify/check-entrypoints.sh ]    && run "入口文件"     bash ops/verify/check-entrypoints.sh
-[ -x ops/verify/check-root.sh ]           && run "仓库根白名单"   bash ops/verify/check-root.sh
-[ -x ops/verify/check-css-namespace.sh ]  && run "CSS 类名撞车"    bash ops/verify/check-css-namespace.sh
-[ -x ops/verify/check-mirror.sh ]         && run "源与镜像"       bash ops/verify/check-mirror.sh
-[ -x ops/verify/check-mail.sh ]           && run "席间信箱"       bash ops/verify/check-mail.sh
-[ -x ops/verify/check-writeback.sh ]      && run "回写待合"     bash ops/verify/check-writeback.sh
-[ -x ops/verify/check-template-sync.sh ]  && run "模板同步"     bash ops/verify/check-template-sync.sh
-[ -x ops/verify/check-cachebust.sh ]     && run "前端缓存串"   bash ops/verify/check-cachebust.sh
-[ -x ops/verify/check-randd.sh ]         && run "R&D 线"         bash ops/verify/check-randd.sh
-[ -x ops/verify/check-frame-version.sh ] && run "FRAME 版本"  bash ops/verify/check-frame-version.sh
-[ -x ops/verify/check-shell-strict.sh ] && run "shell 严格模式" bash ops/verify/check-shell-strict.sh
-[ -x ops/verify/check-css-selfref.sh ]  && run "CSS 变量自引用" bash ops/verify/check-css-selfref.sh
-[ -x ops/verify/check-advisor.sh ]       && run "开场顾问"      bash ops/verify/check-advisor.sh
-[ -x ops/verify/check-debrand.sh ]       && run "去品牌  "      bash ops/verify/check-debrand.sh
+[ -f ai/check-links.sh ]                  && run "引用完整性"   bash ai/check-links.sh
+[ -f ops/verify/check-paths.sh ]          && run "写死的路径与IP" bash ops/verify/check-paths.sh
+[ -f ops/verify/check-inbox.sh ]          && run "收件簿"       bash ops/verify/check-inbox.sh
+[ -f ops/verify/check-bugs.sh ]           && run "bug 闭环"     bash ops/verify/check-bugs.sh
+[ -f ops/verify/check-ledger.sh ]         && run "台账对账"     bash ops/verify/check-ledger.sh
+[ -f ops/verify/check-budget.sh ]         && run "行数预算"     bash ops/verify/check-budget.sh
+[ -f ops/verify/check-filenames.sh ]      && run "文件名跨平台" bash ops/verify/check-filenames.sh
+[ -f ops/verify/check-entrypoints.sh ]    && run "入口文件"     bash ops/verify/check-entrypoints.sh
+[ -f ops/verify/check-root.sh ]           && run "仓库根白名单"   bash ops/verify/check-root.sh
+[ -f ops/verify/check-css-namespace.sh ]  && run "CSS 类名撞车"    bash ops/verify/check-css-namespace.sh
+[ -f ops/verify/check-mirror.sh ]         && run "源与镜像"       bash ops/verify/check-mirror.sh
+[ -f ops/verify/check-mail.sh ]           && run "席间信箱"       bash ops/verify/check-mail.sh
+[ -f ops/verify/check-writeback.sh ]      && run "回写待合"     bash ops/verify/check-writeback.sh
+[ -f ops/verify/check-template-sync.sh ]  && run "模板同步"     bash ops/verify/check-template-sync.sh
+[ -f ops/verify/check-cachebust.sh ]     && run "前端缓存串"   bash ops/verify/check-cachebust.sh
+[ -f ops/verify/check-randd.sh ]         && run "R&D 线"         bash ops/verify/check-randd.sh
+[ -f ops/verify/check-frame-version.sh ] && run "FRAME 版本"  bash ops/verify/check-frame-version.sh
+[ -f ops/verify/check-shell-strict.sh ] && run "shell 严格模式" bash ops/verify/check-shell-strict.sh
+[ -f ops/verify/check-css-selfref.sh ]  && run "CSS 变量自引用" bash ops/verify/check-css-selfref.sh
+[ -f ops/verify/check-advisor.sh ]       && run "开场顾问"      bash ops/verify/check-advisor.sh
+[ -f ops/verify/check-debrand.sh ]       && run "去品牌  "      bash ops/verify/check-debrand.sh
 
 # ── 🔴 项目自己的守门：`ops/verify/check-project-*.sh` 自动发现 ────────────────
 # 【为什么要这个口子】上面这张表是 **FRAME 本体**的（follow 类，同步会覆盖）。一个项目必然会长出
@@ -77,11 +81,15 @@ echo
 # 名字里带 `project` 是提醒——**它永不进模板**（`ops/frame/classes.txt` 里是 skip 类）。
 # 约定与上面各条一样：绿了打印一行 `*-OK`，红了 exit 非 0，不适用就 SKIP 别报红。
 for pc in ops/verify/check-project-*.sh; do
-  [ -x "$pc" ] || continue
+  [ -f "$pc" ] || continue
   run "项目守门" bash "$pc"
 done
 
 echo
+if [ $((pass+fail)) -eq 0 ]; then
+  echo "ALL-FAIL（一条守门都没跑到：不是全绿，是巡检自己坏了——确认在仓库根下跑、ops/verify/ 里的脚本都在）"
+  exit 1
+fi
 if [ "$fail" -gt 0 ]; then
   [ "$V" = 1 ] && { echo "$out"; echo; }
   echo "ALL-FAIL（$pass 绿 / $fail 红 · 共 ${SECONDS}s）"

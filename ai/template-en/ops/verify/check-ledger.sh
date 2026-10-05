@@ -121,20 +121,34 @@ if git rev-parse --git-dir >/dev/null 2>&1; then
   done
 fi
 
-# ---- (3c) the memory archive may only grow ----
+# ---- (3c) the memory archive: entries may only grow (counted across the whole directory; moving between volumes is fine) ----
 # [Why this exists] When `ai/memory.md` hits its cap, the answer is **splitting it into volumes** — not deleting rows and not
 # raising the cap (the Developer seat reported "the memory file is full" on 2026-09-18 and refused to delete other seats' rows,
 # which was right). Once split, the volume is the only place those rows live, so it gets the same criterion as the mail archive:
 # **append only, never delete a row.**
+# 🔴 **Judged on the entry total of the whole directory, not file by file** (changed 2026-10-05): the budget table gives a seat
+# volume its way out — "when it fills, move entries into `<kind>.md`" — and comparing each file with HEAD blocked exactly that:
+# move one row out and the file it left turns red. Measured: one seat's volume hit its 30-line cap, the next entry had nowhere
+# to go, and **the guard refused the exit the rule prescribes**. What must hold is "**no memory entry is ever lost**", not
+# "this one file never gets shorter": a move between volumes keeps the total, so it stays green; a real loss lowers the total,
+# so it is still red, and the files that got shorter are named.
+# Run the reverse assertion on a copy: MEMARCH_DIR=<relative path inside the copy> (inside a git repo; the baseline is HEAD).
 if git rev-parse --git-dir >/dev/null 2>&1; then
-  for f in ai/memory-archive/*.md; do
+  MA="${MEMARCH_DIR:-ai/memory-archive}"
+  rows() { grep -cE '^\|[[:space:]]*[0-9A-Za-z]' || true; }
+  cur_total=0; old_total=0; shrunk=""
+  for f in "$MA"/*.md; do
     [ -f "$f" ] || continue
-    cur=$(grep -cE '^\|[[:space:]]*[0-9A-Za-z]' "$f" || true)
-    if git cat-file -e "HEAD:$f" 2>/dev/null; then
-      old=$(git show "HEAD:$f" 2>/dev/null | grep -cE '^\|[[:space:]]*[0-9A-Za-z]' || true)
-      [ "$cur" -lt "$old" ] && say "$f lost entries (HEAD $old -> now $cur): the memory archive may only grow (git show HEAD:$f)"
-    fi
+    cur_total=$((cur_total + $(rows < "$f")))
   done
+  while IFS= read -r f; do
+    case "$f" in *.md) ;; *) continue;; esac
+    o=$(git show "HEAD:$f" 2>/dev/null | rows)
+    old_total=$((old_total + o))
+    c=0; [ -f "$f" ] && c=$(rows < "$f")
+    [ "$c" -lt "$o" ] && shrunk="$shrunk $(basename "$f") ($o->$c)"
+  done < <(git -c core.quotepath=off ls-tree --name-only HEAD "$MA/" 2>/dev/null)
+  [ "$cur_total" -lt "$old_total" ] && say "the memory archive lost entries (HEAD $old_total -> now $cur_total; shorter:$shrunk): moving between volumes is fine, losing one is not (git show HEAD:<that file>)"
 fi
 
 # ---- (4) loose files in the ai/ root ----

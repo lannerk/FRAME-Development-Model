@@ -1,9 +1,9 @@
-version: 1.13.2
+version: 1.13.3
 date: 2026-10-05
 role: home
-fingerprint: f63005d9837073f2
-source_fingerprint: f63005d9837073f2
-synced_with: Takiro
+fingerprint: 3f42ba830eca4343
+source_fingerprint: 3f42ba830eca4343
+synced_with: INOS
 # version 由维护席 bump：结构/角色变=major · 规矩语义变=minor · 措辞=patch
 # 🔴 fingerprint 自动算、别手改，且**只和同 role 的仓库比**；
 #    要知道「我是不是跟上了源」，比的是 source_fingerprint 与源那边自己的 fingerprint。

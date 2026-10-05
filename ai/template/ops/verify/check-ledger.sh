@@ -115,19 +115,31 @@ if git rev-parse --git-dir >/dev/null 2>&1; then
   done
 fi
 
-# ---- ③之三 记忆卷宗只许增不许减 ----
+# ---- ③之三 记忆卷宗：条目只许增不许减（按整个目录算，卷与卷之间可以挪） ----
 # 【为什么要这条】`ai/memory.md` 顶满（80/80）时的解法是**分卷**，不是删行、也不是放宽上限
 #（开发席 2026-09-18 报「记忆顶满了」，它自己不肯删别人的行——**那是对的**）。
 # 分卷之后卷宗成了唯一的落脚处，所以它和信箱归档同一个判据：**只追加，不删行**。
+# 🔴 **按整个目录的条目总数判，不逐份判**（2026-10-05 改）：预算表给席位卷宗留的出口是「满了往 <类型>.md 卷宗里挪」，
+# 而原来逐份拿 HEAD 比的写法把这个出口堵死了——挪走一条，原来那一份就红。实测：一席的卷宗顶到 30 行上限，
+# 下一条没处写，**规矩写的出口守门不让走**。要保的那件事是「**记忆一条都不许丢**」，不是「这一份文件不许变短」：
+# 卷间挪动总数不变，不红；真丢了总数变少，照红，并点名是哪几份变短了。
+# 反向断言请指到拷贝上做：MEMARCH_DIR=<拷贝里的相对路径>（要在一个 git 仓库里，基线取 HEAD）。
 if git rev-parse --git-dir >/dev/null 2>&1; then
-  for f in ai/memory-archive/*.md; do
+  MA="${MEMARCH_DIR:-ai/memory-archive}"
+  rows() { grep -cE '^\|[[:space:]]*[0-9A-Za-z]' || true; }
+  cur_total=0; old_total=0; shrunk=""
+  for f in "$MA"/*.md; do
     [ -f "$f" ] || continue
-    cur=$(grep -cE '^\|[[:space:]]*[0-9A-Za-z]' "$f" || true)
-    if git cat-file -e "HEAD:$f" 2>/dev/null; then
-      old=$(git show "HEAD:$f" 2>/dev/null | grep -cE '^\|[[:space:]]*[0-9A-Za-z]' || true)
-      [ "$cur" -lt "$old" ] && say "$f 条目变少了（HEAD $old → 现在 $cur）：记忆卷宗只许增不许减（git show HEAD:$f 找回来）"
-    fi
+    cur_total=$((cur_total + $(rows < "$f")))
   done
+  while IFS= read -r f; do
+    case "$f" in *.md) ;; *) continue;; esac
+    o=$(git show "HEAD:$f" 2>/dev/null | rows)
+    old_total=$((old_total + o))
+    c=0; [ -f "$f" ] && c=$(rows < "$f")
+    [ "$c" -lt "$o" ] && shrunk="$shrunk $(basename "$f")（$o→$c）"
+  done < <(git -c core.quotepath=off ls-tree --name-only HEAD "$MA/" 2>/dev/null)
+  [ "$cur_total" -lt "$old_total" ] && say "记忆卷宗的条目总数变少了（HEAD $old_total → 现在 $cur_total；变短的：$shrunk）：卷与卷之间可以挪，但一条都不许丢（git show HEAD:<那一份> 找回来）"
 fi
 
 # ---- ④ ai/ 根下的散件 ----
