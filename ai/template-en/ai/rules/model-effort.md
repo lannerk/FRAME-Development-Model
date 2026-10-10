@@ -17,8 +17,8 @@
 | Tier | key / subagent file name | In one line | Who can reach it |
 |---|---|---|---|
 | Top | `top` / `tier-top` | The strongest, most expensive combination this tool has; better to overpay than be wrong | **Only two ways**: an upgrade request the Requester approved, or a person naming it directly; the record says `top (approved <date>)`. **A label may never say `top` on its own** |
-| Strong | `strong` / `tier-strong` | Judging right and wrong, thinking several layers deep, costly if wrong | label `strong` |
-| Normal | `normal` / `tier-normal` | Clear rules, follow them | label `normal` (**the default** — no label means this) |
+| Strong | `strong` / `tier-strong` | Judging right and wrong, thinking several layers deep, costly if wrong | label `strong` (**the default** — no label means this) |
+| Normal | `normal` / `tier-normal` | Clear rules, follow them | label `normal` |
 | Light | `light` / `tier-light` | Right or wrong is visible at a glance | label `light` |
 
 1. **Files carry keys only**: `strong` `normal` `light` `top` `complex`, the same in every language (switching languages changes nothing). **Rules, handbooks and tasks never name a model or a level** — those appear only in `ai/ide/<tool>.md`.
@@ -36,6 +36,7 @@
 | `light` | Light | Right or wrong is visible at a glance: running checks and scripts, retests, counting, matching names, bulk renames, tidying records and archiving |
 
 - 🔴 **Three kinds are always `strong`, whoever labels them**: (1) security (places where outside data becomes a URL, HTML, CSS or a regex); (2) accessibility (keyboard, focus, screen readers); (3) changing anything already finalized (specs, rules, what is already implemented).
+- 🔴 **Anything unlabelled is `strong`** (Requester, 2026-10-10: work nobody has judged is better overpaid than wrong). Parts meant to be cheaper are labelled `normal` or `light` by whoever labels them — that is labelling, not "going down".
 - **`complex`** (complexity, judged separately from difficulty): more to read than one subagent can hold in one go, more than a dozen or so files to change, the parts must agree on names or interfaces, or the result has to be merged with others' — **any one of these adds it**; once added, split the work per `ai/rules/workflow.md` §7c. **Difficulty decides the tier; complexity decides whether to split** — what one overloaded subagent misses, no stronger tier will rescue.
 
 **Defaults by situation** (a reference when labelling; adjust to the case): design, technical approaches, shared layers and generators, locating a bug of unknown cause, review verdicts → `strong`; building one part to spec, writing tests, fixing a located bug, writing docs, item-by-item checks → `normal`; simple display parts, running checks and scripts, retests, translation and bulk renames, records and archiving → `light`. A family, a batch or a shared layer is almost always `complex`.
@@ -44,7 +45,7 @@
 
 | Seat | How it is decided | Written where |
 |---|---|---|
-| **Developer** | the **Reviewer** splits the work into parts when it opens the task / bug and labels each; the Developer's main session dispatches by label; unlabelled = `normal` | the `subagents:` block of the task / bug file |
+| **Developer** | the **Reviewer** splits the work into parts when it opens the task / bug and labels each; the Developer's main session dispatches by label; unlabelled = `strong` | the `subagents:` block of the task / bug file |
 | **Reviewer** (reviewing others' work) | fixed: review verdicts, reviewing large code → `strong`; checking a family item by item, spot checks, writing tests → `normal`; running checks and scripts, matching names → `light` | nothing to write |
 | **Reviewer** (work it gives itself) | **labels it itself** (writing specs, rulings, samples all count), the same way it labels the Developer's work | its own task / progress file |
 | **Supervisor** | fixed: checking large pieces, re-running key measurements → `strong`; checking drafts in groups → `normal`; running scripts, counting → `light` | nothing to write |

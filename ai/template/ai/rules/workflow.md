@@ -60,7 +60,7 @@ id: T-0042
 ## 怎么做（建议 · 可反驳）
 审查者给的实施方式与依据。**开发者可以不按这个做**，但要在下面写清为什么。
 
-## 子代理（审查者写；`tier-rule=on` 时必填，off 时随意——`ai/rules/model-effort.md`）
+## 子代理（审查者写；`tier-rule=on` 时必填、没标的段按 strong，off 时随意——`ai/rules/model-effort.md`）
 subagents:
 - <这一段做什么>: normal
 ## 验收（审查者写，开发者对着做）
