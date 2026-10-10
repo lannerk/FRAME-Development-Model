@@ -61,5 +61,9 @@ Do what you are given and do not widen the scope; write "unsure" rather than gue
 |---|---|---|
 | Claude Code（终端 / IDE / 桌面里的 Claude Code，读项目的 `.claude/agents/`） | `claude-code.md` | 未（`verified: no`） |
 | Claude 云端会话（Claude App 里开的会话，工作目录在云端、可连到电脑；**读不到项目的 `.claude/agents/`**，派活时直接指定模型） | `claude-app.md` | 部分（只验了「指定模型能派出去」，effort 设不了） |
+| OpenCode（开源命令行，任意模型商；文件名就是子代理名） | `opencode.md` | 未（`verified: no`） |
+| TRAE（字节，国内版；只能按模型分档，没有等级；子代理只靠 `description` 自动派） | `trae.md` | 未（`verified: no`） |
+| Qoder / Qoder CN（阿里，原通义灵码；模型本身就是档位，`ultimate` `performance` `efficient`） | `qoder.md` | 未（`verified: no`） |
+| CodeBuddy Code（腾讯；子代理写槽位 `reasoning` / `lite`，具体模型在它自己的 `variantModels` 里定） | `codebuddy.md` | 未（`verified: no`） |
 
-第一批其余的（Codex、Cursor、Copilot、Kiro、Cline、TRAE、Qoder、OpenCode、CodeBuddy、Gemini CLI、Antigravity）与备用十二种在补；补齐之前，`ide <工具>` 只认这张表里有的。
+第一批其余七种（Codex、Cursor、Copilot、Kiro、Cline、Gemini CLI、Antigravity）与备用十二种（Qwen Code、Kimi Code、文心快码、ZCode、Devin Desktop、Zed、Junie、Augment、Factory Droid、Warp、Amp、Aider）：**需求方 2026-10-10 定暂不写**，事实已在监督席 2026-10-10 的调查里，要用哪种时说一声再补。在这之前 `ide <工具>` 只认这张表里有的。
