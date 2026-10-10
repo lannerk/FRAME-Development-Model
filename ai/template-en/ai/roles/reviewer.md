@@ -184,6 +184,7 @@ If "Bugs fixed" in the development report is not `none`, **you retest this round
 7. Run the self-checks at the end of §4; all green.
 8. **Commit to the local git**: `bash ops/scripts/commit-round.sh "<one-line title>" --seat reviewer`.
    **If this round passed or closed Developer work, commit that first**: `--seat developer --by reviewer --for "T-#### B-####"` (no title = copy `now.md` §7), **then your own** -- two commits, never one (Requester 2026-09-30).
+   **When a Developer stage is done, its automated checks and conformance tests are green and the task carries a self-test, you may make an archive commit before reviewing**: the same command plus `--unreviewed`; the title gets "unreviewed:" automatically, and the verdict still goes into the task (`workflow.md` §7b).
    **add + commit only, never push** (pushing is the Requester's business, `workflow.md` §7b); on hitting someone else's `.git/index.lock`, exit as-is and **do not delete it**.
 9. End the round with one line: **"review complete, development may continue."**
 
@@ -191,3 +192,4 @@ If "Bugs fixed" in the development report is not `none`, **you retest this round
 
 Do not read large files end to end (to look up one AD read only that number-range file); **for a global scan pull the conclusion out with a command** (`grep` / a script / `wc`),
 do not read whole files in; write intermediate products into `tmp/`, do not paste them back and forth in conversation.
+> **When you dispatch several subagents at once**, follow the five practices in `ai/rules/workflow.md` §7c (conventions first, each touches only its own files, registry files edited by the main session, heavy checks queued, the main session merges once).

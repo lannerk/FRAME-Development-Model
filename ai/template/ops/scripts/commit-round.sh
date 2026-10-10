@@ -3,6 +3,7 @@
 # 用法：bash ops/scripts/commit-round.sh "<一句话标题>" --seat <席>   [--dry] [-- <只看这些路径…>]
 #       审查席代提开发席：bash ops/scripts/commit-round.sh ["<标题>"] --seat 开发席 --by 审查席 --for "T-0010 B-0019"
 #         （审查通过那一轮；不给标题就取 ai/state/now.md 第七节代码块的第一行；workflow.md §七之二）
+#       存档提交（一段做完、自动检查全绿、还没审）：再加 --unreviewed，标题自动带「未审：」（需求方 2026-10-05）
 #       共写文件（信箱 · 归档 · 记忆）：**名字里带本席的自动带上，其余的在 `--` 后点名才提交**（见下「共写文件按文件名分」）
 # 退出码 0 = 提交好了（或 --dry 演练通过）；1 = 前置条件不满足（原样退出，什么都没动）；2 = 结构不对。
 #
@@ -31,7 +32,7 @@ set -u
 # 照常拿它自己的锁，不受影响。
 export GIT_OPTIONAL_LOCKS=0
 ROOT="$(cd "$(dirname "$0")/../.." && pwd)"; cd "$ROOT" || exit 2
-TITLE=""; DRY=0; SEAT="${SEAT:-}"; ALLSEATS=0; BY=""; FOR=""; NARROW=()
+TITLE=""; DRY=0; SEAT="${SEAT:-}"; ALLSEATS=0; BY=""; FOR=""; NARROW=(); UNREV=0
 START=$(date +%s)
 while [ $# -gt 0 ]; do
   case "$1" in
@@ -39,6 +40,7 @@ while [ $# -gt 0 ]; do
     --by) shift; BY="${1:-}";;
     --for) shift; FOR="${1:-}";;
     --dry) DRY=1;;
+    --unreviewed) UNREV=1;;
     --all-seats) ALLSEATS=1;;
     --seat) shift; SEAT="${1:-}";;
     --seat=*) SEAT="${1#--seat=}";;
@@ -75,6 +77,13 @@ if [ -n "$BY" ]; then
   fi
 fi
 
+# ── 存档提交（需求方 2026-10-05）：开发一段做完、这一段的自动检查与一致性用例全绿、任务里写了自测，
+# 审查席不等审查先代提。**历史里要看得出「这一份没审过」**——所以只认「审查席代提开发席」这一种形态，标题前缀由脚本加，不靠人记得写。
+# 守门红了照普通提交的规矩（ANYWAY=1 并在提交信息里写明）：巡检里常有别席的红，硬拦等于存档永远提交不了。
+if [ "$UNREV" = 1 ]; then
+  [ "$BY" = 审查席 ] || { echo "⛔ --unreviewed 只用在审查席代提开发席：--seat 开发席 --by 审查席 --for \"T-####\" --unreviewed"; exit 2; }
+  case "$TITLE" in 未审*) ;; *) TITLE="未审：$TITLE";; esac
+fi
 # ── 前置检查 ──
 if [ -f .git/index.lock ]; then
   age=$(( $(date +%s) - $(stat -c %Y .git/index.lock) ))
@@ -305,6 +314,8 @@ if [ -z "$ads" ]; then
 fi
 [ -z "$TITLE" ] && TITLE="第 $(date '+%m%d') 轮改动（$files 个文件）"
 
+BYNOTE=""; [ -n "$BY" ] && BYNOTE="（$BY 代提：审查通过后一并提交；对应 $FOR）"
+[ "$UNREV" = 1 ] && BYNOTE="（$BY 代提：**存档提交，还没审查**；对应 $FOR）"
 MSG=$(cat <<EOM
 $TITLE
 
@@ -314,7 +325,7 @@ $TITLE
 bug:  ${bugs:-—}
 决策: ${ads:-—}
 守门: $GUARD
-提交席: ${SEAT:-未指定（--all-seats 或全仓只有一席的改动）}${BY:+（$BY 代提：审查通过后一并提交；对应 $FOR）}${OTHERS:+
+提交席: ${SEAT:-未指定（--all-seats 或全仓只有一席的改动）}$BYNOTE${OTHERS:+
 留给别席的改动（本次没有提交）: $(printf '%s\n' "$OTHERS" | awk -F"|" '{c[$1]++} END {for (k in c) printf "%s %d 个 · ", k, c[k]}' | sed 's/ · $//')}
 
 本次提交由 AI 会话（审查席 / 维护席）自动生成；**未推送**，请在 SourceTree 里确认后 push。

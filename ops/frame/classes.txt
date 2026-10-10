@@ -1,0 +1,125 @@
+# FRAME 同步分类表 —— 每条 `<模式> <glob>`，**最后匹配的那条胜出**
+#
+# 🔴 默认是 seed（只在目标缺失时创建，已存在永不覆盖）。
+#    只有下面显式列为 follow 的才会被覆盖。**把风险反过来**：
+#    没分类过的新文件会被创建，但永远不会盖掉目标已有的东西。
+#
+# follow = 纯规矩与守门，源变了就覆盖（且要三方安全）
+# seed   = 骨架与台账，只创建不覆盖
+# skip   = 永不同步
+
+seed    **
+
+# ── 纯规矩（换个项目一字不改）──
+follow  FRAME-Development-Model.md
+follow  AGENTS.md
+follow  ai/roles/*.md
+# 🔴 整个 ai/rules/ 都是 FRAME 的规矩，**按目录写而不是逐份写**：
+# 逐份列的那一版漏掉了 investigate.md（实测：它被当成 seed，源改了也不会跟）。
+# 一条一条列 = 每加一份规矩文件就要记得回来加一行，**而忘了不会有任何症状**。
+follow  ai/rules/*.md
+seed    ai/rules/maintenance-log.md
+# 🔴 **项目自己的实现纪律与自检清单**（需求方 2026-09-27 拍板「拆出去」）：`conventions.md` 是 follow，
+# 而这几节的条目是每个项目自己填的——混在一份 follow 文件里，实测两个后果：**每次分发都报「目标改过」要人合**，
+# 而 `push=yes` 的项目反过来把自己的命令推进 FRAME。分成两份之后，机制不用每轮问人。
+seed    ai/rules/conventions-project.md
+follow  ai/mail/README.md
+follow  ai/bugs/README.md
+follow  ai/RandD/README.md
+follow  ai/glossary.md
+# 🔴 开场顾问库是 FRAME 本体（需求方 2026-09-26 拍板「去掉品牌名后整套放进开源」）：
+# 它是**通用判断**，换个项目一字不改；项目专属的定法在画像里，画像是 seed（见下）。
+follow  ai/advisor/*.md
+follow  ai/advisor/domains/*.md
+follow  claude-outputs/README.md
+follow  docs/guide/*.md
+# 🔴 版本文件**不跟着拷**：它两边按定义就不一样（各自的 fingerprint、各自的 synced_with），
+# 拷过去等于每轮都报「两边都改了」（实测）。它由 `--stamp` 在两边各写一次保持同版本。
+seed    ai/FRAME-VERSION
+
+# ── 守门与工具（源变了必须跟，否则判据两套）──
+follow  ai/check-links.sh
+follow  ai/frame-manifest.txt
+# 🔴 引用白名单与镜像基线里放的是**这个项目自己的**历史路径与存量，换个项目一条都不成立：
+# 它们是**项目内容（seed／skip）**，不是 FRAME 本体（follow 会把一个项目的历史推给所有项目）。
+seed    ai/.linkcheck-ignore
+follow  ops/verify/*.sh
+follow  ops/scripts/*.sh
+# 需求方在 Windows 上双击用的清理脚本（2026-10-01）：与同名 .sh 同一个判据，一起跟着走。
+follow  ops/scripts/*.bat
+follow  ops/frame/*.sh
+follow  ops/frame/classes.txt
+follow  ops/.pathcheck-ignore
+
+# ── 🔴 永不同步 ──
+skip    SYNC.md
+skip    README.md
+skip    README-*.md
+skip    gitignore.template
+skip    .gitignore
+skip    ops/machines.json
+skip    ops/paths.ps1
+skip    ai/frame-repo.conf
+skip    ops/frame/targets.txt
+skip    ops/frame/.baseline
+skip    ops/verify/.sync-state
+skip    ops/verify/.template-baseline
+skip    ops/verify/.mirror-baseline
+skip    ops/verify/.rootcheck-allow
+# 🔴 私有词清单**自己就是私有的**：把「要藏的词」同步进开源仓库，等于把它们指给别人看。
+# 🔴 项目专属的路径与前缀（前端类守门用）：**seed，同步永不覆盖**——FRAME 本体不许写死某个项目的目录名。
+seed    ops/verify/paths.env
+skip    ops/verify/.private-words
+# 🔴 项目自己的守门（`check-all.sh` 自动发现它们）：**永不进模板、也永不被模板覆盖**。
+# 口子开在文件名上就是为了这一行：想注册自己的守门，起这个名字，别去改 check-all.sh。
+skip    ops/verify/check-project-*.sh
+# 🔴 **只有 home/host 才有模板**，所以这两份是**宿主专属**、不进模板（2026-09-30 补写）：
+# `check-template-sync.sh` 在没有 `ai/template/` 的项目里直接 exit 2（结构不对），
+# 一分发过去就是每个 consumer 的 `check-all` 都红一条；`template-diverge.txt` 是它的例外表，同理。
+# 【为什么要写下来】它们本来就没在模板里——但那是**因为没人加过**，不是因为判过。
+# 「没有症状的默认」正是这张表存在的理由：**写成 skip，意图就从「碰巧」变成「判过」。**
+skip    ops/verify/check-template-sync.sh
+skip    ops/verify/template-diverge.txt
+
+# 🔴 **初始化时要改名的占位目录：分发永不再建**（2026-09-28，一个消费项目的维护席实测）。
+# `product/design/prototype/_PROJECT_/` 那两份是 seed：项目按 project-init 第 8 条把它改成项目名之后，
+# 本地就「缺」了这两份，下一次分发按 seed 的「本地没有就建骨架」**把 `_PROJECT_/` 又建回来**——
+# 于是同一个项目里有两份原型目录，而且每分发一次就回来一次。
+# 判据：**改名是初始化的一部分，骨架只随「初始化时整棵拷模板」到位一次，之后 FRAME 不再管它**，
+# 所以列成 skip（既不建、也不覆盖）。里面是 `.gitkeep` 与一句话 `index.md`，没有值得下发的更新。
+skip    product/design/prototype/_PROJECT_/*
+skip    product/design/prototype/_PROJECT_/*/*
+
+# ── 🔴 明确留 seed 的几处（虽然默认已是 seed，写出来是为了让人看见）──
+seed    CLAUDE.md
+seed    ai/index.md
+seed    ai/state/now.md
+seed    ai/memory.md
+seed    ai/RandD/memory.md
+seed    ai/RandD/index.md
+seed    ai/rules/maintenance-log.md
+seed    ai/tasks/index.md
+seed    ai/decisions/index.md
+seed    ai/specs/index.md
+seed    ai/bugs/index.md
+seed    ai/mail/to-*/from-*.md
+seed    product/requirements/inbox.md
+# 🔴 **需求方画像永远是 seed**：里面是他的偏好与原话出处，**标成 follow 就会把它推回开源仓库**，
+# 而那种泄露不可逆（`ops/verify/check-advisor.sh` 判这一行）。模板里只给空骨架。
+seed    product/requirements/requester-profile.md
+
+# ── 🔴 角色限定：<模式>@<目标角色>，只对该类目标生效 ──
+# 目标是 home/host 时，落点是它的「模板目录」，那里的 README / SYNC.md / gitignore.template
+# 是 FRAME 自己的介绍与配件，要跟；目标是 consumer 时落项目根，那几份是项目自己的，不能碰。
+follow@home  README.md
+follow@host  README.md
+follow@home  SYNC.md
+follow@host  SYNC.md
+follow@home  gitignore.template
+follow@host  gitignore.template
+# 🔴 反过来也要说死：目标是 consumer 时，这三份落的是**项目根**——
+# `README.md` 是那个项目自己的门面，`SYNC.md` 与 `gitignore.template` 是 FRAME 的打包件，
+# 根本不该出现在消费项目根上（首次分发实测：它们被当成 seed **创建**了出去，还顺带让 check-root 报红）。
+skip@consumer  README.md
+skip@consumer  SYNC.md
+skip@consumer  gitignore.template

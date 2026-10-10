@@ -33,6 +33,7 @@ binaries and upgrade packages (those go in `dist/`, not committed).
 bash ops/scripts/commit-round.sh "<one-line title>" --seat <your seat>   # want to see what the commit message looks like first: add --dry
 #   --seat maintainer/reviewer/developer/supervisor: commit only what is yours (ownership table ai/rules/layout.md §7)
 #   Reviewer committing the Developer's work: --seat developer --by reviewer --for "T-0010 B-0019" (no title = copy now.md §7)
+#   Archive commit (a stage is done, checks are green, not yet reviewed): the same line plus --unreviewed; the title gets "unreviewed:" automatically
 #   Only look at some paths: append -- <paths...> (a whole-repo scan is slow on a mounted share; --seat scans only that seat's and shared paths). **Shared files carrying your seat's name come along automatically; the rest are committed only when named here**
 ```
 

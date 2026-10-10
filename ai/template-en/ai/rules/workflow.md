@@ -346,8 +346,21 @@ Three rules; the detail and the commands are all in `ops/README.md`:
 
 1. **Whoever made the change commits it**: the Reviewer seat commits when a round ends, **the Maintainer seat commits its own rule changes**, **the Developer seat does not commit** (committing your own work = bypassing the review) --
    **the Developer's changes are committed by the Reviewer seat in the round that passes (task) or closes (bug) them**: `--seat developer --by reviewer --for "T-#### B-####"`,
-   **one commit for the Developer, one for the Reviewer** (Requester 2026-09-30). Run `bash ops/scripts/commit-round.sh "<title>" --seat <your seat>` (**ownership table in `ai/rules/layout.md` §7; spanning two seats stops the script**),
+   **one commit for the Developer, one for the Reviewer** (Requester 2026-09-30). **There is also an archive commit** (Requester 2026-10-05): when the Developer finishes a stage, that stage's automated checks and conformance tests are all green and the task carries a self-test, the Reviewer seat **commits it before reviewing**, adding `--unreviewed`; the title gets the prefix "unreviewed:" automatically. The verdict still goes into the task, and the whole-release retrospective before shipping is the master gate. Run `bash ops/scripts/commit-round.sh "<title>" --seat <your seat>` (**ownership table in `ai/rules/layout.md` §7; spanning two seats stops the script**),
    **`add` + `commit` only, never push**; **a red guard blocks the commit**; **the five SourceTree safety prohibitions**.
 2. **What you change on the real machine must get back into the repo**: write back the same round + reconcile with `sha256sum -c`. If none of the four steps works, park it in
    `tmp/writeback-pending/`; **parked is not delivered, and the Reviewer seat may not pass it**.
 3. **`conformance sweep`**: the Requester thinks things have drifted, the Maintainer seat runs `bash ops/verify/check-all.sh` and **answers with one table only**.
+
+## 7c. One session dispatching several subagents at once: five practices (any seat)
+
+The Requester, 2026-10-05: "the developer can call subagents, can't it — for one developer, having it call several agents in parallel works too".
+The risk of running in parallel is not model strength; it is **inconsistent wording and treading on each other's files** (measured: 20 subagents editing one batch of drafts at the same time took two rounds of alignment afterwards). So whenever one session dispatches several subagents at once:
+
+1. **Conventions first**: the small cores everyone needs (shared parts, helpers) and a one-page "conventions" sheet (names, directories, state words, interfaces) are finished by the main session before the work is handed out;
+2. **Each touches only its own files**: every subagent works only in its own slice's directories; the dispatch states which paths it may touch;
+3. **Registry files are edited by the main session only**: task index, ledgers, lists — files several parties write — subagents only say in their report "what needs registering", and the main session makes the edits;
+4. **Heavy checks queue up**: a subagent runs only the checks for its own slice; the full check (heavy, fights over ports) is run once by the main session at the end of a stage;
+5. **The main session merges once**: spot-check, align names, run the full check, and write in the task or record **which parts it looked at itself and which are a subagent's account** (hard law 7: an account is not evidence).
+
+**Dispatching a single subagent, or work that fits in one pass, does not need these five** — the test: does anyone have to align names or merge results with it afterwards.
