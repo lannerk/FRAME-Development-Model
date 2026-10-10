@@ -204,6 +204,7 @@ yours.
 | `look at the task` | Supervisor | Read the one advisory task assigned to it (**its only exception to not reading the queue**); for a plain consult say `check mail` |
 | `the supervisor has given its opinion` | Reviewer | Read the Supervisor's output and rule again with it in hand |
 | `reload rules` | any seat | The rules changed — **actually read them again** and say what changed |
+| `tier assignment on / off / status` · `ide <tool>` | Maintainer | Switch the model and effort assignment rules (off by default), change the AI coding tool |
 | `check mail` | any seat | Read `ai/mail/to-<your seat>/`: **read it all at once, de-duplicate, handle each letter**, then move the row into your own archive |
 | `conformance sweep` | any seat | Run `check-all.sh` and report one table; **whose red it is follows the ownership table**, and only the Maintainer may change a rule because of it |
 
@@ -255,6 +256,7 @@ Rules do not run on good intentions; they run on scripts that can turn red.
 | `check-mail.sh` | The mail has not rotted: unread only · no stale letters · nobody assigning work by mail · one archive per seat per month |
 | `check-advisor.sh` | The advisor library has not decayed (**skips itself when there is none**): every choice card has **Recommendation · Why · Does not apply / Reversible** · every question has **Why ask** and **Recommend** · the profile is **seed** (marking it follow pushes his preferences into the open-source repo) · **no private word leaked into anything synced out** |
 | `check-frame-version.sh` | Whether a change to the FRAME body got a version stamp (**by commit order**: the last body commit may not be newer than the last stamp) |
+| `check-ide.sh` | The model and effort assignment rules: the switch value is valid, the tool has an implementation file, no model names in the rules; **when on**, also that the implementation file was tested, the four tier files exist and task labels use valid keys |
 | `check-randd.sh` | The R&D line's structure and indexes (**skips itself when that line is not open**): an `INDEX.md` in each archive dir · live files within their caps · **nine green criteria before anything may be marked graduated** |
 | A few project-specific ones | e.g. frontend cache-busting, source-to-mirror drift, CSS class clashes — **they skip themselves where they do not apply** |
 

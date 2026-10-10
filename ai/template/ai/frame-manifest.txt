@@ -49,6 +49,8 @@ ai/decisions/index.md
 ai/frame-manifest.txt
 ai/frame-repo.conf
 ai/glossary.md
+ai/ide/README.md
+ai/ide/claude-code.md
 ai/index.md
 ai/mail/README.md
 ai/mail/archive/.gitkeep
@@ -81,6 +83,7 @@ ai/rules/investigate.md
 ai/rules/laws.md
 ai/rules/layout.md
 ai/rules/maintenance-log.md
+ai/rules/model-effort.md
 ai/rules/requester.md
 ai/rules/workflow.md
 ai/specs/architecture.md
@@ -125,6 +128,7 @@ ops/scripts/clear-dist.sh
 ops/scripts/clear-to-delete.bat
 ops/scripts/clear-to-delete.sh
 ops/scripts/commit-round.sh
+ops/scripts/ide-refresh.sh
 ops/units/.gitkeep
 ops/verify/check-advisor.sh
 ops/verify/check-all.sh
@@ -137,6 +141,7 @@ ops/verify/check-debrand.sh
 ops/verify/check-entrypoints.sh
 ops/verify/check-filenames.sh
 ops/verify/check-frame-version.sh
+ops/verify/check-ide.sh
 ops/verify/check-inbox.sh
 ops/verify/check-ledger.sh
 ops/verify/check-mail.sh

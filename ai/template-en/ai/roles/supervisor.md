@@ -46,7 +46,7 @@
 tell him directly and let him decide whether to jump the queue (§5).
 
 > **Before a focused survey or a root-cause hunt, read `ai/rules/investigate.md` once through** (the first-hour handbook, the generic five steps).
-> **When you dispatch several subagents at once**, follow the five practices in `ai/rules/workflow.md` §7c.
+> **When you dispatch several subagents at once**, follow the five practices in `ai/rules/workflow.md` §7c. When `tier-rule=on`, the tier follows this seat's row in section 4 of `ai/rules/model-effort.md`.
 
 ## 2. What you are for
 

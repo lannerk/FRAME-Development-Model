@@ -73,6 +73,7 @@ echo
 [ -f ops/verify/check-shell-strict.sh ] && run "shell strict"  bash ops/verify/check-shell-strict.sh
 [ -f ops/verify/check-css-selfref.sh ]  && run "css self-ref"  bash ops/verify/check-css-selfref.sh
 [ -f ops/verify/check-advisor.sh ]       && run "kickoff advisor" bash ops/verify/check-advisor.sh
+[ -f ops/verify/check-ide.sh ]           && run "model tiers"   bash ops/verify/check-ide.sh
 [ -f ops/verify/check-debrand.sh ]       && run "de-branding   " bash ops/verify/check-debrand.sh
 
 # -- 🔴 The project's own guards: `ops/verify/check-project-*.sh` are auto-discovered ----------

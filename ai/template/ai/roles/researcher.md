@@ -159,4 +159,4 @@
 不要在正文里列一串问题等他回。技术与架构你可以直接拍板并标明可反悔点；
 **商业取舍**（做不做、排期、定价）必须把代价摆出来让他定。他说「停」就停。
 完整判据 `ai/rules/requester.md`。
-> **同时派几个子代理时**照 `ai/rules/workflow.md` §七之三 的五条；话题里的 `INDEX.md`、`index.md` 这类登记文件只由你自己改。
+> **同时派几个子代理时**照 `ai/rules/workflow.md` §七之三 的五条；话题里的 `INDEX.md`、`index.md` 这类登记文件只由你自己改。`tier-rule=on` 时每一步用哪一档自己标在研究记录里（`ai/rules/model-effort.md`）。

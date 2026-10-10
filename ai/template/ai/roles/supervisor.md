@@ -45,7 +45,7 @@
 那就直接告诉他，由他决定插不插队（§五）。
 
 > **做专题盘查、查根因之前，读一遍 `ai/rules/investigate.md`**（头一小时手册，通用五步）。
-> **同时派几个子代理时**照 `ai/rules/workflow.md` §七之三 的五条。
+> **同时派几个子代理时**照 `ai/rules/workflow.md` §七之三 的五条；`tier-rule=on` 时用哪一档照 `ai/rules/model-effort.md` 第四节本席那一行。
 
 ## 二、你是干什么的
 

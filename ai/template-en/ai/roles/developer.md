@@ -59,7 +59,7 @@ What the Reviewer gives is an **opinion**, not an order (hard law 4). But pushin
    but **if it reproduces in the container, do not go to the real machine**; that is faster and more repeatable.
 4. Do it. If you find a problem outside the queue along the way: **do not widen the change on your own**, open a separate task to record it (`raised by: Developer`) and carry on with the one in hand.
    There is exactly one exception: **it is making the system unusable** — then fix it first, and say in the report why you jumped the queue.
-   **When you dispatch several subagents in parallel**: follow the five practices in `ai/rules/workflow.md` §7c first (conventions first, each touches only its own files, registry files only you edit, you queue the heavy checks, you merge once at the end).
+   **When you dispatch several subagents in parallel**: follow the five practices in `ai/rules/workflow.md` §7c first (conventions first, each touches only its own files, registry files only you edit, you queue the heavy checks, you merge once at the end). When `ai/frame-repo.conf` says `tier-rule=on`, each part's tier follows the task's `subagents:` block (`ai/rules/model-effort.md`).
 5. When it is done, **self-test first** (§5b); if you fixed a bug, **re-run the original steps from the file named by `bug`**. If the self-test does not pass you may not push to `in review` — pushing it up and getting rejected costs far more than testing it yourself.
 6. Fill in "Developer report" + "Self-test". **"Which bugs were fixed" in the report is mandatory** (write `none` if you fixed none);
    push bugs you fixed to `fixed, awaiting retest` — **you may not mark them `closed` yourself**, closing authority sits with the Reviewer seat. Set the status to `in review`.

@@ -75,9 +75,9 @@ git ls-tree -r HEAD --name-only   # which files the old project had (note: whate
 **You don't have to guess class C item by item by eye** — `git status` hands you the answer. Only when the old project was never in git do you have to compare by hand,
 and in that case **tell the Requester straight away and honestly: which files may already be buried and unrecoverable**.
 
-## Step 1: ask both things at once (**pop-up multiple choice**, don't drag it out one drop at a time)
+## Step 1: ask all three things at once (**pop-up multiple choice**, don't drag it out one drop at a time)
 
-**Hand both questions to him together through the session's own choice control** (`ai/rules/workflow.md` §4b),
+**Hand the three questions to him together through the session's own choice control** (`ai/rules/workflow.md` §4b),
 **don't lay the options out in the prose and wait for him to type**. Each gets options and a recommended value:
 
 **Q1 · What is the project called?**
@@ -97,12 +97,15 @@ In that case **one line of confirmation is enough**: "Docs and conversation both
 It is only a real multiple choice when the languages differ: **his language** (first choice) / **leave the docs as they are and only talk in his language** (the cost:
 from then on the docs the other seats read and what he says are not the same language, and every quote has to be translated on the spot) / **English**.
 
+**Q3 · Which AI coding tool does this project mainly use?** (for the model and effort assignment rules, `ai/rules/model-effort.md`)
+Options = the tools listed in `ai/ide/README.md` + "other"; 🔴 **no default** (Requester, 2026-10-10). If the environment variable `CLAUDECODE=1` is set, put Claude Code first, marked "detected" — he still has to pick.
+The answer goes into `ide=` in `ai/frame-repo.conf` (step 4 #10); the switch `tier-rule=` always starts as `off`, and he turns it on separately with `tier assignment on`.
 > **Q1 naturally has only one real option** (the root directory name) + one free-text entry. The control provides "other" itself,
 > **don't force a second and a third** — `workflow.md` §4b's "if there is only one reasonable course, just do it" counts here too.
 > One more thing for an old project: **finish 0.4 first**, because the buried `README.md` often carries the product's real name,
 > and when that name differs from the root directory name you have to put both in front of him.
 
-> **Get the answers before you touch anything.** These two answers affect every file that follows; changing first and asking later means changing for nothing.
+> **Get the answers before you touch anything.** These answers affect every file that follows; changing first and asking later means changing for nothing.
 
 ---
 
@@ -254,7 +257,7 @@ Produce a **migration mapping table**: **old path → new path**, or "not migrat
 | 7 | `ai/rules/conventions-project.md` | **§3 implementation discipline · §4 front end · §5 the pre-delivery self-check list** -- which commands your project has to run before it counts as "done". This file is **seed**: a FRAME sync never overwrites it and never pushes it upstream, so what you write here is safe (numbering continues from `conventions.md`; never renumber). 🔴 **A check specific to this project does not get a row here and never means editing `ops/verify/check-all.sh`** -- name it `ops/verify/check-project-*.sh` and it runs automatically |
 | 8 | **Rename the placeholder directory** | Rename `product/design/prototype/_PROJECT_/` to the project name; create `src/<project name>/` as needed. **The new name may not contain `<>:"\|?*`** -- Windows cannot create those (`ops/verify/check-filenames.sh` catches it) | 🔴 **A distribution will not create it again**: those two placeholder files are **skip** in `ops/frame/classes.txt` (since 2026-09-28; before that they were seed, so after the rename the next distribution re-created `_PROJECT_/` and the project ended up with two prototype directories).
 | 9 | **Delete `SYNC.md`** | It is for maintaining the template, not a part of the project |
-| 10 | `ai/frame-repo.conf` | **This one file is how the project keeps up with FRAME later**: `role=` (`consumer` for a project that carries no templates) · `home=` (where the FRAME source repo sits on this machine; when it sits **next to** this project, `../FRAME-Development-Model` is enough) · `push=` (**write `no` if you have no commit rights on the source** = pull-only; with no line the role decides, consumer=no). Then record a baseline: `bash ops/frame/frame-sync.sh --adopt-mine` (it records "this project as it is now", so later source changes count as "the source changed it" → they get pulled in). Skip this and catching up later means comparing files by hand — the procedure is in `docs/guide/frame-sync.md` §5 |
+| 10 | `ai/frame-repo.conf` | **This one file is how the project keeps up with FRAME later**: `role=` (`consumer` for a project that carries no templates) · `home=` (where the FRAME source repo sits on this machine; when it sits **next to** this project, `../FRAME-Development-Model` is enough) · `push=` (**write `no` if you have no commit rights on the source** = pull-only; with no line the role decides, consumer=no). Then record a baseline: `bash ops/frame/frame-sync.sh --adopt-mine` (it records "this project as it is now", so later source changes count as "the source changed it" → they get pulled in). Skip this and catching up later means comparing files by hand — the procedure is in `docs/guide/frame-sync.md` §5. **Add two more lines**: `ide=<the answer to Q3 in step 1>` (`undecided` if not answered) and `tier-rule=off` — the tool and the switch for the model and effort assignment rules, off by default (`ai/rules/model-effort.md` section 5) |
 
 | 11 | `product/requirements/requester-profile.md` | **Walk `ai/advisor/questions.md`** (≤ 4 questions per pop-up round, only what genuinely needs his ruling) and write the answers as profile v0.1. 🔴 **This step is the kickoff advisor's first run** (`ai/rules/requester.md` §4d): the dimensions he never mentioned — internationalization, compatibility with what exists, secrets, AI, licences — **you raise on purpose**, each with its cost and a marked recommendation; if he is not technical, spell out the consequence in plain words. **Ask before you build.** |
 
@@ -291,7 +294,7 @@ The old project brings a `.gitignore` of its own, and the template tells you to 
    > **that one only counts for the repo that owns the template**; this project of yours doesn't have that script at all, **skip it**
    > (the ⛔ at the top of `ai/roles/maintainer.md` explains why).
 5. **One extra for an old project**: hand the Requester the "what in the archive directory can be deleted" list to confirm. **You do not delete it for him.**
-6. **Syncing is set up**: `ai/frame-repo.conf` is filled in, `ops/frame/.baseline` exists, and
+6. **Syncing is set up**: `ai/frame-repo.conf` is filled in (including the `ide=` and `tier-rule=` lines), `ops/frame/.baseline` exists, and
    `bash ops/frame/frame-sync.sh --status` shows a role, a version and a fingerprint that add up
    (**this step is for later**: when the FRAME source repo moves, `--sync` → `--sync --apply` brings
    the updates in).

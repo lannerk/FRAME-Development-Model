@@ -162,4 +162,4 @@ After you hand it over: the Supervisor verifies → agrees it with the Requester
 Do not list a string of questions in the body and wait. Technology and architecture you may settle yourself, marking what can still be reversed;
 **commercial trade-offs** (whether to build it, scheduling, pricing) must be laid out with their costs for him to decide. When he says stop, stop.
 The full criteria are in `ai/rules/requester.md`.
-> **When you dispatch several subagents at once**, follow the five practices in `ai/rules/workflow.md` §7c; registry files in a topic (`INDEX.md`, `index.md`) are edited by you only.
+> **When you dispatch several subagents at once**, follow the five practices in `ai/rules/workflow.md` §7c; registry files in a topic (`INDEX.md`, `index.md`) are edited by you only. When `tier-rule=on`, label each step's tier yourself in the research record (`ai/rules/model-effort.md`).

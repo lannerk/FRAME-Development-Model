@@ -70,6 +70,7 @@ echo
 [ -f ops/verify/check-shell-strict.sh ] && run "shell 严格模式" bash ops/verify/check-shell-strict.sh
 [ -f ops/verify/check-css-selfref.sh ]  && run "CSS 变量自引用" bash ops/verify/check-css-selfref.sh
 [ -f ops/verify/check-advisor.sh ]       && run "开场顾问"      bash ops/verify/check-advisor.sh
+[ -f ops/verify/check-ide.sh ]           && run "模型档位"      bash ops/verify/check-ide.sh
 [ -f ops/verify/check-debrand.sh ]       && run "去品牌  "      bash ops/verify/check-debrand.sh
 
 # ── 🔴 项目自己的守门：`ops/verify/check-project-*.sh` 自动发现 ────────────────

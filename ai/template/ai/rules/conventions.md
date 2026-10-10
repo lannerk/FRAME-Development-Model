@@ -103,6 +103,7 @@
 | `ops/verify/check-root.sh` | **仓库根的每一项（文件和目录）都在 `layout.md` §一 清单里**、旧结构名字没复活成真路径、`claude-outputs/<席>/` 一级条目带日期（不追溯，按 git 入库时间闸门） | 每轮收尾；**新建根目录条目之后必跑** |
 | `ops/verify/check-debrand.sh` | 🔴 **FRAME 本体与具体项目无关**（需求方 2026-09-26 拍板）：按**宿主侧的私有词清单**（`ops/verify/.private-words`，**skip 类永不同步**）扫**两份模板与源仓库**，命中即红——产品名、目录名、文件名前缀、内网 IP、提交号、会话路径都算。判据一句话：**换一个完全无关的项目拿去用，不需要改一个字**。例外两处并写明理由（清单自己 · `FRAME-VERSION`／`.baseline` 里的溯源）。**没有清单就 SKIP** | 维护席改模板时；同步源仓库之前 |
 | `ops/verify/check-advisor.sh` | **开场顾问库**（`ai/advisor/`）没退化成一堆断言：每张选型卡有**推荐 · 为什么 · 不适用/可反悔点** · 每道题有**为什么问**与**推荐** · 画像在 `classes.txt` 里**是 seed**（标成 follow 会把需求方偏好推回开源仓库）· 画像不在顾问库里 · **私有词没漏进会被同步出去的地方**（清单 `ops/verify/.private-words`，它自己是 skip 类）。**没开顾问库就 SKIP** | 维护席改顾问库时；每轮收尾 |
+| `ops/verify/check-ide.sh` | **模型档位规则**（`ai/rules/model-effort.md`）：开关值合法 · 工具有实现文件 · 规矩里没有模型名；**开着时**再查实现文件实测过、四档文件齐、`subagents:` 的 key 合法。**开关关着时标签不查** | 维护席改 `ai/ide/` 或开关时；每轮收尾 |
 | `ops/verify/check-randd.sh` | **R&D 线**（`ai/RandD/`）没烂掉：话题骨架齐 · `log/ lab/ runs/ notes/` 各有 `INDEX.md` · 话题登记进 `index.md` · 活文件（现状 200／未决 100／话题卡 50／线级记忆 80）没超 · 🔴 标「已毕业」的必须有**九条全绿**的判据自查。**没开这条线就 SKIP** | 研究席每轮收尾；维护席收尾 |
 | `ops/verify/check-mirror.sh` | **前端源与原型镜像逐行一致**（这类规矩原先往往没有任何脚本在查；实测过一次：HEAD 上已经漂了 9 份）。存量在 `ops/verify/.mirror-baseline`，**只许缩小** | 改过前端源目录之后；每轮收尾 |
 | `ops/verify/check-css-namespace.sh` | **同一页里两个文件不许各自定义同一个顶层单类且互相覆盖**（B-0003 的根因：模块注入的裸 `.spin` 盖掉了聊天侧的 `.spin`） | 改过 `web/` 里注入 CSS 的模块之后 |

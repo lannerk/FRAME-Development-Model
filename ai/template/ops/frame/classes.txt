@@ -31,6 +31,8 @@ follow  ai/glossary.md
 # 它是**通用判断**，换个项目一字不改；项目专属的定法在画像里，画像是 seed（见下）。
 follow  ai/advisor/*.md
 follow  ai/advisor/domains/*.md
+follow  ai/ide/*.md
+follow  ai/ide/_spare/*.md
 follow  claude-outputs/README.md
 follow  docs/guide/*.md
 # 🔴 版本文件**不跟着拷**：它两边按定义就不一样（各自的 fingerprint、各自的 synced_with），

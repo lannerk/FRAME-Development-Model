@@ -60,6 +60,9 @@ One or two sentences on the goal and the boundary; no implementation detail.
 ## How to do it (suggestion · can be pushed back on)
 The approach and evidence the Reviewer gives. **The Developer may do it differently**, but must write down why below.
 
+## Subagents (Reviewer writes; required when `tier-rule=on`, optional when off — `ai/rules/model-effort.md`)
+subagents:
+- <what this part does>: normal
 ## Acceptance (Reviewer writes, Developer works against it)
 > 🔴 **The checklist is both the specification and the exam paper** (`FRAME-Development-Model.md`, mechanism 6):
 > **wherever it is silent, neither the builder nor the reviewer can catch it**.

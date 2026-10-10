@@ -192,4 +192,4 @@ If "Bugs fixed" in the development report is not `none`, **you retest this round
 
 Do not read large files end to end (to look up one AD read only that number-range file); **for a global scan pull the conclusion out with a command** (`grep` / a script / `wc`),
 do not read whole files in; write intermediate products into `tmp/`, do not paste them back and forth in conversation.
-> **When you dispatch several subagents at once**, follow the five practices in `ai/rules/workflow.md` §7c (conventions first, each touches only its own files, registry files edited by the main session, heavy checks queued, the main session merges once).
+> **When you dispatch several subagents at once**, follow the five practices in `ai/rules/workflow.md` §7c (conventions first, each touches only its own files, registry files edited by the main session, heavy checks queued, the main session merges once). When you open a task (for the Developer or for yourself), label it with a `subagents:` block per `ai/rules/model-effort.md` — required when `tier-rule=on`, optional when off.

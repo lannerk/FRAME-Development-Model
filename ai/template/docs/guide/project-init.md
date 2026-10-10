@@ -75,9 +75,9 @@ git ls-tree -r HEAD --name-only   # 旧项目原本有哪些文件（注意：�
 **C 类不用靠眼力逐个猜**——`git status` 直接给你答案。旧项目没进 git 才需要人工比对，
 那种情况**立刻如实告诉需求方：哪几个文件可能已经被盖掉且找不回来**。
 
-## 第 1 步：一次问清两件事（**用弹窗选择题**，不要挤牙膏）
+## 第 1 步：一次问清三件事（**用弹窗选择题**，不要挤牙膏）
 
-**两个问题一起用会话自带的选择控件弹给他**（`ai/rules/workflow.md` §四之二），
+**三个问题一起用会话自带的选择控件弹给他**（`ai/rules/workflow.md` §四之二），
 **不要把选项排在正文里等他打字**。每个都给选项和推荐值：
 
 **Q1 · 项目叫什么？**
@@ -97,12 +97,15 @@ git ls-tree -r HEAD --name-only   # 旧项目原本有哪些文件（注意：�
 语言不一致时才真的是选择题：**他的语言**（首选）／**保持文档现状、只用他的语言对话**（代价：
 以后三席读的文档和他说的话不是一种语言，每次引用都要现译）／**English**。
 
+**Q3 · 本项目主要用哪种 AI 开发工具？**（给《模型及 Effort 指定规则》用，`ai/rules/model-effort.md`）
+选项＝`ai/ide/README.md` 里列着的工具＋「其他」；🔴 **不设默认**（需求方 2026-10-10 定）。环境变量 `CLAUDECODE=1` 在的话，把 Claude Code 排第一、标「检测到」，仍然要他点。
+答案写进 `ai/frame-repo.conf` 的 `ide=`（第 4 步 #10）；开关 `tier-rule=` 一律先写 `off`，要开由他另说 `模型档位指定 开`。
 > **Q1 天然只有一个真选项**（根目录名）＋ 一个自由输入。控件自带「其他」，
 > **不用硬凑第二第三个**——`workflow.md` §四之二 的「只有一个合理做法就直接做」在这里也算数。
 > 旧项目还有一条：**先做完 0.4**，因为被盖掉的 `README.md` 里往往写着产品真名，
 > 那个名字和根目录名不一致时，得把两个都摆给他。
 
-> **答完再动手。** 这两个答案会影响后面每一个文件，先改后问等于白改。
+> **答完再动手。** 这几个答案会影响后面每一个文件，先改后问等于白改。
 
 ---
 
@@ -254,7 +257,7 @@ git show HEAD:<那个文件>   # 把原件原样捞回来
 | 7 | `ai/rules/conventions-project.md` | **§三 实现纪律 · §四 前端 · §五 交付前自检清单**——你的项目跑什么命令才算「做完了」。这一份是 **seed**：同步永不覆盖、也永不推回源仓库，所以写在这里是安全的（编号跟着 `conventions.md` 连续，**不许重排**）。🔴 **本项目特有的检查不要在清单里加一行、也不要改 `ops/verify/check-all.sh`**——起名 `ops/verify/check-project-*.sh` 就会被自动跑 |
 | 8 | **占位目录改名** | 把 `product/design/prototype/_PROJECT_/` 改成项目名；按需建 `src/<项目名>/`。**新名字不许含 `<>:"\|?*`**——那几个字符在 Windows 上建不出来（`ops/verify/check-filenames.sh` 会拦） | 🔴 **改完不会被分发建回来**：那两份占位在 `ops/frame/classes.txt` 里是 **skip**（2026-09-28 起；在那之前它是 seed，改名后下一次分发会把 `_PROJECT_/` 又建一遍，于是同一个项目里两份原型目录）。
 | 9 | **删掉 `SYNC.md`** | 它是维护模板用的，不是项目的一部分 |
-| 10 | `ai/frame-repo.conf` | **以后怎么跟上 FRAME 的更新，全靠这一份**：`role=`（不带模板的项目写 `consumer`）· `home=`（FRAME 源仓库在这台机器上的路径；**源与本项目同级**时写 `../FRAME-Development-Model` 即可）· `push=`（**拿不到源仓库提交权就写 `no`**＝单向拉回；不写时按角色默认，consumer=no）。填完**立一份基线**：`bash ops/frame/frame-sync.sh --adopt-mine`（记「本项目现在这样」，以后源那边的变化都算「源改的」→ 拉回来）。这一步省了，以后源更新就只能手工逐份比对——走法见 `docs/guide/frame-sync.md` §五 |
+| 10 | `ai/frame-repo.conf` | **以后怎么跟上 FRAME 的更新，全靠这一份**：`role=`（不带模板的项目写 `consumer`）· `home=`（FRAME 源仓库在这台机器上的路径；**源与本项目同级**时写 `../FRAME-Development-Model` 即可）· `push=`（**拿不到源仓库提交权就写 `no`**＝单向拉回；不写时按角色默认，consumer=no）。填完**立一份基线**：`bash ops/frame/frame-sync.sh --adopt-mine`（记「本项目现在这样」，以后源那边的变化都算「源改的」→ 拉回来）。这一步省了，以后源更新就只能手工逐份比对——走法见 `docs/guide/frame-sync.md` §五。**再加两行**：`ide=<第 1 步 Q3 的答案>`（没答写 `undecided`）、`tier-rule=off`——《模型及 Effort 指定规则》的工具与开关，默认关（`ai/rules/model-effort.md` 第五节） |
 
 | 11 | `product/requirements/requester-profile.md` | **走一遍 `ai/advisor/questions.md`**（≤4 题一轮弹窗问，只问真正要他拍板的），把答案写成画像 v0.1。🔴 **这一步就是「开场顾问」的第一次运行**（`ai/rules/requester.md` §四之四）：他没提到的维度——国际化、兼容现有系统、机密、AI、许可证——**你主动问**，每项写代价、标推荐；不懂技术就用白话讲后果。**问完再动手。** |
 
@@ -291,7 +294,7 @@ git show HEAD:<那个文件>   # 把原件原样捞回来
    > **那条只对拥有模板的仓库算数**，你这个项目里根本没有那个脚本，**跳过它**
    > （`ai/roles/maintainer.md` 开头那条 ⛔ 说明了原因）。
 5. **旧项目多一件**：把「归档目录里什么可以删」的清单交给需求方确认。**你不替他删。**
-6. **同步装好了**：`ai/frame-repo.conf` 三行填完、`ops/frame/.baseline` 已生成，
+6. **同步装好了**：`ai/frame-repo.conf` 填完（连同 `ide=` `tier-rule=` 两行）、`ops/frame/.baseline` 已生成，
    跑一次 `bash ops/frame/frame-sync.sh --status` 看角色/版本/指纹都对得上
    （**这一步是为了以后**：FRAME 源仓库更新时，`--sync` → `--sync --apply` 就能把更新并进来）。
 7. 告诉需求方**接下来怎么用**：开三个会话，各说一句 `你是开发者` / `你是审查者` / `你是监督者`；
