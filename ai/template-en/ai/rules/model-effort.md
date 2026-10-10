@@ -22,7 +22,7 @@
 | Light | `light` / `tier-light` | Right or wrong is visible at a glance | label `light` |
 
 1. **Files carry keys only**: `strong` `normal` `light` `top` `complex`, the same in every language (switching languages changes nothing). **Rules, handbooks and tasks never name a model or a level** — those appear only in `ai/ide/<tool>.md`.
-2. Each tool has four subagent files with fixed names `tier-top` `tier-strong` `tier-normal` `tier-light`; the main session calls them by name: "use `tier-strong` for this part".
+2. Each tool has four subagent files with fixed names `tier-top` `tier-strong` `tier-normal` `tier-light`; the main session calls them by name: "use `tier-strong` for this part". **A tool that cannot hold subagent files** (`agents-dir: none` in its header, e.g. Claude app sessions) names the model from section 5 of its file at dispatch; the tier key is still what the task and the record carry.
 3. The four files **carry no project knowledge**: the body says only "you are an execution subagent; do what the main session gives you"; the work itself is in the dispatch. So they travel with FRAME and never change per project.
 4. A tool that cannot offer four tiers says in its implementation file how they merge (e.g. "top = strong"); the interface and the labels do not change.
 5. 🔴 **Upgrade only, never downgrade**: if the one doing the work finds it harder than labelled, it asks the Requester through a **pop-up multiple choice** to go up one tier (why, roughly how much more it costs); only on his yes does it switch, and it says so in one line in the task or record. Going down is not allowed.

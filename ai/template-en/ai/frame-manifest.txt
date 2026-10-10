@@ -50,6 +50,7 @@ ai/frame-manifest.txt
 ai/frame-repo.conf
 ai/glossary.md
 ai/ide/README.md
+ai/ide/claude-app.md
 ai/ide/claude-code.md
 ai/index.md
 ai/mail/README.md

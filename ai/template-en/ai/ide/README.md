@@ -59,6 +59,7 @@ Do what you are given and do not widen the scope; write "unsure" rather than gue
 
 | Tool | File | Tested |
 |---|---|---|
-| Claude Code | `claude-code.md` | no (`verified: no`) |
+| Claude Code (in a terminal, IDE or desktop; reads the project's `.claude/agents/`) | `claude-code.md` | no (`verified: no`) |
+| Claude app sessions (opened in the Claude app; working directory in the cloud, optionally linked to a computer; **cannot read the project's `.claude/agents/`**, so the model is named at dispatch) | `claude-app.md` | partly (only "a dispatch naming a model runs"; effort cannot be set) |
 
 The rest of the first batch (Codex, Cursor, Copilot, Kiro, Cline, TRAE, Qoder, OpenCode, CodeBuddy, Gemini CLI, Antigravity) and the twelve spares are being added; until then `ide <tool>` accepts only what this table lists.
