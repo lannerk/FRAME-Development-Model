@@ -5,7 +5,7 @@ npm: none
 version-url: https://support.claude.com
 version: n/a
 checked: 2026-10-10
-verified: yes 2026-10-10 (the model parameter only; effort cannot be set)
+verified: yes 2026-10-10 (model + effort, read back from the session record by the Supervisor seat and the Maintainer seat)
 agents-dir: none
 docs:
   - https://support.claude.com
@@ -18,10 +18,13 @@ Observed 2026-10-10 in such a session: the list of available subagent types cont
 ## 2 Models
 
 Subagents are dispatched with the session's Agent tool. Its `model` parameter accepts `fable`, `opus`, `sonnet` and `haiku` (from the tool's own parameter list as the session sees it, 2026-10-10). Omitted = the model the agent type or the parent session would use.
+The record shows what ran: `haiku` → `claude-haiku-5-5` (see section 7).
 
 ## 3 Effort / level
 
-**No per-subagent effort parameter.** A subagent runs at whatever effort the environment gives it.
+The Agent tool has an `effort` parameter: `low` `medium` `high` `xhigh` `max`. Omitted = the environment's default (observed: `high`).
+The tool's own description says to set it only when the person or the project's rules explicitly ask for a level; section 5 of this file **is** that rule, so always pass the level from section 5.
+(changed 2026-10-10: was "No per-subagent effort parameter" — the parameter was missed when this file was first written.)
 
 ## 4 Subagent files
 
@@ -31,19 +34,20 @@ None. Agent types are built in; there is no project-level place for tier files i
 
 | Tier | Model | Effort | Notes |
 |---|---|---|---|
-| top | `fable` | — | |
-| strong | `opus` | — | |
-| normal | `sonnet` | — | Differs from `claude-code.md` (where normal = opus + medium): with no effort available, the tiers are separated by model alone |
-| light | `haiku` | — | |
+| top | `fable` | `xhigh` | |
+| strong | `opus` | `high` | |
+| normal | `opus` | `medium` | Cheaper alternative: `sonnet` + `medium` |
+| light | `sonnet` | `medium` | Cheaper alternative: `haiku` + `low` |
 
-Chosen by the Maintainer on 2026-10-10 from the Claude Code mapping and its cheaper alternatives, approved by the Requester; not yet compared by running the same task at each tier.
+Same as `claude-code.md` section 5 (Requester, 2026-10-10 19:1x, after effort turned out to be settable). (changed 2026-10-10: was top `fable` · strong `opus` · normal `sonnet` · light `haiku`, no effort.) Not yet compared by running the same task at each tier.
 
 ## 6 Files FRAME generates
 
-None. **How to dispatch**: call the Agent tool with `model` set to the value in section 5 for the label's tier, and start the prompt with `tier: <key>` so the record shows which tier was meant. Labels in tasks and records stay keys (`strong`, `normal`, …) as usual.
+None. **How to dispatch**: call the Agent tool with `model` **and** `effort` set to the values in section 5 for the label's tier, and start the prompt with `tier: <key>` so the record shows which tier was meant. Labels in tasks and records stay keys (`strong`, `normal`, …) as usual.
 
 ## 7 Cannot do · unsure · not verified
 
-- Effort cannot be set per subagent.
-- Verified 2026-10-10 only that a dispatch with `model: haiku` was accepted and ran (a one-word reply); **not** which model actually answered — the session does not show it.
+- **How to check what actually ran**: the session record `~/.claude/projects/<dir>/<session id>/subagents/agent-<id>.jsonl` has `message.model` (the model the API answered with) and `perTurnEffort` on every assistant turn; `agent-<id>.meta.json` has the `model` / `effort` requested at dispatch.
+- Verified 2026-10-10: `model: haiku` without effort → `claude-haiku-5-5` + `high`; `model: haiku` + `effort: low` → `claude-haiku-5-5` + `low` (Supervisor seat). The other three tiers were not dispatched.
+- An older build of the session's tools may lack the `effort` parameter; look at the Agent tool's parameter list when a session starts. If it is missing, dispatch with `model` only and say so in the task.
 - Whether the platform substitutes a model that is unavailable to the account is not documented here. **If a dispatch with a given model fails, stop that part and ask the Requester with a pop-up multiple choice** (go one tier down / wait / go one tier up), the same road as an upgrade request; record his answer in the task. Never step down on your own (`ai/rules/model-effort.md` section 2, item 5).

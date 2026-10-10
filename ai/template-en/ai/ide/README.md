@@ -60,7 +60,7 @@ Do what you are given and do not widen the scope; write "unsure" rather than gue
 | Tool | File | Tested |
 |---|---|---|
 | Claude Code (in a terminal, IDE or desktop; reads the project's `.claude/agents/`) | `claude-code.md` | no (`verified: no`) |
-| Claude app sessions (opened in the Claude app; working directory in the cloud, optionally linked to a computer; **cannot read the project's `.claude/agents/`**, so the model is named at dispatch) | `claude-app.md` | partly (only "a dispatch naming a model runs"; effort cannot be set) |
+| Claude app sessions (opened in the Claude app; working directory in the cloud, optionally linked to a computer; **cannot read the project's `.claude/agents/`**, so the model and effort are named at dispatch) | `claude-app.md` | yes (model + effort, read back from the session record, 2026-10-10) |
 | OpenCode (open-source terminal agent, any model provider; the file name is the subagent name) | `opencode.md` | no (`verified: no`) |
 | TRAE (ByteDance, China edition; tiers by model only, no effort level; subagents are picked only by `description`) | `trae.md` | no (`verified: no`) |
 | Qoder / Qoder CN (Alibaba, formerly Tongyi Lingma; the models are themselves tiers: `ultimate` `performance` `efficient`) | `qoder.md` | no (`verified: no`) |

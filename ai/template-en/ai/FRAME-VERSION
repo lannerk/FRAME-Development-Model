@@ -1,8 +1,8 @@
-version: 2.3.0
+version: 2.4.0
 date: 2026-10-10
 role: home
-fingerprint: 2af20df03a6b2f8f
-source_fingerprint: 2af20df03a6b2f8f
+fingerprint: 43ea34d239777245
+source_fingerprint: 43ea34d239777245
 synced_with: Takiro
 # version 由维护席 bump：结构/角色变=major · 规矩语义变=minor · 措辞=patch
 # 🔴 fingerprint 自动算、别手改，且**只和同 role 的仓库比**；
