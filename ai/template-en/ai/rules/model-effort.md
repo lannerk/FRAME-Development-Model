@@ -25,7 +25,7 @@
 2. Each tool has four subagent files with fixed names `tier-top` `tier-strong` `tier-normal` `tier-light`; the main session calls them by name: "use `tier-strong` for this part". **A tool that cannot hold subagent files** (`agents-dir: none` in its header, e.g. Claude app sessions) names the model from section 5 of its file at dispatch; the tier key is still what the task and the record carry.
 3. The four files **carry no project knowledge**: the body says only "you are an execution subagent; do what the main session gives you"; the work itself is in the dispatch. So they travel with FRAME and never change per project.
 4. A tool that cannot offer four tiers says in its implementation file how they merge (e.g. "top = strong"); the interface and the labels do not change.
-5. 🔴 **Upgrade only, never downgrade**: if the one doing the work finds it harder than labelled, it asks the Requester through a **pop-up multiple choice** to go up one tier (why, roughly how much more it costs); only on his yes does it switch, and it says so in one line in the task or record. Going down is not allowed.
+5. 🔴 **Upgrade only, never downgrade**: if the one doing the work finds it harder than labelled, it asks the Requester through a **pop-up multiple choice** to go up one tier (why, roughly how much more it costs); only on his yes does it switch, and it says so in one line in the task or record. Going down is not allowed. **The same holds when the named model cannot be dispatched**: that part stops and asks the Requester with a multiple choice (one tier down / wait / one tier up); never step down on your own.
 
 ## 3. Labels: three difficulty tiers + complexity
 

@@ -46,4 +46,4 @@ None. **How to dispatch**: call the Agent tool with `model` set to the value in 
 
 - Effort cannot be set per subagent.
 - Verified 2026-10-10 only that a dispatch with `model: haiku` was accepted and ran (a one-word reply); **not** which model actually answered — the session does not show it.
-- Whether the platform substitutes a model that is unavailable to the account is not documented here; if a dispatch with a given model fails, fall back one tier down for that part only and say so in the task.
+- Whether the platform substitutes a model that is unavailable to the account is not documented here. **If a dispatch with a given model fails, stop that part and ask the Requester with a pop-up multiple choice** (go one tier down / wait / go one tier up), the same road as an upgrade request; record his answer in the task. Never step down on your own (`ai/rules/model-effort.md` section 2, item 5).
