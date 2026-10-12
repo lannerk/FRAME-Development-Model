@@ -21,3 +21,9 @@ ai/frame-manifest.txt
 # （那边没有模板目录），拥有模板的仓库永远是绿的——实测过 3 条断链就是这么漏的。
 ai/template/
 ai/template-en/
+
+# ── 只有「拥有模板的仓库」才有的两个维护脚本 ──
+# 维护席手册、layout.md、frame-sync.md 讲「改模板要同轮跑哪些脚本」时会提到它们；
+# 拷出来的项目里没有这两份，不放进来，新项目一铺上就有 5 条断链（2026-10-12 初始化新项目时实测）。
+ops/verify/check-template-sync.sh
+ops/verify/gen-frame-manifest.sh

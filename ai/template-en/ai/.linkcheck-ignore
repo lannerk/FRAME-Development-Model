@@ -23,3 +23,9 @@ ai/frame-manifest.txt
 # only appears in a consuming project (which has no template directory) -- measured as 3 broken links exactly this way.
 ai/template/
 ai/template-en/
+
+# -- two maintenance scripts that only the repo owning the templates has --
+# The Maintainer handbook, layout.md and frame-sync.md mention them when describing what to run after changing a template;
+# a copied project does not have them, and without these lines a fresh project starts with 5 broken links (found 2026-10-12 while initializing a new project).
+ops/verify/check-template-sync.sh
+ops/verify/gen-frame-manifest.sh
