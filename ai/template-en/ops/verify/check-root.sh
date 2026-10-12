@@ -50,9 +50,11 @@ WL=$(awk '/^## 1\. Top level/{f=1} f && /^## 2\./{exit} f && /^\|/ {
       n=split(line, a, /[ ，、]/);
       for (i=1;i<=n;i++) { t=a[i]; sub(/\/$/, "", t); if (t ~ /^[A-Za-z0-9_.-]+$/) print t }
     }' "$L" | LC_ALL=C sort -u)
+# .gitattributes keeps text files LF on every platform (with autocrlf=true Windows checks .sh out as CRLF and every gate dies)
 WL="$WL
 .git
-.gitignore"
+.gitignore
+.gitattributes"
 for e in * .[!.]*; do
   [ -e "$e" ] || continue
   name="${e%/}"

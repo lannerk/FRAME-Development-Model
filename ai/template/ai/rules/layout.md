@@ -242,7 +242,7 @@
 | `ai/index.md` · `ai/glossary.md` · `ai/frame-manifest.txt` · `ai/check-links.sh` | 维护席 |
 | `ai/rules/*` · `ai/roles/*` · `ai/mail/README.md` | 维护席 |
 | `ai/template/*` · `ai/template-en/*` | 维护席 |
-| `ops/verify/*` · `ops/scripts/*` · `ops/frame/*` · `ops/README.md` · `docs/guide/*` · `claude-outputs/README.md` · `claude-outputs/maintainer/*` · `.gitignore` · `ai/frame-repo.conf` · `ai/FRAME-VERSION` · `ai/ide/*` · `.claude/agents/*` | 维护席 |
+| `ops/verify/*` · `ops/scripts/*` · `ops/frame/*` · `ops/README.md` · `docs/guide/*` · `claude-outputs/README.md` · `claude-outputs/maintainer/*` · `.gitignore` · `.gitattributes` · `ai/frame-repo.conf` · `ai/FRAME-VERSION` · `ai/ide/*` · `.claude/agents/*` | 维护席 |
 | `ai/tasks/*` · `ai/bugs/*` · `ai/decisions/*` · `ai/specs/*` · `ai/state/*` | 审查席 |
 | `product/*` · `claude-outputs/reviewer/*` | 审查席 |
 | `src/*` · `dist/*` · `claude-outputs/developer/*` | 开发席 |

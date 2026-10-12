@@ -43,6 +43,11 @@ while IFS= read -r f; do
   grep -ohE "(^|[^A-Za-z0-9_./-])$PAT" "$f" 2>/dev/null | sed -E 's/^[^A-Za-z0-9_.-]//' | sort -u | while IFS= read -r p; do
     # skip template placeholders
     case "$p" in *'<'*|*'>'*|*'*'*|*xxx*|*XXX*|*'》'*|*'《'*|*'–'*|*'~'*|*'####'*|*_PROJECT_*) continue;; esac
+    # 🔴 tmp/ and dist/ are **never committed, by definition** (.gitignore rule 1): whether a path inside them exists
+    #    depends on **one machine's disk**, so checking it checks "this session's disk", not the repo. Measured 2026-10-12:
+    #    the initializing session still had the template's tmp/README.md on disk, so it was green; a fresh clone
+    #    went red on one link (`docs/guide/project-init.md` step 4 item 1 mentions it).
+    case "$p" in tmp/*|dist/*) continue;; esac
     # Allowlist: ai/.linkcheck-ignore, one full path per line, # starts a comment
     # Two forms in the list: a **full path**, or a **prefix ending in `/`** (ignore that whole subtree).
     # 🔴 The prefix form was bought with an incident: every new `ai/template/...` reference added to

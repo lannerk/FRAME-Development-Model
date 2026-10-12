@@ -7,6 +7,7 @@
 # Note: (1) ai/template/ and ai/template-en/ are not in the list -- the templates do not travel to the new project;
 #       (2) SYNC.md is not either -- it is for maintaining the template and gets deleted when a project starts.
 #
+.gitattributes
 AGENTS.md
 CLAUDE.md
 FRAME-Development-Model.md

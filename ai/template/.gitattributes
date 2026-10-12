@@ -1,0 +1,18 @@
+# FRAME .gitattributes —— 仓库里的文本文件一律以 LF 签出，不管哪个平台、不管 core.autocrlf 怎么设。
+#
+# 为什么要它（2026-10-12 实测）：Windows 版 git 默认 core.autocrlf=true，签出时把 LF 换成 CRLF；
+#   于是 ops/verify/*.sh 每一份在 bash 里一跑就是 `set: -: invalid option` / `syntax error near $'do\r'`，
+#   **整张守门表一条都跑不起来**（Git Bash、WSL、云端会话挂载这个目录，都一样）；
+#   挂载进 Linux 的 git 还会把整棵树报成「已修改」（内容没变，只是换行）。
+# Windows 上的编辑器、PowerShell、Rust/Go/Node 工具链都认 LF，所以统一成 LF 没有代价。
+#
+# 项目要加自己的规则就往下加（这一份是 seed：同步只在缺失时创建，永不覆盖）。
+# 加了这一份之后，已经签出成 CRLF 的工作区要刷一次：
+#   git rm -r --cached -q . && git reset --hard      （先提交或暂存自己的改动）
+
+* text=auto eol=lf
+
+# Windows 自己的批处理必须是 CRLF（cmd.exe 遇到 LF 的 .bat 会错位跳行）。
+# 它们入库时就是 CRLF，所以写 -text：原样进、原样出，git 一个字节都不转。
+*.bat -text
+*.cmd -text

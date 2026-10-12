@@ -39,6 +39,10 @@ while IFS= read -r f; do
   grep -ohE "(^|[^A-Za-z0-9_./-])$PAT" "$f" 2>/dev/null | sed -E 's/^[^A-Za-z0-9_.-]//' | sort -u | while IFS= read -r p; do
     # 模板占位跳过
     case "$p" in *'<'*|*'>'*|*'*'*|*xxx*|*XXX*|*'》'*|*'《'*|*'–'*|*'~'*|*'####'*|*_PROJECT_*) continue;; esac
+    # 🔴 tmp/ 与 dist/ **按定义永不入库**（.gitignore 总规矩第 1 条）：指向它们的路径只在**某一台机器的磁盘上**存在与否，
+    #    查它等于查「这次会话的磁盘」，不是查仓库。2026-10-12 实测：初始化那一轮磁盘上还留着模板带来的
+    #    tmp/README.md，所以全绿；需求方一重新 clone 就红一条（`docs/guide/project-init.md` 第 4 步第 1 条提到它）。
+    case "$p" in tmp/*|dist/*) continue;; esac
     # 白名单：ai/.linkcheck-ignore，一行一条完整路径，# 开头是注释
     # 白名单两种写法：**整条路径**，或**以 `/` 结尾的前缀**（整段忽略）。
     # 🔴 前缀那种是实测换来的：`ai/roles/maintainer.md` 每加一条 `ai/template/...` 引用，

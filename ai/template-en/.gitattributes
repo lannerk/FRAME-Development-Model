@@ -1,0 +1,19 @@
+# FRAME .gitattributes -- every text file in the repo is checked out with LF, on every platform,
+# whatever core.autocrlf says.
+#
+# Why (measured 2026-10-12): git for Windows defaults to core.autocrlf=true and turns LF into CRLF on checkout;
+#   every ops/verify/*.sh then dies in bash with `set: -: invalid option` / `syntax error near $'do\r'`,
+#   so **not one gate in the whole table runs** (Git Bash, WSL, a cloud session mounting the folder -- all the same);
+#   a Linux git looking at the mounted folder also reports the whole tree as "modified" (only the line endings differ).
+# Editors, PowerShell and the Rust/Go/Node toolchains on Windows all accept LF, so LF everywhere costs nothing.
+#
+# Add your project's own rules below (this file is seed: sync creates it when missing and never overwrites it).
+# After adding it, a working tree already checked out as CRLF needs one refresh:
+#   git rm -r --cached -q . && git reset --hard      (commit or stash your own changes first)
+
+* text=auto eol=lf
+
+# Windows batch files must be CRLF (cmd.exe misreads labels/jumps in an LF .bat).
+# They are committed as CRLF already, so -text: in as-is, out as-is, git converts nothing.
+*.bat -text
+*.cmd -text

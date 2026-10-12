@@ -7,6 +7,7 @@
 # 说明：①ai/template/ 与 ai/template-en/ 本身不在清单里——模板不跟着去新项目；
 #       ②SYNC.md 也不在——它是维护模板用的，开新项目时要删掉。
 #
+.gitattributes
 AGENTS.md
 CLAUDE.md
 FRAME-Development-Model.md

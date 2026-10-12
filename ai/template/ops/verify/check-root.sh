@@ -45,9 +45,11 @@ WL=$(awk '/^## 一、顶层/{f=1} f && /^## 二/{exit} f && /^\|/ {
       n=split(line, a, /[ ，、]/);
       for (i=1;i<=n;i++) { t=a[i]; sub(/\/$/, "", t); if (t ~ /^[A-Za-z0-9_.-]+$/) print t }
     }' "$L" | LC_ALL=C sort -u)
+# .gitattributes 让文本文件在任何平台都签出成 LF（Windows 上 autocrlf=true 会把 .sh 签成 CRLF，守门全挂）
 WL="$WL
 .git
-.gitignore"
+.gitignore
+.gitattributes"
 for e in * .[!.]*; do
   [ -e "$e" ] || continue
   name="${e%/}"
