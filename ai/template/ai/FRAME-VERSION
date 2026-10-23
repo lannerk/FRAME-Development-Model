@@ -1,8 +1,8 @@
-version: 2.6.3
+version: 2.7.0
 date: 2026-10-23
 role: home
-fingerprint: 61a0b2c683bc4059
-source_fingerprint: 61a0b2c683bc4059
+fingerprint: de510fc2f83fcb1c
+source_fingerprint: de510fc2f83fcb1c
 synced_with: FRAME-Development-Model
 # version 由维护席 bump：结构/角色变=major · 规矩语义变=minor · 措辞=patch
 # 🔴 fingerprint 自动算、别手改，且**只和同 role 的仓库比**；

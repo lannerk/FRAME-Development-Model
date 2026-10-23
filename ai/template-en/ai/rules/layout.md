@@ -113,10 +113,10 @@ repository against the host-side private-word list.
 | `ai/tasks/index.md` | 100 lines | Move `passed` entries older than 3 stages into `archive/`. **It grows with the project; over the limit the answer is archiving, not deleting lines** |
 | `ai/bugs/index.md` | 80 lines | Move `closed` entries older than 3 stages into `bugs/archive/`, but **keep the regression list** |
 | `ai/bugs/B-*.md` | **180 lines** | Growing past it means two bugs are mixed into one. **Relaxed from 100 to 180 on 2026-09-15**: 100 was estimated **before** the "Locating" section was given its three mandatory subsections (can it be reproduced locally / the elimination tree / conclusion or current hypothesis); with the four reproduction items and a retest per round, a bug investigated properly is simply longer than a task |
-| `ai/tasks/T-*.md` | 150 lines | Too long means it should split into two tasks |
+| `ai/tasks/T-*.md` | **200 lines** | Too long means it should split into two tasks. **Relaxed from 150 to 200 on 2026-10-22**: the Reviewer's conclusion section (pass / reject / pass with leftovers) is itself the task's acceptance record; three tasks reached 175-187 lines once that section was added, and 150 was not enough |
 | `ai/decisions/index.md` | 100 lines | The details are already in the number-range files; it shouldn't grow |
 | `ai/decisions/AD####-####.md` | 100 entries per range | The ranges are fixed; it won't grow |
-| `ai/state/now.md` | **140 lines** | Move stale paragraphs into `archive/`. **Tightened from 200 to 140 on 2026-09-15** — it is read in **every one of the four seats' openings**, the second most expensive file in the opening read; the cap was tightened to make room for the "how to investigate" section |
+| `ai/state/now.md` | **160 lines** | Move stale paragraphs into `archive/`. **Relaxed from 140 to 160 on 2026-10-22**: handover records grew longer; **tightened from 200 to 140 on 2026-09-15** |
 | `ai/specs/<name>.md` | No limit | But **it must have a file header** (see §5) |
 | `product/plan/roadmap.md` | 80 lines | One milestone per line; the detail lives in `milestones/` |
 | `product/plan/milestones/M-*.md` | 150 lines | Growing past it means it should be split into two milestones |

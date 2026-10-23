@@ -30,7 +30,9 @@ fi
 OUT="$(mktemp)"
 
 # 只认这几个顶级目录开头的路径；路径字符 = 除空白、反引号、引号、括号、逗号、竖线之外的一切（含中文）
-PAT='(ai|product|docs|src|ops|dist|claude-outputs|archive|tmp)/[^[:space:]`"'"'"'()（）,，|]+\.(md|sh|py|js|css|html|json|go|txt|ps1|service)'
+# 【坑】扩展名白名单必须**长扩展名在前**、且把 `.jsx` 列进去：这个正则**不带词尾锚**，
+#   2026-10-20 实测 `…/App.jsx` 会被 `js` 匹配成 `…/App.js`（那文件不存在）→ 报断链假红。
+PAT='(ai|product|docs|src|ops|dist|claude-outputs|archive|tmp)/[^[:space:]`"'"'"'()（）,，|]+\.(md|sh|py|jsx|js|css|html|json|go|txt|ps1|service)'
 
 while IFS= read -r f; do
   # 【坑】`$PAT` 以顶层目录名开头，直接 `grep -oE` 会**从一个更长的名字中间截出来**：
@@ -59,6 +61,10 @@ while IFS= read -r f; do
     # 一个引用在这三种基准下任意一处存在就算指得到：
     #  ① 仓库根（文档里最常见）②源码根 src/（web/… internal/… 这类）③引用它的文件自己所在目录
     if [ ! -e "$p" ] && [ ! -e "src/$p" ] && [ ! -e "${LINKCHECK_SRC:-src/_}/$p" ] && [ ! -e "$d/$p" ]; then
+      # 🔴 目标被 .gitignore 挡掉 = **它进不了仓库**，干净克隆里必然不存在：查它是白查，不是断链。
+      #    实例：一个项目把需求方画像列进了 `.gitignore`（它那边定的不入库），初始化指南里指向画像的那句在干净克隆里就报断链。
+      #    只对「本机也不存在」的目标多跑一次 git（调用很少，不拖慢巡检）。
+      git check-ignore -q -- "$p" 2>/dev/null && continue
       echo "断链  $f  ->  $p"
     fi
   done

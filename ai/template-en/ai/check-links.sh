@@ -33,7 +33,9 @@ fi
 OUT="$(mktemp)"
 
 # Only paths starting with these top-level directories count; path characters = anything but whitespace, backticks, quotes, brackets, commas, pipes
-PAT='(ai|product|docs|src|ops|dist|claude-outputs|archive|tmp)/[^[:space:]`"'"'"'()（）,，|]+\.(md|sh|py|js|css|html|json|go|txt|ps1|service)'
+# [Trap] the extension whitelist must list **longer extensions first**, and include `.jsx`: the pattern has **no end anchor**,
+#   so on 2026-10-20 a measured `.../App.jsx` was matched by `js` as `.../App.js` (a file that does not exist) -> a false broken link.
+PAT='(ai|product|docs|src|ops|dist|claude-outputs|archive|tmp)/[^[:space:]`"'"'"'()（）,，|]+\.(md|sh|py|jsx|js|css|html|json|go|txt|ps1|service)'
 
 while IFS= read -r f; do
   # [Trap] `$PAT` starts with a top-level directory name, so a plain `grep -oE` **cuts a path out of the middle
@@ -65,6 +67,11 @@ while IFS= read -r f; do
     # A reference resolves if it exists under any of these bases:
     #  (1) the repo root (most common in docs) (2) the source root src/ (3) the directory of the referencing file
     if [ ! -e "$p" ] && [ ! -e "src/$p" ] && [ ! -e "${LINKCHECK_SRC:-src/_}/$p" ] && [ ! -e "$d/$p" ]; then
+      # 🔴 A target stopped by .gitignore = **it can never enter the repo**, so a clean clone is bound to lack it:
+      #    checking it is wasted, not a broken link. Example: one project listed the Requester profile in
+      #    `.gitignore` (its own call: not committed), and the init guide's pointer to it broke in every clean clone.
+      #    Only run git for targets that do not exist on this machine either (rare calls, no slowdown).
+      git check-ignore -q -- "$p" 2>/dev/null && continue
       echo "broken  $f  ->  $p"
     fi
   done
