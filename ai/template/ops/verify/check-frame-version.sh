@@ -36,6 +36,17 @@ ver="$(grep -E '^version:' "$VF" 2>/dev/null | head -1 | awk '{print $2}')"
 if [ -n "$lv" ] && git merge-base --is-ancestor "$lf" "$lv" 2>/dev/null; then
   echo "FRAME-VERSION-OK（${#F[@]} 份 FRAME 本体，最后一次提交已盖在 ${ver:-?} 里）"; exit 0
 fi
+# 【提交顺序反了、版本其实盖对了】别席用 --all-seats 把盖好的 `ai/FRAME-VERSION` 先一步带进它的提交，本体晚一笔才提交——
+# 上面那条按提交顺序判就红了，可重盖一次文件一字不变，没有东西可提交，**这条红用正当手段消不掉**（Frey 2026-10-23 实测：
+# d0e87a4 带走 2.6.1，c8c349b 才提交本体）。要保的那件事是「本体的每一处改动都被一个版本号覆盖」：
+# **本体与版本文件都没有未提交改动，且版本文件记的指纹等于现算的指纹**，就是覆盖了。指纹由 frame-sync 现算，不在这里抄算法。
+if [ -n "$lv" ] && git diff --quiet HEAD -- "${F[@]}" 2>/dev/null; then
+  rec="$(grep -E '^fingerprint:' "$VF" 2>/dev/null | head -1 | awk '{print $2}')"
+  cur="$(bash ops/frame/frame-sync.sh --status 2>/dev/null | grep -E '^(版本|version) ' | grep -oE '[0-9a-f]{16}$' | head -1)"
+  if [ -n "$rec" ] && [ "$rec" = "$cur" ] && git diff --quiet HEAD -- "$VF" 2>/dev/null; then
+    echo "FRAME-VERSION-OK（${#F[@]} 份 FRAME 本体；版本文件比本体早一笔提交，但记的指纹 $rec 就是已提交本体的指纹，算已盖在 ${ver:-?} 里）"; exit 0
+  fi
+fi
 echo "  ✗  FRAME 本体最后一次提交 $(git log -1 --format='%h %ad「%s」' --date=format:'%m-%d %H:%M' "$lf" | cut -c1-90)"
 echo "     晚于最后一次盖版本 ${lv:+$(git log -1 --format='%h %ad' --date=format:'%m-%d %H:%M' "$lv")}（现在是 ${ver:-没有版本文件}）"
 echo "     那次动到的 FRAME 本体：$(git show --name-only --format= "$lf" -- "${F[@]}" | head -5 | tr '\n' ' ')"

@@ -38,6 +38,17 @@ ver="$(grep -E '^version:' "$VF" 2>/dev/null | head -1 | awk '{print $2}')"
 if [ -n "$lv" ] && git merge-base --is-ancestor "$lf" "$lv" 2>/dev/null; then
   echo "FRAME-VERSION-OK (${#F[@]} FRAME-body files; the last commit is stamped in ${ver:-?})"; exit 0
 fi
+# [commit order reversed, but the stamp is right] Another seat swept the freshly stamped `ai/FRAME-VERSION` into its own commit (--all-seats) and the
+# body was committed one commit later -- the order check above goes red, yet re-stamping changes not a byte, so there is nothing to commit and
+# **no honest way to clear it** (Frey 2026-10-23, measured: d0e87a4 took 2.6.1, c8c349b committed the body). What must hold is "every body change is
+# covered by a version": **body and version file have no uncommitted changes, and the fingerprint recorded equals the one computed now**. frame-sync computes it; no second copy of the algorithm here.
+if [ -n "$lv" ] && git diff --quiet HEAD -- "${F[@]}" 2>/dev/null; then
+  rec="$(grep -E '^fingerprint:' "$VF" 2>/dev/null | head -1 | awk '{print $2}')"
+  cur="$(bash ops/frame/frame-sync.sh --status 2>/dev/null | grep -E '^(版本|version) ' | grep -oE '[0-9a-f]{16}$' | head -1)"
+  if [ -n "$rec" ] && [ "$rec" = "$cur" ] && git diff --quiet HEAD -- "$VF" 2>/dev/null; then
+    echo "FRAME-VERSION-OK (${#F[@]} FRAME-body files; the version file was committed one commit before the body, but its fingerprint $rec is the committed body, so it counts as stamped in ${ver:-?})"; exit 0
+  fi
+fi
 echo "  ✗  last FRAME-body commit $(git log -1 --format='%h %ad "%s"' --date=format:'%m-%d %H:%M' "$lf" | cut -c1-90)"
 echo "     is newer than the last version stamp ${lv:+$(git log -1 --format='%h %ad' --date=format:'%m-%d %H:%M' "$lv")} (now ${ver:-no version file})"
 echo "     FRAME-body files it touched: $(git show --name-only --format= "$lf" -- "${F[@]}" | head -5 | tr '\n' ' ')"

@@ -1,8 +1,8 @@
-version: 2.6.1
+version: 2.6.2
 date: 2026-10-23
 role: home
-fingerprint: c6ff483bf488e19f
-source_fingerprint: c6ff483bf488e19f
+fingerprint: 173410e00dc032ff
+source_fingerprint: 173410e00dc032ff
 synced_with: FRAME-Development-Model
 # version is bumped by the Maintainer: structure/roles=major · rule semantics=minor · wording=patch
 # 🔴 The fingerprint is computed, never hand-edited, and **compares only with repos of the same role**;
