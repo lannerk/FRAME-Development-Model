@@ -40,7 +40,7 @@ if [ -n "$lv" ] && git merge-base --is-ancestor "$lf" "$lv" 2>/dev/null; then
 fi
 # [commit order reversed, but the stamp is right] Another seat swept the freshly stamped `ai/FRAME-VERSION` into its own commit (--all-seats) and the
 # body was committed one commit later -- the order check above goes red, yet re-stamping changes not a byte, so there is nothing to commit and
-# **no honest way to clear it** (Frey 2026-10-23, measured: d0e87a4 took 2.6.1, c8c349b committed the body). What must hold is "every body change is
+# **no honest way to clear it** (a consumer project, 2026-10-23, measured: the Reviewer's commit took the 2.6.1 version file, the Maintainer committed the body one commit later). What must hold is "every body change is
 # covered by a version": **body and version file have no uncommitted changes, and the fingerprint recorded equals the one computed now**. frame-sync computes it; no second copy of the algorithm here.
 if [ -n "$lv" ] && git diff --quiet HEAD -- "${F[@]}" 2>/dev/null; then
   rec="$(grep -E '^fingerprint:' "$VF" 2>/dev/null | head -1 | awk '{print $2}')"
