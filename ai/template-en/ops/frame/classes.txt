@@ -135,3 +135,6 @@ follow@host  gitignore.template
 skip@consumer  README.md
 skip@consumer  SYNC.md
 skip@consumer  gitignore.template
+# 🔴 里程碑样例：初始化指南要求「写完删掉」，可它是 seed、源里一直在，于是每次同步都按「骨架·新建」把它拉回消费项目
+# （Frey 2026-10-23 实测：审查席 10-13 删掉的 M-00-sample.md 又出现在拉回清单里）。新项目靠初始化整份拷贝拿到它，同步不该再管。
+skip@consumer  product/plan/milestones/M-00-sample.md
