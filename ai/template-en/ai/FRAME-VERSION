@@ -1,9 +1,9 @@
-version: 2.5.0
-date: 2026-10-12
+version: 2.6.0
+date: 2026-10-23
 role: home
-fingerprint: b60403fa47a8b4cf
-source_fingerprint: b60403fa47a8b4cf
-synced_with: Frey
-# version 由维护席 bump：结构/角色变=major · 规矩语义变=minor · 措辞=patch
-# 🔴 fingerprint 自动算、别手改，且**只和同 role 的仓库比**；
-#    要知道「我是不是跟上了源」，比的是 source_fingerprint 与源那边自己的 fingerprint。
+fingerprint: d41fd47d7cc3d5a6
+source_fingerprint: d41fd47d7cc3d5a6
+synced_with: FRAME-Development-Model
+# version is bumped by the Maintainer: structure/roles=major · rule semantics=minor · wording=patch
+# 🔴 The fingerprint is computed, never hand-edited, and **compares only with repos of the same role**;
+#    to know whether you kept up with the source, compare source_fingerprint with the source's own fingerprint.

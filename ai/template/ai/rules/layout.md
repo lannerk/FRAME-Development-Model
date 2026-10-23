@@ -15,7 +15,7 @@
 | `README.md` | 给人看的项目简介 | **维护者**（产品事实由审查席给；与 §七 归属表一致） | ✓ |
 | `FRAME-Development-Model.md` | 这套开发模式的对外说明（四权分立怎么运转） | **维护者** | ✓ |
 | `AGENTS.md` 等别名入口 | **只写一句指路，指向 `CLAUDE.md`**。别的 AI 平台自动加载它们；**内容一个字都不许抄过去**（两份入口会无症状分叉） | **维护者** | ✓ |
-| `.claude/` `.codex/` `.cursor/` `.github/` `.kiro/` `.trae/` `.qoder/` `.opencode/` `.codebuddy/` `.gemini/` `.agents/` | 各 AI 开发工具的项目级配置目录——**FRAME 只往里放四档子代理文件**（`ai/rules/model-effort.md`，按 `ai/ide/<工具>.md` 生成），其余是工具自己的 | **维护者**（子代理文件） | ✓ |
+| `.claude/` `.codex/` `.cursor/` `.github/` `.kiro/` `.trae/` `.qoder/` `.opencode/` `.codebuddy/` `.gemini/` `.agents/` | 各 AI 开发工具的项目级配置目录——**FRAME 只往里放四档子代理文件**（`ai/rules/model-effort.md`，按 `ai/ide/<工具>.md` 生成），其余是工具自己的 | **维护者**（子代理文件）；`.github/workflows/` 是 CI 工作流，归**开发者**（§七） | ✓ |
 | `ai/` | 三角色协作的一切 | AI | ✓ |
 | `product/` | 产品定义：愿景 · 需求（收件簿/原话/规格）· **设计与原型（定稿件，开发只认这里）** · **开发计划与里程碑** | 需求方 + AI | ✓ |
 | `docs/` | 工程文档：架构 · 目录说明 · 功能清单 · 运维 · ISO | AI，人也读 | ✓ |
@@ -246,6 +246,7 @@
 | `ai/tasks/*` · `ai/bugs/*` · `ai/decisions/*` · `ai/specs/*` · `ai/state/*` | 审查席 |
 | `product/*` · `claude-outputs/reviewer/*` | 审查席 |
 | `src/*` · `dist/*` · `claude-outputs/developer/*` | 开发席 |
+| `.github/workflows/*` | 开发席（CI 工作流跟着构建走；用别的 CI 平台就照这样给它的工作流路径加一行） |
 | `claude-outputs/supervisor/*` | 监督席 |
 | `ai/advisor/*` | 维护席（FRAME 本体；**内容改进任何一席都可以提，落地走维护席并先去品牌**） |
 | `product/requirements/requester-profile.md` | 监督席（他拍板的偏好由它追加；**四席与研究席都读**） |

@@ -15,7 +15,8 @@
 #   · **永不新建/切换分支**，就在当前分支上提交。
 #
 # 【SourceTree 安全的四道前置检查】——任何一条不过就原样退出，不是报错，是「现在不该提交」
-#   ① `.git/index.lock` 在 → SourceTree 正在操作，**等它做完**，抢锁会让它当场报错
+#   ① `.git/index.lock` 在 → SourceTree 正在操作，**等它做完**，抢锁会让它当场报错；
+#      `HEAD.lock` / 当前分支的 ref 锁 / `packed-refs.lock` 在 → 写分支必失败，**报出名字**，确认后由人删
 #   ② 正在 merge / rebase / cherry-pick → 这时提交会把半成品合进去
 #   ③ HEAD 游离（detached）→ 提交会掉进没有分支的地方，SourceTree 里看不见
 #   ④ 没有可提交的改动 → 不造空提交
@@ -104,6 +105,21 @@ done
 br=$(G symbolic-ref --quiet --short HEAD || true)
 [ -z "$br" ] && { echo "⛔ HEAD 是游离状态，不在任何分支上。先切回分支。"; exit 1; }
 
+# ── 其余三把提交必用的锁 ──
+# 【为什么】原来只查 index.lock。审查席 2026-10-15 实测：上一笔提交留下 `.git/refs/heads/master.lock`，这里放行，
+# 脚本跑到最后 update-ref 才 `cannot lock ref` 失败，提示还指着 HEAD.lock 那套。提交要写的锁事先全查，**报出名字和年龄**。
+STALE=""
+for l in .git/HEAD.lock ".git/refs/heads/$br.lock" .git/packed-refs.lock; do
+  [ -e "$l" ] && STALE="$STALE
+     $l（$(( ($(date +%s) - $(stat -c %Y "$l")) / 60 )) 分钟没动）"
+done
+if [ -n "$STALE" ]; then
+  echo "⛔ 这几把锁在，提交写分支时一定失败（cannot lock ref）：$STALE"
+  echo "   多半是上一次提交（本脚本或 SourceTree）被打断留下的。**先去 SourceTree 确认没有正在进行的操作**，确认了再删它们。"
+  echo "   （由需求方或有删除权限的会话删，**这个脚本不替你删**——万一真有操作在跑，删了会毁掉它。）"
+  exit 1
+fi
+
 # ── 守门红着不许提交 ──
 # 「红着就是没做完」是这套方法的基本判据；带着红灯提交，等于把「没做完」写进历史，
 # 而且下一个人 clone 下来会以为这是个干净的基线。
@@ -137,8 +153,13 @@ esac
 #   · 一次实测：维护席的提交裹走了审查席的 B-0002/T-0034/now.md/收件簿与监督席的报告（24 个文件里 10 个不是它的）；
 #   · 另一次：审查席提交时，维护席刚暂存好的 6 个文件差一点被一起带走。
 # **提交信息是四席共用的历史，裹错了就等于历史说谎。** 所以：横跨两席以上就停下，让人挑。
+# 【精确优先，其次最长前缀】原来按表里的先后取第一个匹配：`product/*` 排在 `product/requirements/requester-profile.md` 前面，
+# 那份画像就永远判给审查席，`--seat 监督席` 拒提（监督席 2026-10-17 实测）。现在**表里行的先后不影响结果**：
+# 精确路径 > 更长的前缀 > 更短的前缀（`.github/workflows/*` 才能从 `.github/` 一类的大前缀里分出来）。
 SEAT_OF_FILE() {  # $1=路径 → 输出 维护席/审查席/开发席/监督席/共写/—
   awk -v f="$1" '
+    /^## / { sec = ($0 ~ /^## (七|7[.、])/); next }   # 只读 §七 那张表：layout.md 别的表第三列也会出现席位名
+    !sec { next }
     /^\|/ {
       line=$0
       if (line ~ /^\|---/) next
@@ -162,10 +183,11 @@ SEAT_OF_FILE() {  # $1=路径 → 输出 维护席/审查席/开发席/监督席
         gsub(/^\*\*|\*\*$/, "", p)   # 去掉加粗标记，但**留下末尾的通配 ***
         if (p == "") continue
         star = (p ~ /\*$/)
-        if (star) { sub(/\*$/, "", p); if (index(f, p) == 1) { print owner; exit } }
-        else if (f == p) { print owner; exit }
+        if (star) { sub(/\*$/, "", p); if (index(f, p) == 1 && length(p) > blen) { blen = length(p); best = owner } }
+        else if (f == p) { exact = owner; exit }
       }
-    }' ai/rules/layout.md
+    }
+    END { if (exact != "") print exact; else if (best != "") print best }' ai/rules/layout.md
 }
 OWNERSHIP_SPLIT() {   # $1=文件清单（每行一个）→ 打印「席位: 文件…」
   printf '%s\n' "$1" | grep . | while IFS= read -r f; do
@@ -184,6 +206,8 @@ elif [ -n "$SEAT" ] && [ "$ALLSEATS" != 1 ]; then
   case "$SEAT" in 维|维护|维护席|maintainer) S0=维护席;; 审|审查|审查席|reviewer) S0=审查席;; 开|开发|开发席|developer) S0=开发席;;
     监|监督|监督席|supervisor) S0=监督席;; 研|研究|研究席|researcher) S0=研究席;; *) S0="$SEAT";; esac
   while IFS= read -r ps; do [ -n "$ps" ] && SCOPE+=("$ps"); done < <(awk -v s="$S0" -F'|' '
+    /^## / { sec = ($0 ~ /^## (七|7[.、])/); next }   # 只读 §七 那张表：layout.md 别的表第三列也会出现席位名
+    !sec { next }
     /^\|/ && !/^\|---/ { o=$3; if (o !~ s && o !~ /共写/) next
       n=split($2, ps, "·"); for (i=1;i<=n;i++){ p=ps[i]; gsub(/[` ]/,"",p); gsub(/^\*\*|\*\*$/,"",p); if (p!="") print p } }' ai/rules/layout.md | sort -u)
 fi
@@ -357,18 +381,27 @@ fi
 [ "$ok" = 1 ] && NEW="$(G commit-tree "$TREE" -p "$OLD" -F "$MSGF")" || ok=0
 [ "$ok" = 1 ] && { G update-ref -m "commit (commit-round): $TITLE" "refs/heads/$br" "$NEW" "$OLD" || ok=0; }
 rm -f "$MSGF" "$TIDX" 2>/dev/null
-[ "$ok" = 1 ] || { echo "提交失败，分支没动（$br 仍是 ${OLD:0:7}）。"; exit 1; }
 
-# ── 收尾：本脚本自己留下的锁与临时对象 ──
+# ── 收尾：本脚本自己留下的锁与临时对象（**成功和失败都收**）──
 # 沙箱默认没有删除权限时，git 建得出锁、删不掉（memory 类型 6）。**只动这次运行期间新出现的**（mtime ≥ 开始时刻），
 # 更早的锁可能是 SourceTree 的，不碰。删不掉就明说，别让需求方下一次在 SourceTree 里撞上。
-left=""
-for l in .git/index.lock .git/HEAD.lock ".git/refs/heads/$br.lock" .git/objects/maintenance.lock .git/next-index-*.lock; do
-  [ -e "$l" ] || continue
-  [ "$(stat -c %Y "$l")" -ge "$START" ] || continue
+# 【为什么用 find 不用清单】原来只清写死的五个名字、且只在成功时清；审查席 2026-10-15 实测一次提交后留下
+# `.git/refs/heads/master.lock`，下一笔两次 `cannot lock ref`。git 会建哪些锁不靠清单猜，**按「本次新出现的 *.lock」一把扫**。
+# 【坑】`-newermt` 是严格大于，同一秒建的锁会漏，所以从 START-1 算起。
+left=""; tmpn=0
+while IFS= read -r l; do
+  [ -n "$l" ] || continue
   rm -f "$l" 2>/dev/null || left="$left $l"
-done
-tmpn=0; while IFS= read -r t; do rm -f "$t" 2>/dev/null || tmpn=$((tmpn+1)); done < <(find .git/objects -name 'tmp_obj_*' -newermt "@$START" 2>/dev/null)
+done < <(find .git -path .git/objects -prune -o -name '*.lock' -newermt "@$((START-1))" -print 2>/dev/null
+         find .git/objects -maxdepth 1 -name '*.lock' -newermt "@$((START-1))" 2>/dev/null)
+while IFS= read -r t; do rm -f "$t" 2>/dev/null || tmpn=$((tmpn+1)); done < <(find .git/objects -name 'tmp_obj_*' -newermt "@$((START-1))" 2>/dev/null)
+if [ "$ok" != 1 ]; then
+  echo "提交失败，分支没动（$br 仍是 ${OLD:0:7}）。"
+  [ -n "$left" ] && echo "⚠️  本次留下的锁删不掉：$left —— 申请一次这个文件夹的删除权限再删（它们是这次运行建的）"
+  OLDL="$(find .git -path .git/objects -prune -o -name '*.lock' -print 2>/dev/null)"
+  [ -n "$OLDL" ] && { echo "   仓库里还有这些锁（不是这次建的，多半就是失败的原因；先确认 SourceTree 没在操作再删）："; printf '%s\n' "$OLDL" | sed 's/^/     /'; }
+  exit 1
+fi
 [ -n "$left" ] && echo "⚠️  提交成功，但删不掉本次留下的锁：$left —— 申请一次这个文件夹的删除权限再删（它们是这次运行建的）"
 [ "$tmpn" -gt 0 ] && echo "⚠️  还有 $tmpn 个本次留下的 .git/objects/**/tmp_obj_*（无害，有删除权限时顺手删）"
 echo "✅ 已提交到本地分支 $br：$(G rev-parse --short HEAD)"

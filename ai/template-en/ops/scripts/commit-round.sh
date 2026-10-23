@@ -15,7 +15,8 @@
 #   * **Never create or switch a branch**, commit on the current one.
 #
 # [The four SourceTree-safe preflight checks] -- any one failing exits as-is: not an error, just "now is not the time to commit"
-#   (1) `.git/index.lock` present -> SourceTree is working, **wait for it to finish**; grabbing the lock makes it error out on the spot
+#   (1) `.git/index.lock` present -> SourceTree is working, **wait for it to finish**; grabbing the lock makes it error out on the spot;
+#       `HEAD.lock` / the current branch's ref lock / `packed-refs.lock` present -> writing the branch must fail, **name them**, a human deletes after checking
 #   (2) a merge / rebase / cherry-pick in progress -> committing now folds a half-finished state in
 #   (3) HEAD detached -> the commit lands somewhere with no branch, invisible in SourceTree
 #   (4) nothing to commit -> do not manufacture an empty commit
@@ -110,6 +111,21 @@ done
 br=$(G symbolic-ref --quiet --short HEAD || true)
 [ -z "$br" ] && { echo "⛔ HEAD is detached, not on any branch. Switch back to a branch first."; exit 1; }
 
+# -- The other three locks a commit needs --
+# [why] Only index.lock used to be checked. Reviewer seat 2026-10-15, measured: the previous commit left `.git/refs/heads/master.lock`, this check
+# let it through, update-ref failed at the very end with `cannot lock ref`, and the hint pointed at HEAD.lock. Check every lock the commit writes, up front, **by name and age**.
+STALE=""
+for l in .git/HEAD.lock ".git/refs/heads/$br.lock" .git/packed-refs.lock; do
+  [ -e "$l" ] && STALE="$STALE
+     $l (untouched for $(( ($(date +%s) - $(stat -c %Y "$l")) / 60 )) min)"
+done
+if [ -n "$STALE" ]; then
+  echo "⛔ these locks are present, so writing the branch will fail (cannot lock ref):$STALE"
+  echo "   Most likely an interrupted earlier commit (this script or SourceTree). **Check in SourceTree that nothing is in progress first**, then delete them."
+  echo "   (The Requester or a session with delete permission deletes them; **this script will not** -- if something really is running, deleting would wreck it.)"
+  exit 1
+fi
+
 # -- a red guard blocks the commit --
 # "Red means not done" is this method's basic criterion; committing with a red guard writes
 # "not done" into history, and the next person to clone it thinks this is a clean baseline.
@@ -147,8 +163,13 @@ esac
 #   . again: when the Reviewer committed, 6 files the Maintainer had just staged were nearly taken with it.
 # **The commit message is history shared by all four seats; sweeping the wrong files in makes that history lie.**
 # So: if the changes span more than one seat, stop and let a human pick.
+# [exact first, then longest prefix] It used to take the first matching row: `product/*` sits above `product/requirements/requester-profile.md`,
+# so the profile always went to the Reviewer and `--seat Supervisor` refused to commit it (Supervisor seat 2026-10-17, measured). Now **row order
+# does not matter**: exact path > longer prefix > shorter prefix (that is what lets `.github/workflows/*` stand apart from a broader prefix).
 SEAT_OF_FILE() {  # $1=path -> prints Maintainer/Reviewer/Developer/Supervisor/shared/-
   awk -v f="$1" '
+    /^## / { sec = ($0 ~ /^## (七|7[.、])/); next }   # read only the section-7 table: other tables in layout.md mention seat names in column 3 too
+    !sec { next }
     /^\|/ {
       line=$0
       if (line ~ /^\|---/) next
@@ -170,10 +191,11 @@ SEAT_OF_FILE() {  # $1=path -> prints Maintainer/Reviewer/Developer/Supervisor/s
         gsub(/^\*\*|\*\*$/, "", p)   # drop bold markers but **keep a trailing glob ***
         if (p == "") continue
         star = (p ~ /\*$/)
-        if (star) { sub(/\*$/, "", p); if (index(f, p) == 1) { print owner; exit } }
-        else if (f == p) { print owner; exit }
+        if (star) { sub(/\*$/, "", p); if (index(f, p) == 1 && length(p) > blen) { blen = length(p); best = owner } }
+        else if (f == p) { exact = owner; exit }
       }
-    }' ai/rules/layout.md
+    }
+    END { if (exact != "") print exact; else if (best != "") print best }' ai/rules/layout.md
 }
 OWNERSHIP_SPLIT() {
   printf '%s\n' "$1" | grep . | while IFS= read -r f; do
@@ -192,6 +214,8 @@ elif [ -n "$SEAT" ] && [ "$ALLSEATS" != 1 ]; then
   case "$SEAT" in maintainer|Maintainer|维护席) S0=Maintainer;; reviewer|Reviewer|审查席) S0=Reviewer;; developer|Developer|开发席) S0=Developer;;
     supervisor|Supervisor|监督席) S0=Supervisor;; researcher|Researcher|研究席) S0=Researcher;; *) S0="$SEAT";; esac
   while IFS= read -r ps; do [ -n "$ps" ] && SCOPE+=("$ps"); done < <(awk -v s="$S0" -F'|' '
+    /^## / { sec = ($0 ~ /^## (七|7[.、])/); next }   # read only the section-7 table: other tables in layout.md mention seat names in column 3 too
+    !sec { next }
     /^\|/ && !/^\|---/ { o=$3; if (o !~ s && o !~ /shared/) next
       n=split($2, ps, "·"); for (i=1;i<=n;i++){ p=ps[i]; gsub(/[` ]/,"",p); gsub(/^\*\*|\*\*$/,"",p); if (p!="") print p } }' ai/rules/layout.md | sort -u)
 fi
@@ -362,18 +386,27 @@ fi
 [ "$ok" = 1 ] && NEW="$(G commit-tree "$TREE" -p "$OLD" -F "$MSGF")" || ok=0
 [ "$ok" = 1 ] && { G update-ref -m "commit (commit-round): $TITLE" "refs/heads/$br" "$NEW" "$OLD" || ok=0; }
 rm -f "$MSGF" "$TIDX" 2>/dev/null
-[ "$ok" = 1 ] || { echo "the commit failed; the branch did not move ($br is still ${OLD:0:7})."; exit 1; }
 
-# -- Wrap-up: locks and temp objects this run left behind --
+# -- Wrap-up: locks and temp objects this run left behind (**on success and on failure**) --
 # With no delete permission in the sandbox, git can create locks it cannot remove (memory, type 6). **Only what appeared during this run**
 # (mtime >= start) is touched; an older lock may be SourceTree's and is left alone. If one cannot be removed, say so, before the Requester hits it.
-left=""
-for l in .git/index.lock .git/HEAD.lock ".git/refs/heads/$br.lock" .git/objects/maintenance.lock .git/next-index-*.lock; do
-  [ -e "$l" ] || continue
-  [ "$(stat -c %Y "$l")" -ge "$START" ] || continue
+# [why find, not a list] It used to clear five hard-coded names, and only on success; Reviewer seat 2026-10-15 measured a commit that left
+# `.git/refs/heads/master.lock`, and the next one hit `cannot lock ref` twice. Do not guess which locks git makes: **sweep every *.lock that appeared this run**.
+# [trap] `-newermt` is strictly-newer, so a lock made in the same second would slip through; count from START-1.
+left=""; tmpn=0
+while IFS= read -r l; do
+  [ -n "$l" ] || continue
   rm -f "$l" 2>/dev/null || left="$left $l"
-done
-tmpn=0; while IFS= read -r t; do rm -f "$t" 2>/dev/null || tmpn=$((tmpn+1)); done < <(find .git/objects -name 'tmp_obj_*' -newermt "@$START" 2>/dev/null)
+done < <(find .git -path .git/objects -prune -o -name '*.lock' -newermt "@$((START-1))" -print 2>/dev/null
+         find .git/objects -maxdepth 1 -name '*.lock' -newermt "@$((START-1))" 2>/dev/null)
+while IFS= read -r t; do rm -f "$t" 2>/dev/null || tmpn=$((tmpn+1)); done < <(find .git/objects -name 'tmp_obj_*' -newermt "@$((START-1))" 2>/dev/null)
+if [ "$ok" != 1 ]; then
+  echo "the commit failed; the branch did not move ($br is still ${OLD:0:7})."
+  [ -n "$left" ] && echo "⚠️  the locks this run left cannot be removed:$left -- ask once for delete permission on this folder, then remove them (this run created them)"
+  OLDL="$(find .git -path .git/objects -prune -o -name '*.lock' -print 2>/dev/null)"
+  [ -n "$OLDL" ] && { echo "   these locks are still in the repo (not from this run, most likely the cause; make sure SourceTree is idle before deleting):"; printf '%s\n' "$OLDL" | sed 's/^/     /'; }
+  exit 1
+fi
 [ -n "$left" ] && echo "⚠️  committed, but the locks this run left cannot be removed:$left -- ask once for delete permission on this folder, then remove them (this run created them)"
 [ "$tmpn" -gt 0 ] && echo "⚠️  $tmpn .git/objects/**/tmp_obj_* left by this run (harmless; remove them once you have delete permission)"
 echo "✅ committed to the local branch $br: $(G rev-parse --short HEAD)"

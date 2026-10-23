@@ -15,7 +15,7 @@
 | `README.md` | Project intro for humans | **Maintainer** (the Reviewer supplies product facts; matches the §7 ownership table) | ✓ |
 | `FRAME-Development-Model.md` | The outward-facing description of this development model (how the four powers work) | **Maintainer** | ✓ |
 | `AGENTS.md` and other alias entry points | **One line of signposting only, pointing at `CLAUDE.md`**. Other AI platforms load them automatically; **not one word of the content may be copied across** (two entry points will diverge with no symptom) | **Maintainer** | ✓ |
-| `.claude/` `.codex/` `.cursor/` `.github/` `.kiro/` `.trae/` `.qoder/` `.opencode/` `.codebuddy/` `.gemini/` `.agents/` | Project-level config directories of the AI coding tools — **FRAME puts only the four tier subagent files there** (`ai/rules/model-effort.md`, generated from `ai/ide/<tool>.md`); everything else is the tool's own | **Maintainer** (the subagent files) | ✓ |
+| `.claude/` `.codex/` `.cursor/` `.github/` `.kiro/` `.trae/` `.qoder/` `.opencode/` `.codebuddy/` `.gemini/` `.agents/` | Project-level config directories of the AI coding tools — **FRAME puts only the four tier subagent files there** (`ai/rules/model-effort.md`, generated from `ai/ide/<tool>.md`); everything else is the tool's own | **Maintainer** (the subagent files); `.github/workflows/` holds CI workflows and belongs to the **Developer** (section 7) | ✓ |
 | `ai/` | Everything about the three roles working together | AI | ✓ |
 | `product/` | Product definition: vision · requirements (inbox/verbatim/spec/formal) · **design and prototypes (finalized; development recognizes only this)** · **development plan and milestones** | Requester + AI | ✓ |
 | `docs/` | Engineering docs: architecture · directory notes · feature list · operations · ISO | AI, humans read it too | ✓ |
@@ -249,6 +249,7 @@ table — **never keep a second copy inside a script**), and `conformance sweep`
 | `ai/tasks/*` · `ai/bugs/*` · `ai/decisions/*` · `ai/specs/*` · `ai/state/*` | Reviewer seat |
 | `product/*` · `claude-outputs/reviewer/*` | Reviewer seat |
 | `src/*` · `dist/*` · `claude-outputs/developer/*` | Developer seat |
+| `.github/workflows/*` | Developer seat (CI workflows go with the build; on another CI platform add a row like this for its workflow path) |
 | `claude-outputs/supervisor/*` | Supervisor seat |
 | `ai/advisor/*` | Maintainer seat (FRAME itself; **any seat may propose content, the change lands through the Maintainer and is de-branded first**) |
 | `product/requirements/requester-profile.md` | Supervisor seat (it appends the preferences he rules on; **all four seats and the Researcher read it**) |

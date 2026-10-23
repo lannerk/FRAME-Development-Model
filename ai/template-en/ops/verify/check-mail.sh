@@ -21,6 +21,7 @@
 #   another project's drop-box is registered first and only writes to the Reviewer and the Supervisor . the recipient is a seat of this project .
 #   all three drop-boxes exist for each of the four seats .
 #   the archive is one file per seat per month and every row states the outcome (one shared file guarantees git conflicts).
+#   **no letters outside the table** (a letter written below the table is invisible to the guard).
 set -u
 # 🔴 **A read-only git call must never create an index.lock** (root cause reported by the Supervisor
 # 2026-09-24, hit twice for real): the local Cowork workspace has **no delete permission by default**,
@@ -224,6 +225,14 @@ for f in "$D"/to-*/from-*.md; do
   fi
 
   # (8) (dropped 2026-10-05) this used to red "more than 3 non-notice letters from one sender"; only the letter cap above (MAIL_MAX) remains.
+
+  # 🔴 (12) No letters outside the table (Reviewer seat 2026-10-16 wrote two letters as paragraphs under the table; they sat unseen for 7 days:
+  # every check above reads table rows only, so **those two were invisible to the guard** -- not counted, never aged, easy to miss when scanning the table).
+  # Rule: after the header, any non-blank line that does not start with | is "prose outside the table". Over three lines goes into a file; the letter keeps only the path (ai/mail/README.md).
+  outside=$(awk '/^\|/ { t=1; next } t && NF { n++ } END { print n+0 }' "$f")
+  if [ "$outside" -gt 0 ]; then
+    echo "  x  $f -- $outside line(s) of prose under the table: one letter is one table row (over three lines goes into a file, the row keeps the path); a letter outside the table is invisible to the guard, never aged or counted"; bad=$((bad+1))
+  fi
 done
 
 # (9) the archive: one file per seat per month, and every row states the outcome
