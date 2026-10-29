@@ -160,7 +160,7 @@ SEAT_OF_FILE() {  # $1=路径 → 输出 维护席/审查席/开发席/监督席
   # 【`ops/scripts/` 里不在 FRAME 清单上的，是项目自己的脚本，归开发席】（需求方 2026-10-29 拍板：发布脚本归维护席时，
   # 开发席每改一次就要发信请维护席复核，两天 4 封）。清单 `ai/frame-manifest.txt` 列的是 FRAME 自带的那几支，仍归维护席。
   case "$1" in ops/scripts/*) if [ -f ai/frame-manifest.txt ] && ! grep -qxF -- "$1" ai/frame-manifest.txt; then echo 开发席; return; fi;; esac
-  awk -v f="$1" '
+  o="$(awk -v f="$1" '
     /^## / { sec = ($0 ~ /^## (七|7[.、])/); next }   # 只读 §七 那张表：layout.md 别的表第三列也会出现席位名
     !sec { next }
     /^\|/ {
@@ -190,7 +190,11 @@ SEAT_OF_FILE() {  # $1=路径 → 输出 维护席/审查席/开发席/监督席
         else if (f == p) { exact = owner; exit }
       }
     }
-    END { if (exact != "") print exact; else if (best != "") print best }' ai/rules/layout.md
+    END { if (exact != "") print exact; else if (best != "") print best }' ai/rules/layout.md)"
+  # 【`ops/` 下归属表没登记、也不在 FRAME 清单上的，同理归开发席】（项目自己的部署、发布配置，例如发布链路的骨架目录；
+  # 需求方 2026-10-29 定的是「项目自己的脚本归开发席」，这些和脚本是同一类东西——维护席只管 FRAME 的规矩，不管产品的发布链路）。
+  if [ -z "$o" ]; then case "$1" in ops/*) if [ -f ai/frame-manifest.txt ] && ! grep -qxF -- "$1" ai/frame-manifest.txt; then o=开发席; fi;; esac; fi
+  [ -n "$o" ] && printf '%s\n' "$o"
 }
 OWNERSHIP_SPLIT() {   # $1=文件清单（每行一个）→ 打印「席位: 文件…」
   printf '%s\n' "$1" | grep . | while IFS= read -r f; do

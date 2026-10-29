@@ -246,7 +246,7 @@ table — **never keep a second copy inside a script**), and `conformance sweep`
 | `ai/rules/*` · `ai/roles/*` · `ai/mail/README.md` | Maintainer seat |
 | `ai/template/*` · `ai/template-en/*` | Maintainer seat |
 | `ops/verify/*` · `ops/scripts/*` · `ops/frame/*` · `ops/README.md` · `docs/guide/*` · `claude-outputs/README.md` · `claude-outputs/maintainer/*` · `.gitignore` · `.gitattributes` · `ai/frame-repo.conf` · `ai/FRAME-VERSION` · `ai/ide/*` · `.claude/agents/*` | Maintainer seat |
-| `ops/scripts/*` | Developer seat -- **only the ones not in `ai/frame-manifest.txt`** (the project's own deploy and release scripts; Requester 2026-10-29: they used to belong to the row above with the scripts FRAME ships, and every change meant a letter asking for review, 4 in two days). `commit-round.sh` decides by the manifest |
+| `ops/scripts/*` | Developer seat -- **only the ones not in `ai/frame-manifest.txt`** (the project's own deploy and release scripts; Requester 2026-10-29: they used to belong to the row above with the scripts FRAME ships, and every change meant a letter asking for review, 4 in two days). `commit-round.sh` decides by the manifest. **Anything else under `ops/` that this table does not list and the manifest does not ship** (the project's own deploy and release config) goes to the Developer the same way |
 | `ai/tasks/*` · `ai/bugs/*` · `ai/decisions/*` · `ai/specs/*` · `ai/state/*` | Reviewer seat |
 | `product/*` · `claude-outputs/reviewer/*` | Reviewer seat |
 | `src/*` · `dist/*` · `claude-outputs/developer/*` | Developer seat |

@@ -173,7 +173,7 @@ SEAT_OF_FILE() {  # $1=path -> prints Maintainer/Reviewer/Developer/Supervisor/s
   # (Requester 2026-10-29: while release scripts belonged to the Maintainer, every change meant a letter asking for review, 4 in two days).
   # `ai/frame-manifest.txt` lists the scripts FRAME ships; those stay with the Maintainer.
   case "$1" in ops/scripts/*) if [ -f ai/frame-manifest.txt ] && ! grep -qxF -- "$1" ai/frame-manifest.txt; then echo Developer; return; fi;; esac
-  awk -v f="$1" '
+  o="$(awk -v f="$1" '
     /^## / { sec = ($0 ~ /^## (七|7[.、])/); next }   # read only the section-7 table: other tables in layout.md mention seat names in column 3 too
     !sec { next }
     /^\|/ {
@@ -201,7 +201,12 @@ SEAT_OF_FILE() {  # $1=path -> prints Maintainer/Reviewer/Developer/Supervisor/s
         else if (f == p) { exact = owner; exit }
       }
     }
-    END { if (exact != "") print exact; else if (best != "") print best }' ai/rules/layout.md
+    END { if (exact != "") print exact; else if (best != "") print best }' ai/rules/layout.md)"
+  # [Anything under `ops/` that the table does not list and the FRAME manifest does not ship also goes to the Developer] (the project's own
+  # deploy and release config, e.g. a release pipeline's skeleton directory; the Requester's 2026-10-29 call was "the project's own scripts belong
+  # to the Developer", and these are the same kind of thing -- the Maintainer keeps FRAME's rules, not the product's release pipeline).
+  if [ -z "$o" ]; then case "$1" in ops/*) if [ -f ai/frame-manifest.txt ] && ! grep -qxF -- "$1" ai/frame-manifest.txt; then o=Developer; fi;; esac; fi
+  [ -n "$o" ] && printf '%s\n' "$o"
 }
 OWNERSHIP_SPLIT() {
   printf '%s\n' "$1" | grep . | while IFS= read -r f; do

@@ -243,7 +243,7 @@
 | `ai/rules/*` · `ai/roles/*` · `ai/mail/README.md` | 维护席 |
 | `ai/template/*` · `ai/template-en/*` | 维护席 |
 | `ops/verify/*` · `ops/scripts/*` · `ops/frame/*` · `ops/README.md` · `docs/guide/*` · `claude-outputs/README.md` · `claude-outputs/maintainer/*` · `.gitignore` · `.gitattributes` · `ai/frame-repo.conf` · `ai/FRAME-VERSION` · `ai/ide/*` · `.claude/agents/*` | 维护席 |
-| `ops/scripts/*` | 开发席——**只限不在 `ai/frame-manifest.txt` 里的**（项目自己的部署、发布脚本；需求方 2026-10-29：它们原来跟 FRAME 自带的那几支一起归上一行，开发席每改一次都要发信请复核，两天 4 封）。`commit-round.sh` 按清单判 |
+| `ops/scripts/*` | 开发席——**只限不在 `ai/frame-manifest.txt` 里的**（项目自己的部署、发布脚本；需求方 2026-10-29：它们原来跟 FRAME 自带的那几支一起归上一行，开发席每改一次都要发信请复核，两天 4 封）。`commit-round.sh` 按清单判。**`ops/` 下其余归属表没登记、清单里也没有的**（项目自己的部署、发布配置）同理归开发席 |
 | `ai/tasks/*` · `ai/bugs/*` · `ai/decisions/*` · `ai/specs/*` · `ai/state/*` | 审查席 |
 | `product/*` · `claude-outputs/reviewer/*` | 审查席 |
 | `src/*` · `dist/*` · `claude-outputs/developer/*` | 开发席 |
