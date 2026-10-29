@@ -306,7 +306,12 @@ if [ "$GUARD_RED" = 1 ]; then
   # (the budget one says "record it in ai/rules/maintenance-log.md" -- measured: it made the maintenance log look like "this commit's red").
   # So per block take only the lines after `── name ──` and before the first `-FAIL` line.
   FIND="$(mktemp "${TMPDIR:-/tmp}/cr_find.XXXXXX")"
-  [ -f "$DET" ] && awk '/^── .* ──$/ {k=1; next} /-FAIL/ {k=0} k' "$DET" > "$FIND"
+  # One more narrowing (2026-10-29, measured): there are info lines before the verdict too -- the budget guard prints "fixed content = CLAUDE.md + laws.md ...",
+  # which made a CLAUDE.md being committed look like this commit's red. So only **finding lines** count: lines with ✗ / x, broken-link lines,
+  # the path guard's `── ./file` lines, and the continuation lines right after them indented 5+ spaces (the version guard lists files that way).
+  [ -f "$DET" ] && awk '/^── .* ──$/ {k=1; c=0; next} /-FAIL/ {k=0} !k {next}
+      /✗|^ *x  |^(断链|锚点断链|broken)|^── \.\// {print; c=1; next}
+      c && /^     / {print; next} {c=0}' "$DET" > "$FIND"
   [ -f "$DET" ] && HIT="$(printf '%s\n' "$COMMITS" | grep . | while IFS= read -r f; do grep -aqF -- "$f" "$FIND" && echo "$f"; done)"
   rm -f "$FIND" 2>/dev/null
   if [ ! -f "$DET" ] || [ -n "$HIT" ]; then

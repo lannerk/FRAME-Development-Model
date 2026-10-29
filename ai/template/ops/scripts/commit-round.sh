@@ -290,7 +290,12 @@ if [ "$GUARD_RED" = 1 ]; then
   # （行数预算那条就写着「要在 ai/rules/maintenance-log.md 记一条」——实测把维护记录误判成「本次惹的红」）。
   # 所以每块只取 `── 名字 ──` 之后、第一行 `-FAIL` 之前的那些行。
   FIND="$(mktemp "${TMPDIR:-/tmp}/cr_find.XXXXXX")"
-  [ -f "$DET" ] && awk '/^── .* ──$/ {k=1; next} /-FAIL/ {k=0} k' "$DET" > "$FIND"
+  # 再收窄一层（2026-10-29 实测）：判据行之前也有说明行——行数预算会打印「固定内容＝ CLAUDE.md + laws.md …」，
+  # 把要提交的 CLAUDE.md 误判成本次惹的红。所以只认**发现行**：带 ✗ 的、断链行、路径检查的 `── ./文件` 行，
+  # 以及紧跟其后、缩进 5 格以上的续行（版本守门列文件就这么写）。
+  [ -f "$DET" ] && awk '/^── .* ──$/ {k=1; c=0; next} /-FAIL/ {k=0} !k {next}
+      /✗|^ *x  |^(断链|锚点断链|broken)|^── \.\// {print; c=1; next}
+      c && /^     / {print; next} {c=0}' "$DET" > "$FIND"
   [ -f "$DET" ] && HIT="$(printf '%s\n' "$COMMITS" | grep . | while IFS= read -r f; do grep -aqF -- "$f" "$FIND" && echo "$f"; done)"
   rm -f "$FIND" 2>/dev/null
   if [ ! -f "$DET" ] || [ -n "$HIT" ]; then
