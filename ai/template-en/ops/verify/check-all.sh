@@ -96,6 +96,14 @@ if [ $((pass+fail)) -eq 0 ]; then
   echo "ALL-FAIL (not a single guard ran: this is not green, the patrol itself is broken — run it from the repo root and check the scripts under ops/verify/ are there)"
   exit 1
 fi
+# 🔴 **The red detail is saved to tmp/.check-all.detail** (with or without -v): the commit script uses it to tell whether a red
+# is caused by the files being committed, and blocks only those; other seats' reds are listed, not blocking (Supervisor 2026-10-27:
+# a docs-only commit was blocked by another seat's over-budget file). Temp file then rename, as above; on all-green it is removed.
+if [ "$fail" -gt 0 ]; then
+  dn="$(mktemp tmp/.check-all.detail.XXXXXX 2>/dev/null)" && printf '%s\n' "$out" > "$dn" && mv -f "$dn" tmp/.check-all.detail
+else
+  rm -f tmp/.check-all.detail 2>/dev/null
+fi
 if [ "$fail" -gt 0 ]; then
   [ "$V" = 1 ] && { echo "$out"; echo; }
   echo "ALL-FAIL ($pass green / $fail red · ${SECONDS}s total)"

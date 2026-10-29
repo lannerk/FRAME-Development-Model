@@ -113,7 +113,7 @@
 | `ai/tasks/T-*.md` | **200 行** | 太长说明该拆成两条任务。**2026-10-22 从 150 放宽到 200**：审查席的审查结论节（过/打回/带遗留）本身就是任务的验收记录，三条任务加完审查结论到 175-187 行，150 不够用 |
 | `ai/decisions/index.md` | 100 行 | 明细本来就在号段文件里，不该涨 |
 | `ai/decisions/AD####-####.md` | 每段 100 条 | 号段固定，不会涨 |
-| `ai/state/now.md` | **160 行** | 过期段落移进 `archive/`。**2026-10-22 从 140 放宽到 160**：审查席交接记录加长；**2026-09-15 从 200 收紧到 140** |
+| `ai/state/now.md` | **160 行** | 过期段落移进 `archive/`。**2026-10-22 从 140 放宽到 160**：审查席交接记录加长；**2026-09-15 从 200 收紧到 140**。🔴 **每条三行**：做了什么 · 结论 / 下一步 · 证据在哪（一个路径）；构建哈希、断言清单、commit message 全文进证据文件。**单行超过 300 字符判红**（`check-budget.sh`；监督席 2026-10-27：一个项目里单条 1,500–3,000 字，行数预算挡不住「一行一面墙」） |
 | `ai/specs/<名>.md` | 不限 | 但**必须有文件头**（见 §五） |
 | `product/plan/roadmap.md` | 80 行 | 一个里程碑一行，细节在 `milestones/` |
 | `product/plan/milestones/M-*.md` | 150 行 | 涨过头说明该拆成两个里程碑 |
@@ -243,6 +243,7 @@
 | `ai/rules/*` · `ai/roles/*` · `ai/mail/README.md` | 维护席 |
 | `ai/template/*` · `ai/template-en/*` | 维护席 |
 | `ops/verify/*` · `ops/scripts/*` · `ops/frame/*` · `ops/README.md` · `docs/guide/*` · `claude-outputs/README.md` · `claude-outputs/maintainer/*` · `.gitignore` · `.gitattributes` · `ai/frame-repo.conf` · `ai/FRAME-VERSION` · `ai/ide/*` · `.claude/agents/*` | 维护席 |
+| `ops/scripts/*` | 开发席——**只限不在 `ai/frame-manifest.txt` 里的**（项目自己的部署、发布脚本；需求方 2026-10-29：它们原来跟 FRAME 自带的那几支一起归上一行，开发席每改一次都要发信请复核，两天 4 封）。`commit-round.sh` 按清单判 |
 | `ai/tasks/*` · `ai/bugs/*` · `ai/decisions/*` · `ai/specs/*` · `ai/state/*` | 审查席 |
 | `product/*` · `claude-outputs/reviewer/*` | 审查席 |
 | `src/*` · `dist/*` · `claude-outputs/developer/*` | 开发席 |

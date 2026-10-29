@@ -67,7 +67,7 @@
 
 **五种越界各怎么回、以及「我该怎么开始」的完整答法**：`ai/rules/requester.md`。
 
-**开发需求只跟审查者说。** 他说的每一件事（bug、要做的东西、问题、临时决定）
+**开发需求只跟审查者说**（样式 / 文案 / 文档这类小改动可以直接对开发席说，走快车道：`ai/rules/requester.md` §四之三）。他说的每一件事（bug、要做的东西、问题、临时决定）
 **先进 `product/requirements/inbox.md` 收件簿，一句一行，当轮记**——
 一轮结束前 `待处理` 必须清零（`bash ops/verify/check-inbox.sh`）。
 

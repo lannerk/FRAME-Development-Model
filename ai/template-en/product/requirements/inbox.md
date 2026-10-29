@@ -14,6 +14,7 @@
    Run `bash ops/verify/check-inbox.sh` while wrapping up; it lists the lines that still have no disposition.
 5. **Go through them one by one when you reply to the Requester**: say where each one went ("these three I opened as T-0042/43/44, this one I suggest we don't do, because…").
    **Every single thing he raised gets an answer back**, even if the answer is "won't do".
+6. **Rows of type `fast-lane` were logged by the Developer** (small changes, `ai/rules/requester.md` §4c): review each one; passed -> `answered` and commit it for him, failed -> a task or a bug.
 
 ## Statuses
 

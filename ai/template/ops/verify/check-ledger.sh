@@ -21,6 +21,9 @@ set -u
 # 照常拿它自己的锁，不受影响。
 export GIT_OPTIONAL_LOCKS=0
 ROOT="$(cd "$(dirname "$0")/../.." && pwd)"; cd "$ROOT" || exit 2
+# 🔴 **扫到空集不许报绿**（审查席 2026-10-25 转监督席对照意见：缺依赖默认红，跳过要写明原因）。
+# 台账目录本来就该在：不在说明根找错了或项目没初始化，**判红**，不是「什么都对得上」。
+for d in ai/tasks ai/bugs ai/decisions; do [ -d "$d" ] || { echo "找不到 $d —— 台账都不在，对账无从谈起（是不是在仓库根下跑的？）"; exit 2; }; done
 bad=0
 say(){ echo "  ✗  $*"; bad=$((bad+1)); }
 
@@ -151,4 +154,4 @@ while IFS= read -r f; do
 done < <(find ai -maxdepth 1 -type f)
 
 if [ "$bad" -gt 0 ]; then echo; echo "LEDGER-FAIL（$bad 处对不上）"; exit 1; fi
-echo "LEDGER-OK（字段齐、双写一致、索引与实体对得上）"
+echo "LEDGER-OK（$(ls ai/tasks/T-*.md 2>/dev/null | wc -l) 条任务、$(ls ai/bugs/B-*.md 2>/dev/null | wc -l) 条 bug：字段齐、双写一致、索引与实体对得上）"

@@ -185,7 +185,7 @@ If "Bugs fixed" in the development report is not `none`, **you retest this round
 8. **Commit to the local git**: `bash ops/scripts/commit-round.sh "<one-line title>" --seat reviewer`.
    **If this round passed or closed Developer work, commit that first**: `--seat developer --by reviewer --for "T-#### B-####"` (no title = copy `now.md` §7), **then your own** -- two commits, never one (Requester 2026-09-30).
    **When a Developer stage is done, its automated checks and conformance tests are green and the task carries a self-test, you may make an archive commit before reviewing**: the same command plus `--unreviewed`; the title gets "unreviewed:" automatically, and the verdict still goes into the task (`workflow.md` §7b).
-   **add + commit only, never push** (pushing is the Requester's business, `workflow.md` §7b); on hitting someone else's `.git/index.lock`, exit as-is and **do not delete it**.
+   **no push by default** (a project with `auto-push=` in `ai/frame-repo.conf` has the script push after committing, `workflow.md` §7b); **review every `fast-lane` row in the inbox** (`ai/rules/requester.md` §4c); on hitting someone else's `.git/index.lock`, exit as-is and **do not delete it**.
 9. End the round with one line: **"review complete, development may continue."**
 
 ## 8. Token discipline (you burn the most)

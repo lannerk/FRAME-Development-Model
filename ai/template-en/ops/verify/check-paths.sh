@@ -42,6 +42,8 @@ BAD_SCRIPT='[A-Za-z]:\\[A-Za-z]|(10|172|192)\.(1[6-9]|2[0-9]|3[01]|168|[0-9]+)\.
 # In docs: only hard-coded test-machine IPs matter. Docs may **narrate** history; that is a record, not configuration.
 BAD_DOC='(10|172|192)\.(1[6-9]|2[0-9]|3[01]|168|[0-9]+)\.[0-9]{1,3}\.[0-9]{1,3}'
 
+# 🔴 **An empty scan is not green** (Reviewer 2026-10-25, from the Supervisor's comparison: a missing dependency is red by default; a skip must say why).
+nf=$(grep -c . "$VIS"); [ "$nf" -gt 0 ] || { echo "CHECK-PATHS-FAIL (not a single file scanned: that is not clean, it is unread -- run it at the repo root)"; exit 1; }
 n=0
 scan() {   # $1=file $2=regex
   hits=$(grep -nE "$2" "$1" 2>/dev/null | head -5)
@@ -130,4 +132,4 @@ if [ "$n" -gt 0 ]; then
   echo "  Machines: read ops/machines.json and refer by id; never write an IP."
   exit 1
 fi
-echo "CHECK-PATHS-OK (no hard-coded in-repo paths, no hard-coded test-machine IPs)"
+echo "CHECK-PATHS-OK ($nf files scanned: no hard-coded in-repo paths, no hard-coded test-machine IPs)"

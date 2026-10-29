@@ -85,4 +85,7 @@ if [ "$bad" -gt 0 ]; then
   echo "  Do not use angle brackets for a placeholder directory -- use something like _PROJECT_."
   exit 1
 fi
-echo "FILENAMES-OK (no filename that Windows could not create)"
+# 🔴 **An empty scan is not green** (Reviewer 2026-10-25, from the Supervisor's comparison: a missing dependency is red by default; a skip must say why).
+nf=$(grep -c . "$VIS")
+[ "$nf" -gt 0 ] || { echo "FILENAMES-FAIL (not a single name scanned: that is not clean, it is unread -- run it at the repo root)"; exit 1; }
+echo "FILENAMES-OK ($nf names scanned: no filename that Windows could not create)"

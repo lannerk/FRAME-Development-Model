@@ -209,7 +209,7 @@ Set by the Requester (his own words, 2026-09-15):
      They should re-read the handbook and **say what changed and whether it affects the work in their hands** — **answering only "OK" means they did not read it**.
 7. **Report to the Requester, and say explicitly that both templates are in sync** (see closing criterion 2 in the ⛔ at the top).
 8. **Commit to the local git**: `bash ops/scripts/commit-round.sh "rules: <which rule changed>"`.
-   **Only add + commit, never push** (the five prohibitions in `ai/rules/workflow.md` §7b count for you just the same).
+   **No push by default** (`auto-push=` and the five prohibitions in `ai/rules/workflow.md` §7b count for you just the same).
    **Changing the rules without committing means the next person who clones still gets the old rules.**
 9. Mark this entry done in the maintenance log, with the verification output written out.
 

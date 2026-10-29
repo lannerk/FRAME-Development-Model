@@ -8,7 +8,10 @@
 # Exit codes: 0 = committed (or the --dry run passed); 1 = a precondition is not met (exits as-is, nothing touched); 2 = the structure is wrong.
 #
 # [The boundary, not a word past it]
-#   * **add + commit only. Never push.** Pushing is the Requester's business (he uses SourceTree).
+#   * **By default add + commit only, no push.** Pushing is the Requester's business (he uses SourceTree) --
+#     **except in a project where the Requester authorised automatic pushes**: `auto-push=<remotes...>` in `ai/frame-repo.conf`; after a successful
+#     commit, `git push <remote> <current branch>` for each, a failure is reported as-is, no retry, no credential changes, never `--force`
+#     (Requester 2026-10-25 in one project: push to both remotes on every commit).
 #   * **Never amend / rebase / reset / checkout / cherry-pick / force** -- those rewrite history,
 #     and SourceTree has this repo open; a rewritten history shows up there as a tangle that has to be restored by hand.
 #   * **Never touch git config** (`core.autocrlf` and the like are the Requester's Windows-side settings; touch them and the diff is fake from top to bottom).
@@ -36,6 +39,7 @@ export GIT_OPTIONAL_LOCKS=0
 ROOT="$(cd "$(dirname "$0")/../.." && pwd)"; cd "$ROOT" || exit 2
 TITLE=""; DRY=0; SEAT="${SEAT:-}"; ALLSEATS=0; BY=""; FOR=""; NARROW=(); UNREV=0
 START=$(date +%s)
+AUTOPUSH="$(grep -E '^auto-push=' ai/frame-repo.conf 2>/dev/null | tail -1 | cut -d= -f2- | tr -d '\r')"; [ "$AUTOPUSH" = off ] && AUTOPUSH=""
 while [ $# -gt 0 ]; do
   case "$1" in
     --) shift; NARROW=("$@"); break;;
@@ -142,16 +146,14 @@ fi
 GUARD="$(grep -aoE 'ALL-(OK|FAIL).*' "$LAST" 2>/dev/null | head -1)"
 [ -n "$GUARD" ] || { echo "STOP no guard result ($LAST was not written)"; exit 2; }
 GUARD="$GUARD ($GUARD_SRC)"
+# 🔴 **A red does not block yet: decide once we know which files are being committed** (Supervisor 2026-10-27, forwarded by the
+# Requester: a docs-only commit was blocked by another seat's over-budget task file, another by a "planned" path -- neither caused by
+# the commit). The rule is in "guards: block only the reds this commit causes" below.
+GUARD_RED=0
 case "$GUARD" in
   ALL-FAIL*)
-    if [ "${ANYWAY:-0}" != 1 ]; then
-      echo "BLOCKED: a guard is red: $GUARD"
-      grep -a '❌' "$LAST" | sed 's/^/   /'
-      echo "   Make it green first. **If you really must commit with it red** (say this round is the fix):"
-      echo "   ANYWAY=1 bash $0 \"<title>\"   -- the commit message will say it went in red."
-      exit 1
-    fi
-    GUARD="$GUARD (committed red, ANYWAY=1)"
+    if [ "${ANYWAY:-0}" != 1 ]; then GUARD_RED=1
+    else GUARD="$GUARD (committed red, ANYWAY=1)"; fi
     ;;
 esac
 
@@ -167,6 +169,10 @@ esac
 # so the profile always went to the Reviewer and `--seat Supervisor` refused to commit it (Supervisor seat 2026-10-17, measured). Now **row order
 # does not matter**: exact path > longer prefix > shorter prefix (that is what lets `.github/workflows/*` stand apart from a broader prefix).
 SEAT_OF_FILE() {  # $1=path -> prints Maintainer/Reviewer/Developer/Supervisor/shared/-
+  # [A script under `ops/scripts/` that is not on the FRAME manifest is the project's own, and belongs to the Developer]
+  # (Requester 2026-10-29: while release scripts belonged to the Maintainer, every change meant a letter asking for review, 4 in two days).
+  # `ai/frame-manifest.txt` lists the scripts FRAME ships; those stay with the Maintainer.
+  case "$1" in ops/scripts/*) if [ -f ai/frame-manifest.txt ] && ! grep -qxF -- "$1" ai/frame-manifest.txt; then echo Developer; return; fi;; esac
   awk -v f="$1" '
     /^## / { sec = ($0 ~ /^## (七|7[.、])/); next }   # read only the section-7 table: other tables in layout.md mention seat names in column 3 too
     !sec { next }
@@ -284,6 +290,34 @@ fi
 # With `-- <paths>` but no per-seat pick (--all-seats): commit only what changed under those paths; **never fall back to a whole-repo add -A**
 [ -z "$MINE" ] && [ "${#NARROW[@]}" -gt 0 ] && MINE="$CAND"
 
+# -- Guards: block only the reds this commit causes --
+# The red detail is in tmp/.check-all.detail (check-all always saves it). **If it names any file being committed -> block**;
+# if it names none, the red belongs to another seat or another place: commit, and record the reds in the message. No detail file
+# (an older check-all, or just removed) -> cannot tell, block as before.
+# 🔴 **Every round still has to end fully green** -- what passes here is only "unrelated to this commit"; those reds stay in the guard output for their owners.
+if [ "$GUARD_RED" = 1 ]; then
+  COMMITS="${MINE:-$CAND}"; DET=tmp/.check-all.detail; HIT=""
+  # [findings only, not the hints] after its verdict line (`*-FAIL`) a red block often adds a "how to fix" line that names paths
+  # (the budget one says "record it in ai/rules/maintenance-log.md" -- measured: it made the maintenance log look like "this commit's red").
+  # So per block take only the lines after `── name ──` and before the first `-FAIL` line.
+  FIND="$(mktemp "${TMPDIR:-/tmp}/cr_find.XXXXXX")"
+  [ -f "$DET" ] && awk '/^── .* ──$/ {k=1; next} /-FAIL/ {k=0} k' "$DET" > "$FIND"
+  [ -f "$DET" ] && HIT="$(printf '%s\n' "$COMMITS" | grep . | while IFS= read -r f; do grep -aqF -- "$f" "$FIND" && echo "$f"; done)"
+  rm -f "$FIND" 2>/dev/null
+  if [ ! -f "$DET" ] || [ -n "$HIT" ]; then
+    echo "BLOCKED: a guard is red: $GUARD"
+    grep -a '❌' "$LAST" | sed 's/^/   /'
+    if [ -n "$HIT" ]; then echo "   the red detail names files being committed:"; printf '%s\n' "$HIT" | sed 's/^/     /'
+    else echo "   (no red detail $DET, so it cannot tell whose red it is -- rerun bash ops/verify/check-all.sh, then commit)"; fi
+    echo "   Make it green first. **If you really must commit with it red** (say this round is the fix):"
+    echo "   ANYWAY=1 bash $0 \"<title>\"   -- the commit message will say it went in red."
+    exit 1
+  fi
+  REDS="$(grep -a '❌' "$LAST" | sed -E 's/^ *❌ *//; s/  +.*//' | awk '{printf "%s%s", (NR>1 ? ", " : ""), $0}')"
+  echo "note: guards are red ($REDS), but no red names a file being committed, so this commits; the owners are in layout.md section 7, and **the round still has to end green**."
+  GUARD="$GUARD (red, unrelated to this commit: $REDS; not blocked)"
+fi
+
 if [ "$DRY" != 1 ]; then
   if [ -n "$MINE" ]; then
     set --; while IFS= read -r f; do [ -n "$f" ] && set -- "$@" "$f"; done <<< "$(printf '%s\n' "$MINE" | grep .)"
@@ -345,6 +379,7 @@ fi
 
 BYNOTE=""; [ -n "$BY" ] && BYNOTE=" (committed by $BY after the review passed; for $FOR)"
 [ "$UNREV" = 1 ] && BYNOTE=" (committed by $BY as an **archive commit, not yet reviewed**; for $FOR)"
+PUSHNOTE="**not pushed** -- confirm in SourceTree, then push."; [ -n "$AUTOPUSH" ] && PUSHNOTE="pushed after commit per ai/frame-repo.conf to: $AUTOPUSH"
 MSG=$(cat <<EOM
 $TITLE
 
@@ -357,7 +392,7 @@ Guards:    $GUARD
 Seat:      ${SEAT:-unspecified (--all-seats, or only one seat has changes)}$BYNOTE${OTHERS:+
 Left for other seats (not committed here): $(printf '%s\n' "$OTHERS" | awk -F"|" '{c[$1]++} END {for (k in c) printf "%s %d · ", k, c[k]}' | sed 's/ · $//')}
 
-Generated by the Reviewer seat after calling a round; **not pushed** -- confirm in SourceTree, then push.
+Generated by the Reviewer seat after calling a round; $PUSHNOTE
 
 Co-Authored-By: Claude <noreply@anthropic.com>
 EOM
@@ -411,5 +446,20 @@ fi
 [ "$tmpn" -gt 0 ] && echo "⚠️  $tmpn .git/objects/**/tmp_obj_* left by this run (harmless; remove them once you have delete permission)"
 echo "✅ committed to the local branch $br: $(G rev-parse --short HEAD)"
 echo "   $TITLE"
-echo "   **not pushed** -- take a look in SourceTree before you push. ($(( $(date +%s) - START )) s)"
+if [ -n "$AUTOPUSH" ]; then
+  # Automatic push: only projects whose Requester authorised it have auto-push=; push the current branch to each remote, **no retry, no credentials, never --force**
+  for r in $AUTOPUSH; do
+    po="$(mktemp "${TMPDIR:-/tmp}/cr_push.XXXXXX")"
+    if { command -v timeout >/dev/null 2>&1 && timeout "${PUSH_TIMEOUT:-150}" git push "$r" "$br" >"$po" 2>&1; } \
+       || { ! command -v timeout >/dev/null 2>&1 && git push "$r" "$br" >"$po" 2>&1; }; then
+      echo "   pushed $r/$br"
+    else
+      echo "   ⚠️  push to $r failed (no retry, credentials untouched; the commit is local):"; sed 's/^/        /' "$po" | tail -6
+    fi
+    rm -f "$po" 2>/dev/null
+  done
+  echo "   ($(( $(date +%s) - START )) s)"
+else
+  echo "   **not pushed** -- take a look in SourceTree before you push. ($(( $(date +%s) - START )) s)"
+fi
 NOTE_SHARED

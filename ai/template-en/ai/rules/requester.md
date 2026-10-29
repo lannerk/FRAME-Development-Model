@@ -79,21 +79,17 @@ mid-project · "how should this be done" / "is there a newer way" · the command
 1. **Read the profile first**, `product/requirements/requester-profile.md`. What he has settled is **used,
    not asked again**, with one line in the body naming which of his rulings were applied.
 2. **Look up the generic library as needed**, `ai/advisor/` — 🔴 **never read it whole**: pick questions from
-   `questions.md` · find what it drags in via `chains.md` · check `stack.md` for a choice · read `domains/*`
-   for domain practice.
+   `questions.md` · find what it drags in via `chains.md` · check `stack.md` for a choice · read `domains/*` for domain practice.
 3. **Give a plan card, not a pile of options**: recommended approach · why · cost · when it does not apply ·
-   what can still be reversed. **Settle the technical and architectural things yourself** and write down
-   what is reversible.
+   what can still be reversed. **Settle the technical and architectural things yourself** and write down what is reversible.
 4. **Ask about the dimensions he never mentioned** (internationalization, compatibility with an existing
    system / data / interface, secrets, AI, licences, error collection …) — take only what **genuinely needs
    his ruling** and pop it up per §4b (≤ 4 questions, recommendation first, every option with its cost, no
    default). 🔒 **An irreversible question must be asked before any code.**
 5. **Plain-language mode**: when the profile is empty, or he says "I am not technical", spell out each
-   option's consequence in one plain sentence ("pick this and adding an English UI later means going
-   through every page"), and mark the recommendation "pick this if you are unsure".
+   option's consequence in one plain sentence ("pick this and adding an English UI later means going through every page"), and mark the recommendation "pick this if you are unsure".
 6. **Ask before you build**; his words go into the requirements inbox, **a ruling is appended to the
-   profile** (one line: preference · his words or choice · date and source), and anything important
-   becomes an AD.
+   profile** (one line: preference · his words or choice · date and source), and anything important becomes an AD.
 
 **Three things you may not do**:
 
@@ -113,11 +109,18 @@ The Requester often says things straight to whichever session is in front of him
 
 | Which seat he told | What he said | What you say back |
 |---|---|---|
-| **Developer seat** | A requirement / a bug / change this design / change the priority | "I only do what is in the queue. This has to go through the Reviewer seat — he records it in the inbox, turns it into an acceptable spec, and schedules it." |
+| **Developer seat** | A requirement / a bug / change this design / change the priority (**small changes excepted**, see "fast lane" below) | "I only do what is in the queue. This has to go through the Reviewer seat — he records it in the inbox, turns it into an acceptable spec, and schedules it." |
 | **Reviewer seat** | Write this feature code yourself | "I do not touch feature code (reviewing what I wrote myself is not a review). I will open it as `T-####`; say `review done, continue` to the Developer seat." |
 | **Supervisor seat** | Go build it / go direct development | "I do not touch the development mainline. What I produce is opinion and root-cause reports in `claude-outputs/supervisor/`; it enters the queue only after the Reviewer seat verifies it." |
 | **Maintainer seat** | A requirement / a bug | "What you say to me is not a requirement; I only maintain the rules. Features and bugs go to the Reviewer seat." |
 | **Any seat** | Change a rule (a role handbook / `ai/rules/` / the directory rules) | "Rules belong to the Maintainer seat. Open a session and say `maintainer`." |
+
+### 🔴 Exception: the small-change fast lane (Requester 2026-10-29)
+
+**A small change he tells the Developer directly may be done on the spot, without a task first** -- the process was too heavy for small things and he was going around it (Supervisor 2026-10-27); a lane with a record and a review beats an ungoverned workaround.
+- **Scope (all of it)**: only UI style / wording / layout, docs, typos, test data; **no interfaces, data formats, permissions, dependencies, build, release**; ~50 lines at most. **If it turns out bigger, stop** and answer as in the row above.
+- **Developer**: do it -> self-test -> append an inbox row (his words **verbatim**, type `fast-lane`, disposition "which files · self-test result", status `pending`); **do not commit**.
+- **Reviewer**: **review every one** next round (the Requester's choice, no sampling): passed -> commit it for him, `answered`; failed -> a task or a bug. `pending` must be zero each round (`check-inbox.sh`), so the review cannot be skipped.
 
 ### Three things when you answer, none of them optional
 

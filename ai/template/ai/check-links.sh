@@ -28,6 +28,7 @@ else
   find . \( -path ./.git -o -name node_modules \) -prune -o -type f -print 2>/dev/null > "$VIS"
 fi
 OUT="$(mktemp)"
+PLANNED="$(mktemp)"
 
 # 只认这几个顶级目录开头的路径；路径字符 = 除空白、反引号、引号、括号、逗号、竖线之外的一切（含中文）
 # 【坑】扩展名白名单必须**长扩展名在前**、且把 `.jsx` 列进去：这个正则**不带词尾锚**，
@@ -65,6 +66,11 @@ while IFS= read -r f; do
       #    实例：一个项目把需求方画像列进了 `.gitignore`（它那边定的不入库），初始化指南里指向画像的那句在干净克隆里就报断链。
       #    只对「本机也不存在」的目标多跑一次 git（调用很少，不拖慢巡检）。
       git check-ignore -q -- "$p" 2>/dev/null && continue
+      # 🔴 **标了「（待建）」的不算断链**（监督席 2026-10-27：文档里写了计划中、还没建的脚本路径，被判断链，只能改措辞绕过去）。
+      #    写法：路径后面紧跟 `（待建）` 或 `(planned)`。不判红，但末尾列出来——**防止永远不建**。
+      planned=0
+      for suf in '`（待建）' '（待建）' '` （待建）' '` (planned)' ' (planned)'; do grep -qF -- "$p$suf" "$f" 2>/dev/null && { planned=1; break; }; done
+      [ "$planned" = 1 ] && { echo "待建  $f  ->  $p" >> "$PLANNED"; continue; }
       echo "断链  $f  ->  $p"
     fi
   done
@@ -107,6 +113,10 @@ while IFS= read -r f; do
   done
 done < <(grep -E '\.md$' "$VIS" | grep -vE '^\./\.git/.*$|^\./tmp/.*$|^\./dist/.*$|^.*/node_modules/.*$|^\./archive/.*$|^\./.*/archive/.*$|^\./claude-outputs/.*$|^\./src/.*$|^\./_newroot/.*$|^\./ai/template/.*$|^\./ai/template-en/.*$|(^|/)maintenance\-log\.md$') >> "$OUT"
 
+if [ -s "$PLANNED" ]; then
+  echo "  （标了待建、没判断链的 $(sort -u "$PLANNED" | wc -l) 条——建好就把「（待建）」删掉：）"; sort -u "$PLANNED" | sed 's/^/    /'
+fi
+rm -f "$PLANNED"
 if [ -s "$OUT" ]; then
   sort -u "$OUT"
   echo "---- 断链 $(sort -u "$OUT" | wc -l) 条（含 §锚点）----"

@@ -91,6 +91,14 @@ if [ $((pass+fail)) -eq 0 ]; then
   echo "ALL-FAIL（一条守门都没跑到：不是全绿，是巡检自己坏了——确认在仓库根下跑、ops/verify/ 里的脚本都在）"
   exit 1
 fi
+# 🔴 **红项明细另存一份 tmp/.check-all.detail**（不加 -v 也存）：提交脚本靠它判「这些红是不是本次要提交的文件惹的」，
+# 只拦点到本次文件的红，别席的红照常列出、不拦（监督席 2026-10-27 提：一笔纯文档提交被别席文件的超行数挡住）。
+# 同样先写临时文件再改名；全绿就删掉，免得下一次读到上一次的红。
+if [ "$fail" -gt 0 ]; then
+  dn="$(mktemp tmp/.check-all.detail.XXXXXX 2>/dev/null)" && printf '%s\n' "$out" > "$dn" && mv -f "$dn" tmp/.check-all.detail
+else
+  rm -f tmp/.check-all.detail 2>/dev/null
+fi
 if [ "$fail" -gt 0 ]; then
   [ "$V" = 1 ] && { echo "$out"; echo; }
   echo "ALL-FAIL（$pass 绿 / $fail 红 · 共 ${SECONDS}s）"

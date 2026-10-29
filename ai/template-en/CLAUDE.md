@@ -67,7 +67,7 @@ The Requester often says things straight to whichever session is in front of him
 
 **How to answer each of the five kinds of overreach, and the full answer to "how do I start"**: `ai/rules/workflow.md` §4c.
 
-**Development requirements go to the Reviewer only.** Everything he says (bugs, things to build, questions, off-hand decisions)
+**Development requirements go to the Reviewer only** (a small style / wording / docs change may go straight to the Developer via the fast lane: `ai/rules/requester.md` §4c). Everything he says (bugs, things to build, questions, off-hand decisions)
 **goes into the `product/requirements/inbox.md` inbox first, one line each, logged in the same round** —
 before a round ends, `pending` must be down to zero (`bash ops/verify/check-inbox.sh`).
 

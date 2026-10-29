@@ -58,6 +58,16 @@ while IFS= read -r line; do
   fi
 done < <(grep -E '^\|[[:space:]]*`' "$L")
 
+# ---- ①之二 now.md 单行不许超过 300 字符（按字符，不按字节：去掉 UTF-8 续字节再数）----
+# 行数预算挡不住「一行一面墙」：监督席 2026-10-27 实测一个项目的 now.md 单条 1,500–3,000 字，四席每次开场都要读（layout.md §三）。
+if [ -f ai/state/now.md ]; then
+  long=$(LC_ALL=C awk '{ s=$0; gsub(/[\200-\277]/, "", s); if (length(s) > 300) printf "%d(%d) ", NR, length(s) }' ai/state/now.md)
+  if [ -n "$long" ]; then
+    echo "  ✗  ai/state/now.md 有单行超过 300 字符，行号(字数)：$long—— 每条三行：做了什么 · 结论/下一步 · 证据在哪，细节挪进证据文件"
+    bad=$((bad+1))
+  fi
+fi
+
 # ---- ② 开场必读总量（这才是预算真正要管的成本）----
 common=$(( $(wc -l < CLAUDE.md) + $(wc -l < ai/rules/laws.md) + $(wc -l < ai/state/now.md) + $(wc -l < ai/tasks/index.md) + $(wc -l < ai/memory.md) ))
 worst=0; worst_role=""

@@ -81,4 +81,7 @@ if [ "$bad" -gt 0 ]; then
   echo "  占位目录别用尖括号——用 _PROJECT_ 这种。**文档正文里写 <project> 是可以的，建成目录就不行。**"
   exit 1
 fi
-echo "FILENAMES-OK（没有 Windows 上建不出来的文件名）"
+# 🔴 **扫到空集不许报绿**（审查席 2026-10-25 转监督席对照意见：缺依赖默认红，跳过要写明原因）。
+nf=$(grep -c . "$VIS")
+[ "$nf" -gt 0 ] || { echo "FILENAMES-FAIL（一个文件名都没扫到：不是干净，是没看——确认在仓库根下跑）"; exit 1; }
+echo "FILENAMES-OK（扫了 $nf 个名字：没有 Windows 上建不出来的文件名）"

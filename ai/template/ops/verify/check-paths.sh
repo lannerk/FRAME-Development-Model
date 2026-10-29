@@ -37,6 +37,8 @@ BAD_SCRIPT='SourceCode|Claude outputs|_transfer|_to_delete|[A-Za-z]:\\projects|1
 # 文档里：只管写死的测试机 IP。文档可以**叙述**历史（"以前长出六个 _to_delete"），那是记录不是配置
 BAD_DOC='192\.168\.[0-9]{1,3}\.[0-9]{1,3}'
 
+# 🔴 **扫到空集不许报绿**（审查席 2026-10-25 转监督席对照意见：缺依赖默认红，跳过要写明原因）。
+nf=$(grep -c . "$VIS"); [ "$nf" -gt 0 ] || { echo "CHECK-PATHS-FAIL（一个文件都没扫到：不是干净，是没看——确认在仓库根下跑）"; exit 1; }
 n=0
 scan() {   # $1=文件 $2=正则
   hits=$(grep -nE "$2" "$1" 2>/dev/null | head -5)
@@ -127,4 +129,4 @@ if [ "$n" -gt 0 ]; then
   echo "  机器：读 ops/machines.json，用 id（vm-dev / nb-test）引用，别写 IP。"
   exit 1
 fi
-echo "CHECK-PATHS-OK（没有写死的仓库内路径，也没有写死的测试机 IP）"
+echo "CHECK-PATHS-OK（扫了 $nf 份文件：没有写死的仓库内路径，也没有写死的测试机 IP）"

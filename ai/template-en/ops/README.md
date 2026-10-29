@@ -41,13 +41,13 @@ bash ops/scripts/commit-round.sh "<one-line title>" --seat <your seat>   # want 
 the real commit is `read-tree` (temporary index) -> `add` this commit's files -> `write-tree` -> `commit-tree` -> `update-ref` (with the old value: if someone committed first it fails and changes nothing);
 the guard result in `tmp/.check-all.last` is reused for 20 minutes (`check-all.sh` writes it on every run, each row with its time); at the end it removes **the locks and `tmp_obj_*` this run left**, and says so when it cannot.
 
-It only does **`add` + `commit`**, and **never pushes**. Pushing is the Requester's business.
+By default it only does **`add` + `commit`**, **no push**. Pushing is the Requester's business -- **unless he authorised it**: `auto-push=<remotes...>` in `ai/frame-repo.conf` (e.g. `auto-push=origin github`); after a successful commit the script runs `git push <remote> <current branch>` for each, reports a failure as-is, no retry, no credential changes, never `--force`.
 
 ### 🔴 SourceTree is open on this machine, so there are five things you may not do
 
 | Not allowed | Why |
 |---|---|
-| **No push** | Whether to push, and to which remote, is the Requester's decision |
+| **No push on your own** | Whether to push, and to which remote, is the Requester's decision -- if he authorised it, it goes into `auto-push=`: **only those remotes, only the current branch, never `--force`** |
 | **No amend / rebase / reset / cherry-pick / force** | Those **rewrite history**. SourceTree has this repo open, and a rewritten history shows up there as a tangle that has to be restored by hand |
 | **No touching `git config`** | `core.autocrlf` and the like are the Requester's Windows-side settings; touch them and the screen fills with fake diffs |
 | **No creating or switching branches** | Commit on the current branch; switch and the Requester will not find his own changes in SourceTree |

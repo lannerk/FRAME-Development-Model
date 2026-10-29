@@ -31,6 +31,7 @@ else
   find . \( -path ./.git -o -name node_modules \) -prune -o -type f -print 2>/dev/null > "$VIS"
 fi
 OUT="$(mktemp)"
+PLANNED="$(mktemp)"
 
 # Only paths starting with these top-level directories count; path characters = anything but whitespace, backticks, quotes, brackets, commas, pipes
 # [Trap] the extension whitelist must list **longer extensions first**, and include `.jsx`: the pattern has **no end anchor**,
@@ -72,6 +73,12 @@ while IFS= read -r f; do
       #    `.gitignore` (its own call: not committed), and the init guide's pointer to it broke in every clean clone.
       #    Only run git for targets that do not exist on this machine either (rare calls, no slowdown).
       git check-ignore -q -- "$p" 2>/dev/null && continue
+      # 🔴 **A path marked "(planned)" is not a broken link** (Supervisor 2026-10-27: a doc naming a planned, not-yet-built script
+      #    was judged broken and had to be reworded). Write the path followed by `(planned)` or `（待建）`. Not red, but listed at the end
+      #    -- **so it does not stay planned forever**.
+      planned=0
+      for suf in '` (planned)' ' (planned)' '`（待建）' '（待建）' '` （待建）'; do grep -qF -- "$p$suf" "$f" 2>/dev/null && { planned=1; break; }; done
+      [ "$planned" = 1 ] && { echo "planned  $f  ->  $p" >> "$PLANNED"; continue; }
       echo "broken  $f  ->  $p"
     fi
   done
@@ -110,6 +117,10 @@ while IFS= read -r f; do
   done
 done < <(grep -E '\.md$' "$VIS" | grep -vE '^\./\.git/.*$|^\./tmp/.*$|^\./dist/.*$|^.*/node_modules/.*$|^\./archive/.*$|^\./.*/archive/.*$|^\./claude-outputs/.*$|^\./src/.*$|^\./_newroot/.*$|^\./ai/template/.*$|^\./SYNC\.md$|(^|/)maintenance\-log\.md$') >> "$OUT"
 
+if [ -s "$PLANNED" ]; then
+  echo "  ($(sort -u "$PLANNED" | wc -l) marked planned, not counted as broken -- drop the marker once built:)"; sort -u "$PLANNED" | sed 's/^/    /'
+fi
+rm -f "$PLANNED"
 if [ -s "$OUT" ]; then
   sort -u "$OUT"
   echo "---- $(sort -u "$OUT" | wc -l) broken links (section anchors included) ----"

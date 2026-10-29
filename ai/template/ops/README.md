@@ -42,13 +42,13 @@ bash ops/scripts/commit-round.sh "<一句话标题>" --seat <你这一席>   # �
 真提交走 `read-tree`（临时索引）→ `add` 本次的文件 → `write-tree` → `commit-tree` → `update-ref`（带旧值，别人抢先提交就失败、什么都不改）；
 守门结果 20 分钟内沿用 `tmp/.check-all.last`（`check-all.sh` 每跑一次都写，每格带耗时）；收尾把**本次运行留下的**锁与 `tmp_obj_*` 删掉，删不掉就明说。
 
-它只做 **`add` + `commit`**，**永不 push**。推送是需求方的事。
+它默认只做 **`add` + `commit`**，**不 push**。推送是需求方的事——**除非他授权了**：`ai/frame-repo.conf` 写 `auto-push=<远端…>`（例 `auto-push=origin github`），提交成功后脚本逐个 `git push <远端> <当前分支>`，推不上原样报、不重试、不碰凭据、永不 `--force`。
 
 ### 🔴 这台机器上开着 SourceTree，所以有五条不许
 
 | 不许 | 为什么 |
 |---|---|
-| **不许 push** | 推不推、推哪个远端，是需求方的决定 |
+| **不许擅自 push** | 推不推、推哪个远端，是需求方的决定——他授权了就写进 `auto-push=`，**只推那几个、只推当前分支、永不 `--force`** |
 | **不许 amend / rebase / reset / cherry-pick / force** | 那些**改写历史**。SourceTree 正开着这个仓库，历史被改写它会显示成一团乱麻，要人工恢复 |
 | **不许动 `git config`** | `core.autocrlf` 这类是需求方 Windows 侧的设置，动了满屏假 diff |
 | **不许新建或切换分支** | 就在当前分支上提交；切了分支需求方在 SourceTree 里会找不到自己的改动 |

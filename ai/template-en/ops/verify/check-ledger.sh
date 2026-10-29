@@ -24,6 +24,9 @@ set -u
 # locks; a real `add`/`commit` still takes its own lock and is unaffected.
 export GIT_OPTIONAL_LOCKS=0
 ROOT="$(cd "$(dirname "$0")/../.." && pwd)"; cd "$ROOT" || exit 2
+# 🔴 **An empty scan is not green** (Reviewer 2026-10-25, from the Supervisor's comparison: a missing dependency is red by default; a skip must say why).
+# The ledger directories are supposed to exist: if they do not, the root is wrong or the project is not initialised -- **red**, not "everything lines up".
+for d in ai/tasks ai/bugs ai/decisions; do [ -d "$d" ] || { echo "cannot find $d -- no ledger, nothing to reconcile (are you at the repo root?)"; exit 2; }; done
 bad=0
 say(){ echo "  ✗  $*"; bad=$((bad+1)); }
 
@@ -160,4 +163,4 @@ while IFS= read -r f; do
 done < <(find ai -maxdepth 1 -type f)
 
 if [ "$bad" -gt 0 ]; then echo; echo "LEDGER-FAIL ($bad mismatches)"; exit 1; fi
-echo "LEDGER-OK (fields complete, double write agrees, index and entities line up)"
+echo "LEDGER-OK ($(ls ai/tasks/T-*.md 2>/dev/null | wc -l) tasks, $(ls ai/bugs/B-*.md 2>/dev/null | wc -l) bugs: fields complete, double write agrees, index and entities line up)"

@@ -8,7 +8,9 @@
 # 退出码 0 = 提交好了（或 --dry 演练通过）；1 = 前置条件不满足（原样退出，什么都没动）；2 = 结构不对。
 #
 # 【边界，一个字都不许越】
-#   · **只做 add + commit。永不 push。** 推送是需求方的事（他用 SourceTree）。
+#   · **默认只做 add + commit，不 push。** 推送是需求方的事（他用 SourceTree）——
+#     **例外：需求方授权自动推送的项目**，在 `ai/frame-repo.conf` 写 `auto-push=<远端…>`，提交成功后逐个 `git push <远端> <当前分支>`，
+#     推不上原样报、不重试、不碰凭据、永不 `--force`（需求方 2026-10-25 在一个项目里授权：「每次提交，你可以顺便推送远端和github远端吗」）。
 #   · **永不 amend / rebase / reset / checkout / cherry-pick / force**——那些会改写历史，
 #     而 SourceTree 正开着这个仓库，历史被改写它会显示成一团乱麻，恢复要人工。
 #   · **永不动 git config**（`core.autocrlf` 这类是需求方 Windows 侧的设置，动了满屏假 diff）。
@@ -35,6 +37,7 @@ export GIT_OPTIONAL_LOCKS=0
 ROOT="$(cd "$(dirname "$0")/../.." && pwd)"; cd "$ROOT" || exit 2
 TITLE=""; DRY=0; SEAT="${SEAT:-}"; ALLSEATS=0; BY=""; FOR=""; NARROW=(); UNREV=0
 START=$(date +%s)
+AUTOPUSH="$(grep -E '^auto-push=' ai/frame-repo.conf 2>/dev/null | tail -1 | cut -d= -f2- | tr -d '\r')"; [ "$AUTOPUSH" = off ] && AUTOPUSH=""
 while [ $# -gt 0 ]; do
   case "$1" in
     --) shift; NARROW=("$@"); break;;
@@ -135,16 +138,13 @@ fi
 GUARD="$(grep -aoE 'ALL-(OK|FAIL).*' "$LAST" 2>/dev/null | head -1)"
 [ -n "$GUARD" ] || { echo "⛔ 拿不到巡检结果（$LAST 没写出来）"; exit 2; }
 GUARD="$GUARD（$GUARD_SRC）"
+# 🔴 **红了先不拦，等知道「这次要提交哪些文件」再判**（监督席 2026-10-27 提，需求方转维护席：一笔纯文档提交
+# 被另一席自己的任务文件超行数挡住、另一笔被「计划中」的路径挡住——都跟这次提交无关）。判法见下面「守门：只拦本次惹的红」。
+GUARD_RED=0
 case "$GUARD" in
   ALL-FAIL*)
-    if [ "${ANYWAY:-0}" != 1 ]; then
-      echo "⛔ 守门有红的：$GUARD"
-      grep -a '❌' "$LAST" | sed 's/^/   /'
-      echo "   先修绿再提交。**确实要带着红灯提交**（例如这一轮就是为了修它）："
-      echo "   ANYWAY=1 bash $0 \"<标题>\"   —— 提交信息里会写明带红提交。"
-      exit 1
-    fi
-    GUARD="$GUARD ⚠ 带红提交（ANYWAY=1）"
+    if [ "${ANYWAY:-0}" != 1 ]; then GUARD_RED=1
+    else GUARD="$GUARD ⚠ 带红提交（ANYWAY=1）"; fi
     ;;
 esac
 
@@ -157,6 +157,9 @@ esac
 # 那份画像就永远判给审查席，`--seat 监督席` 拒提（监督席 2026-10-17 实测）。现在**表里行的先后不影响结果**：
 # 精确路径 > 更长的前缀 > 更短的前缀（`.github/workflows/*` 才能从 `.github/` 一类的大前缀里分出来）。
 SEAT_OF_FILE() {  # $1=路径 → 输出 维护席/审查席/开发席/监督席/共写/—
+  # 【`ops/scripts/` 里不在 FRAME 清单上的，是项目自己的脚本，归开发席】（需求方 2026-10-29 拍板：发布脚本归维护席时，
+  # 开发席每改一次就要发信请维护席复核，两天 4 封）。清单 `ai/frame-manifest.txt` 列的是 FRAME 自带的那几支，仍归维护席。
+  case "$1" in ops/scripts/*) if [ -f ai/frame-manifest.txt ] && ! grep -qxF -- "$1" ai/frame-manifest.txt; then echo 开发席; return; fi;; esac
   awk -v f="$1" '
     /^## / { sec = ($0 ~ /^## (七|7[.、])/); next }   # 只读 §七 那张表：layout.md 别的表第三列也会出现席位名
     !sec { next }
@@ -273,6 +276,33 @@ fi
 # 给了 `-- <路径>` 又没按席挑出文件（--all-seats）：就只提交这些路径下的改动，**不许退化成全仓 add -A**
 [ -z "$MINE" ] && [ "${#NARROW[@]}" -gt 0 ] && MINE="$CAND"
 
+# ── 守门：只拦本次惹的红 ──
+# 红项明细在 tmp/.check-all.detail（check-all 每次都存）。**明细里点到了本次要提交的任何一个文件 → 拦**；
+# 都没点到 → 是别席或别处的红，照常提交，红项写进提交信息。明细不在（旧版巡检、或刚好被清掉）→ 判不了，照旧拦。
+# 🔴 **每轮收尾必须全量绿**的规矩不变——这里放过的只是「与本次无关」的红，它们照样躺在巡检里等归属席修。
+if [ "$GUARD_RED" = 1 ]; then
+  COMMITS="${MINE:-$CAND}"; DET=tmp/.check-all.detail; HIT=""
+  # 【只看「发现」，不看提示语】每条红项在判据行（`*-FAIL`）之后常跟一句「改法」，里面也写路径
+  # （行数预算那条就写着「要在 ai/rules/maintenance-log.md 记一条」——实测把维护记录误判成「本次惹的红」）。
+  # 所以每块只取 `── 名字 ──` 之后、第一行 `-FAIL` 之前的那些行。
+  FIND="$(mktemp "${TMPDIR:-/tmp}/cr_find.XXXXXX")"
+  [ -f "$DET" ] && awk '/^── .* ──$/ {k=1; next} /-FAIL/ {k=0} k' "$DET" > "$FIND"
+  [ -f "$DET" ] && HIT="$(printf '%s\n' "$COMMITS" | grep . | while IFS= read -r f; do grep -aqF -- "$f" "$FIND" && echo "$f"; done)"
+  rm -f "$FIND" 2>/dev/null
+  if [ ! -f "$DET" ] || [ -n "$HIT" ]; then
+    echo "⛔ 守门有红的：$GUARD"
+    grep -a '❌' "$LAST" | sed 's/^/   /'
+    if [ -n "$HIT" ]; then echo "   红项里点到了这次要提交的文件："; printf '%s\n' "$HIT" | sed 's/^/     /'
+    else echo "   （没有红项明细 $DET，判不了红的是谁——重跑一次 bash ops/verify/check-all.sh 再提交）"; fi
+    echo "   先修绿再提交。**确实要带着红灯提交**（例如这一轮就是为了修它）："
+    echo "   ANYWAY=1 bash $0 \"<标题>\"   —— 提交信息里会写明带红提交。"
+    exit 1
+  fi
+  REDS="$(grep -a '❌' "$LAST" | sed -E 's/^ *❌ *//; s/  +.*//' | awk '{printf "%s%s", (NR>1 ? "、" : ""), $0}')"
+  echo "ℹ️  守门有红（$REDS），但红项里没有点到这次要提交的文件，照常提交；红项归谁按 layout.md §七，**每轮收尾仍要全绿**。"
+  GUARD="$GUARD ⚠ 红项与本次提交无关（$REDS），没拦"
+fi
+
 if [ "$DRY" != 1 ]; then
   if [ -n "$MINE" ]; then
     # 只暂存自己的那几份；**不动别席已经暂存的东西**（不许 reset，SourceTree 安全五不许）
@@ -340,6 +370,7 @@ fi
 
 BYNOTE=""; [ -n "$BY" ] && BYNOTE="（$BY 代提：审查通过后一并提交；对应 $FOR）"
 [ "$UNREV" = 1 ] && BYNOTE="（$BY 代提：**存档提交，还没审查**；对应 $FOR）"
+PUSHNOTE="**未推送**，请在 SourceTree 里确认后 push。"; [ -n "$AUTOPUSH" ] && PUSHNOTE="提交后按 ai/frame-repo.conf 自动推送到：$AUTOPUSH"
 MSG=$(cat <<EOM
 $TITLE
 
@@ -352,7 +383,7 @@ bug:  ${bugs:-—}
 提交席: ${SEAT:-未指定（--all-seats 或全仓只有一席的改动）}$BYNOTE${OTHERS:+
 留给别席的改动（本次没有提交）: $(printf '%s\n' "$OTHERS" | awk -F"|" '{c[$1]++} END {for (k in c) printf "%s %d 个 · ", k, c[k]}' | sed 's/ · $//')}
 
-本次提交由 AI 会话（审查席 / 维护席）自动生成；**未推送**，请在 SourceTree 里确认后 push。
+本次提交由 AI 会话（审查席 / 维护席）自动生成；$PUSHNOTE
 
 Co-Authored-By: Claude <noreply@anthropic.com>
 EOM
@@ -406,5 +437,20 @@ fi
 [ "$tmpn" -gt 0 ] && echo "⚠️  还有 $tmpn 个本次留下的 .git/objects/**/tmp_obj_*（无害，有删除权限时顺手删）"
 echo "✅ 已提交到本地分支 $br：$(G rev-parse --short HEAD)"
 echo "   $TITLE"
-echo "   **没有推送** —— 去 SourceTree 看一眼再 push。（用时 $(( $(date +%s) - START )) 秒）"
+if [ -n "$AUTOPUSH" ]; then
+  # 自动推送：需求方授权的项目才有 auto-push=；逐个远端推当前分支，**不重试、不碰凭据、永不 --force**
+  for r in $AUTOPUSH; do
+    po="$(mktemp "${TMPDIR:-/tmp}/cr_push.XXXXXX")"
+    if { command -v timeout >/dev/null 2>&1 && timeout "${PUSH_TIMEOUT:-150}" git push "$r" "$br" >"$po" 2>&1; } \
+       || { ! command -v timeout >/dev/null 2>&1 && git push "$r" "$br" >"$po" 2>&1; }; then
+      echo "   ⬆️  已推送 $r/$br"
+    else
+      echo "   ⚠️  推送 $r 失败（不重试、不改凭据；提交已在本地）："; sed 's/^/        /' "$po" | tail -6
+    fi
+    rm -f "$po" 2>/dev/null
+  done
+  echo "   （用时 $(( $(date +%s) - START )) 秒）"
+else
+  echo "   **没有推送** —— 去 SourceTree 看一眼再 push。（用时 $(( $(date +%s) - START )) 秒）"
+fi
 NOTE_SHARED

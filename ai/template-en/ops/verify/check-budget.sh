@@ -62,6 +62,16 @@ while IFS= read -r line; do
   fi
 done < <(grep -E '^\|[[:space:]]*`' "$L")
 
+# ---- (1b) no line of now.md over 300 characters (characters, not bytes: strip UTF-8 continuation bytes, then count) ----
+# A line budget cannot stop "a wall per line": Supervisor 2026-10-27 measured single entries of 1,500-3,000 characters in one project's now.md, read by all four seats at every opening (layout.md section 3).
+if [ -f ai/state/now.md ]; then
+  long=$(LC_ALL=C awk '{ s=$0; gsub(/[\200-\277]/, "", s); if (length(s) > 300) printf "%d(%d) ", NR, length(s) }' ai/state/now.md)
+  if [ -n "$long" ]; then
+    echo "  x  ai/state/now.md has lines over 300 characters, line(chars): $long-- three lines per entry: what was done · conclusion/next · where the evidence is; move the detail into the evidence file"
+    bad=$((bad+1))
+  fi
+fi
+
 # ---- (2) the total opening read (this is the cost the budget is really about) ----
 common=$(( $(wc -l < CLAUDE.md) + $(wc -l < ai/rules/laws.md) + $(wc -l < ai/state/now.md) + $(wc -l < ai/tasks/index.md) + $(wc -l < ai/memory.md) ))
 worst=0; worst_role=""

@@ -184,6 +184,7 @@ the work finished the ticket and mailed a report the same round, and the owning 
 3. Anything needing a final call becomes a **multiple choice** (two or three options + the cost of each + a recommendation with reasons). **Hand them to him through the pop-up control** (see §4b).
 4. Record the final call as an AD, and mark it **"Requester's final call" and not "called on his behalf"** — development sees that line and doesn't have to ask.
 5. He interjects mid-round: fold it into the current round and **rewrite the development copy as a complete version** (development only reads the latest one).
+6. **Exception: the small-change fast lane** -- a small style / wording / docs change he tells the Developer directly is done on the spot and logged in the inbox; the Reviewer reviews every one next round (`ai/rules/requester.md` §4c).
 
 ## 4b. Dealing with him: **the whole block is in `ai/rules/requester.md`**
 
@@ -350,7 +351,7 @@ Three rules; the detail and the commands are all in `ops/README.md`:
 1. **Whoever made the change commits it**: the Reviewer seat commits when a round ends, **the Maintainer seat commits its own rule changes**, **the Developer seat does not commit** (committing your own work = bypassing the review) --
    **the Developer's changes are committed by the Reviewer seat in the round that passes (task) or closes (bug) them**: `--seat developer --by reviewer --for "T-#### B-####"`,
    **one commit for the Developer, one for the Reviewer** (Requester 2026-09-30). **There is also an archive commit** (Requester 2026-10-05): when the Developer finishes a stage, that stage's automated checks and conformance tests are all green and the task carries a self-test, the Reviewer seat **commits it before reviewing**, adding `--unreviewed`; the title gets the prefix "unreviewed:" automatically. The verdict still goes into the task, and the whole-release retrospective before shipping is the master gate. Run `bash ops/scripts/commit-round.sh "<title>" --seat <your seat>` (**ownership table in `ai/rules/layout.md` §7; spanning two seats stops the script**),
-   **`add` + `commit` only, never push**; **a red guard blocks the commit**; **the five SourceTree safety prohibitions**.
+   **By default `add` + `commit` only, no push** (a project whose Requester authorised it writes `auto-push=` in `ai/frame-repo.conf` and the script pushes after committing); **a red guard blocks only if it names a file being committed** (other seats' reds are listed, not blocking; the round still ends green); **the five SourceTree safety prohibitions**.
 2. **What you change on the real machine must get back into the repo**: write back the same round + reconcile with `sha256sum -c`. If none of the four steps works, park it in
    `tmp/writeback-pending/`; **parked is not delivered, and the Reviewer seat may not pass it**.
 3. **`conformance sweep`**: the Requester thinks things have drifted, the Maintainer seat runs `bash ops/verify/check-all.sh` and **answers with one table only**.

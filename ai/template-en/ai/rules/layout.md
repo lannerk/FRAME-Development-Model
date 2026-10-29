@@ -116,7 +116,7 @@ repository against the host-side private-word list.
 | `ai/tasks/T-*.md` | **200 lines** | Too long means it should split into two tasks. **Relaxed from 150 to 200 on 2026-10-22**: the Reviewer's conclusion section (pass / reject / pass with leftovers) is itself the task's acceptance record; three tasks reached 175-187 lines once that section was added, and 150 was not enough |
 | `ai/decisions/index.md` | 100 lines | The details are already in the number-range files; it shouldn't grow |
 | `ai/decisions/AD####-####.md` | 100 entries per range | The ranges are fixed; it won't grow |
-| `ai/state/now.md` | **160 lines** | Move stale paragraphs into `archive/`. **Relaxed from 140 to 160 on 2026-10-22**: handover records grew longer; **tightened from 200 to 140 on 2026-09-15** |
+| `ai/state/now.md` | **160 lines** | Move stale paragraphs into `archive/`. 🔴 **Three lines per entry**: what was done · conclusion / next step · where the evidence is (one path); build hashes, assertion lists and full commit messages go into the evidence file. **A line over 300 characters is red** (`check-budget.sh`; Supervisor 2026-10-27: single entries of 1,500-3,000 characters in one project -- a line budget cannot stop "a wall per line"). **Relaxed from 140 to 160 on 2026-10-22**: handover records grew longer; **tightened from 200 to 140 on 2026-09-15** |
 | `ai/specs/<name>.md` | No limit | But **it must have a file header** (see §5) |
 | `product/plan/roadmap.md` | 80 lines | One milestone per line; the detail lives in `milestones/` |
 | `product/plan/milestones/M-*.md` | 150 lines | Growing past it means it should be split into two milestones |
@@ -246,6 +246,7 @@ table — **never keep a second copy inside a script**), and `conformance sweep`
 | `ai/rules/*` · `ai/roles/*` · `ai/mail/README.md` | Maintainer seat |
 | `ai/template/*` · `ai/template-en/*` | Maintainer seat |
 | `ops/verify/*` · `ops/scripts/*` · `ops/frame/*` · `ops/README.md` · `docs/guide/*` · `claude-outputs/README.md` · `claude-outputs/maintainer/*` · `.gitignore` · `.gitattributes` · `ai/frame-repo.conf` · `ai/FRAME-VERSION` · `ai/ide/*` · `.claude/agents/*` | Maintainer seat |
+| `ops/scripts/*` | Developer seat -- **only the ones not in `ai/frame-manifest.txt`** (the project's own deploy and release scripts; Requester 2026-10-29: they used to belong to the row above with the scripts FRAME ships, and every change meant a letter asking for review, 4 in two days). `commit-round.sh` decides by the manifest |
 | `ai/tasks/*` · `ai/bugs/*` · `ai/decisions/*` · `ai/specs/*` · `ai/state/*` | Reviewer seat |
 | `product/*` · `claude-outputs/reviewer/*` | Reviewer seat |
 | `src/*` · `dist/*` · `claude-outputs/developer/*` | Developer seat |
