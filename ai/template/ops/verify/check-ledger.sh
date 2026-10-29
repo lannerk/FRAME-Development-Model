@@ -108,11 +108,18 @@ done
 # 按 §三之三 不追溯：只查生效日之后推到「待审」的任务（闸门用 git 首次入库时间，不用 mtime）。
 SINCE_BUILD="${BUILDRECON_SINCE:-2026-09-22}"
 if git rev-parse --git-dir >/dev/null 2>&1; then
+  # 🔴 **首次入库日期一次查完**（2026-10-29 实测：原来对每条任务各跑一次 `git log --diff-filter=A -- <文件>`，
+  # 每次都走完整个历史；一个 65 条任务、几百个提交的项目在挂载盘上这一节超过 120 s，整张巡检超过一次调用的 180 s，
+  # 提交脚本现跑巡检就被杀、留锁）。改成整棵 ai/tasks/ 走一遍历史，按文件记最早的那次「新增」——结果与逐个查相同。
+  declare -A ADDED=(); d=""
+  while IFS= read -r l; do
+    case "$l" in 20[0-9][0-9]-*) d="${l:0:10}";; ai/tasks/*) ADDED["$l"]="$d";; esac
+  done < <(git -c core.quotepath=false log --diff-filter=A --name-only --format=%cI -- ai/tasks/ 2>/dev/null)
   for f in ai/tasks/T-*.md; do
     [ -f "$f" ] || continue
     st=$(grep -m1 '^状态:' "$f" | sed 's/^状态:[[:space:]]*//;s/[[:space:]].*$//')
     case "$st" in 待审|已过|已过（带遗留）) ;; *) continue;; esac
-    a=$(git log --diff-filter=A --format=%cI -- "$f" 2>/dev/null | tail -1 | cut -c1-10)
+    a="${ADDED[$f]:-}"
     [ -n "$a" ] && [ "$a" \< "$SINCE_BUILD" ] && continue
     grep -qE 'sha256|构建对账' "$f" || say "$f 推到「$st」却没有**构建对账**（仓库整棵树重编的 sha ＝ 测试机上跑的那份）：ai/rules/workflow.md 的「自测」一节"
   done

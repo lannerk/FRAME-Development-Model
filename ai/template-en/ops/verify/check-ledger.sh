@@ -114,11 +114,18 @@ done
 # What is judged: whether the task file carries that reconciliation. Not retroactive (§3c): only tasks added on or after the gate date.
 SINCE_BUILD="${BUILDRECON_SINCE:-2026-09-22}"
 if git rev-parse --git-dir >/dev/null 2>&1; then
+  # 🔴 **First-add dates in one pass** (2026-10-29, measured: one `git log --diff-filter=A -- <file>` per task walked the whole history
+  # each time; with 65 tasks and a few hundred commits this section took over 120 s on the mounted share, the whole guard run went past
+  # one call's 180 s, and the commit script running it got killed and left locks). One walk over ai/tasks/, keeping each file's oldest add -- same result.
+  declare -A ADDED=(); d=""
+  while IFS= read -r l; do
+    case "$l" in 20[0-9][0-9]-*) d="${l:0:10}";; ai/tasks/*) ADDED["$l"]="$d";; esac
+  done < <(git -c core.quotepath=false log --diff-filter=A --name-only --format=%cI -- ai/tasks/ 2>/dev/null)
   for f in ai/tasks/T-*.md; do
     [ -f "$f" ] || continue
     st=$(grep -m1 '^status:' "$f" | sed 's/^status:[[:space:]]*//;s/[[:space:]].*$//')
     case "$st" in "in"*|review*|passed*) ;; *) continue;; esac
-    a=$(git log --diff-filter=A --format=%cI -- "$f" 2>/dev/null | tail -1 | cut -c1-10)
+    a="${ADDED[$f]:-}"
     [ -n "$a" ] && [ "$a" \< "$SINCE_BUILD" ] && continue
     grep -qiE 'sha256|build reconciliation' "$f" || say "$f was pushed to \"$st\" without a **build reconciliation** (hash of a full rebuild from the repo == hash of what runs on the test machine): see the \"self-test\" section in ai/rules/workflow.md"
   done
