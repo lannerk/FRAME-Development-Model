@@ -12,7 +12,7 @@
 | Directory | What goes in | Who writes | Committed |
 |---|---|---|---|
 | `CLAUDE.md` | Identity command words + the hard laws in one line each + the directories at a glance | **Maintainer** | ✓ |
-| `README.md` | Project intro for humans | **Maintainer** (the Reviewer supplies product facts; matches the §7 ownership table) | ✓ |
+| `README.md` | Project intro for humans | **Reviewer** (it is the product's front page: the Reviewer checks the facts, the Developer writes it along with features inside tasks and the Reviewer commits; changed from Maintainer on 2026-10-30, matches the §7 ownership table) | ✓ |
 | `FRAME-Development-Model.md` | The outward-facing description of this development model (how the four powers work) | **Maintainer** | ✓ |
 | `AGENTS.md` and other alias entry points | **One line of signposting only, pointing at `CLAUDE.md`**. Other AI platforms load them automatically; **not one word of the content may be copied across** (two entry points will diverge with no symptom) | **Maintainer** | ✓ |
 | `.claude/` `.codex/` `.cursor/` `.github/` `.kiro/` `.trae/` `.qoder/` `.opencode/` `.codebuddy/` `.gemini/` `.agents/` | Project-level config directories of the AI coding tools — **FRAME puts only the four tier subagent files there** (`ai/rules/model-effort.md`, generated from `ai/ide/<tool>.md`); everything else is the tool's own | **Maintainer** (the subagent files); `.github/workflows/` holds CI workflows and belongs to the **Developer** (section 7) | ✓ |
@@ -241,7 +241,8 @@ table — **never keep a second copy inside a script**), and `conformance sweep`
 
 | Path (prefix or glob) | Owner |
 |---|---|
-| `CLAUDE.md` · `AGENTS.md` · `README.md` · `FRAME-Development-Model.md` | Maintainer seat |
+| `CLAUDE.md` · `AGENTS.md` · `FRAME-Development-Model.md` | Maintainer seat |
+| `README.md` | Reviewer seat (the product's front page: intro, install, usage, build are product facts that change with features; **it used to sit with the rules seat, and a change written in a task and passed in review could be committed by nobody** -- measured twice in one consumer project, changed 2026-10-30. The README at the FRAME release repo's root is generated from the template mapping and is out of scope here. 🔴 **only one seat name in this cell**: the script judges ownership by the seat name in it) |
 | `ai/index.md` · `ai/glossary.md` · `ai/frame-manifest.txt` · `ai/check-links.sh` | Maintainer seat |
 | `ai/rules/*` · `ai/roles/*` · `ai/mail/README.md` | Maintainer seat |
 | `ai/template/*` · `ai/template-en/*` | Maintainer seat |

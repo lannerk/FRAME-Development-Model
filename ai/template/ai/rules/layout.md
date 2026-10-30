@@ -12,7 +12,7 @@
 | 目录 | 放什么 | 谁写 | 入库 |
 |---|---|---|---|
 | `CLAUDE.md` | 身份口令 + 铁律一句话版 + 目录一眼 | **维护者** | ✓ |
-| `README.md` | 给人看的项目简介 | **维护者**（产品事实由审查席给；与 §七 归属表一致） | ✓ |
+| `README.md` | 给人看的项目简介 | **审查者**（它是产品的门面：事实由审查席核，内容随功能由开发席写进任务、审查席提交；2026-10-30 从维护者改过来，与 §七 归属表一致） | ✓ |
 | `FRAME-Development-Model.md` | 这套开发模式的对外说明（四权分立怎么运转） | **维护者** | ✓ |
 | `AGENTS.md` 等别名入口 | **只写一句指路，指向 `CLAUDE.md`**。别的 AI 平台自动加载它们；**内容一个字都不许抄过去**（两份入口会无症状分叉） | **维护者** | ✓ |
 | `.claude/` `.codex/` `.cursor/` `.github/` `.kiro/` `.trae/` `.qoder/` `.opencode/` `.codebuddy/` `.gemini/` `.agents/` | 各 AI 开发工具的项目级配置目录——**FRAME 只往里放四档子代理文件**（`ai/rules/model-effort.md`，按 `ai/ide/<工具>.md` 生成），其余是工具自己的 | **维护者**（子代理文件）；`.github/workflows/` 是 CI 工作流，归**开发者**（§七） | ✓ |
@@ -238,7 +238,8 @@
 
 | 路径（前缀或通配） | 归谁 |
 |---|---|
-| `CLAUDE.md` · `AGENTS.md` · `README.md` · `FRAME-Development-Model.md` | 维护席 |
+| `CLAUDE.md` · `AGENTS.md` · `FRAME-Development-Model.md` | 维护席 |
+| `README.md` | 审查席（产品门面：介绍、安装、使用、构建都是产品事实，随功能变；**原来判给管规矩的那一席，功能写完、审过了却谁都提交不了**——一个消费项目里两次实测，2026-10-30 改。FRAME 发行仓库根上的 README 由模板映射生成，不在此列。🔴 **这一格只许出现一个席位名**：脚本按单元格里的席位名判归属） |
 | `ai/index.md` · `ai/glossary.md` · `ai/frame-manifest.txt` · `ai/check-links.sh` | 维护席 |
 | `ai/rules/*` · `ai/roles/*` · `ai/mail/README.md` | 维护席 |
 | `ai/template/*` · `ai/template-en/*` | 维护席 |

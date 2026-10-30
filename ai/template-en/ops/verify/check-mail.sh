@@ -138,6 +138,18 @@ for f in "$D"/to-*/from-*.md; do
       [ "$age" -gt "$STALE_DAYS" ] && { echo "  x  stale $age days with nobody handling it: $tag -- either handle it, or the sender withdraws it and takes another route"; bad=$((bad+1)); }
     fi
     # (3) Type and Reply needed may only hold the defined values
+    # 🔴 **Letters from an outside project only have to be recognisable** (Requester 2026-10-30: our project and another will exchange UI letters
+    #    from now on, "make this stop going red"). The other side has its own style -- "no (one line once the prototype is out)", "FYI + request" --
+    #    the meaning is clear, and a red only pushes someone to edit a letter another repo wrote. Rule: Reply needed starts with yes / no
+    #    (the note in brackets stays); Type contains one known type word ("FYI" counts as "notice"). The no-reply-to-reply/notice rule still
+    #    applies, on the recognised value. Letters among this project's own seats are not relaxed.
+    ext=0; case " $SEATS $RND_SEAT " in *" $sender "*) ;; *) ext=1;; esac
+    if [ "$ext" = 1 ]; then
+      case "$reply" in no*|No*) reply=no;; yes*|Yes*) reply=yes;; esac
+      t2=""; for w in $TYPES; do case "$typ" in *"$w"*) t2="$w"; break;; esac; done
+      [ -z "$t2" ] && case "$typ" in *FYI*|*fyi*) t2=notice;; esac
+      [ -n "$t2" ] && typ="$t2"
+    fi
     grep -qw -- "$typ" <<< "$TYPES" || { echo "  x  $tag -- \"Type\" says \"$typ\"; only these are allowed: $TYPES"; bad=$((bad+1)); }
     case "$reply" in yes|no) ;; *) echo "  x  $tag -- \"Reply needed\" says \"$reply\"; only \"yes\" or \"no\""; bad=$((bad+1));; esac
     # No chat loops: **a "reply" and a "notice" may never ask for a reply**.
@@ -172,7 +184,10 @@ for f in "$D"/to-*/from-*.md; do
       echo "  x  $tag -- \"What I have to do\" is only an ID = handing out work through the mail; work goes to the ledger, the mail carries words"; bad=$((bad+1))
     fi
     # (5) the detail paths have to resolve (several separated by spaces or middots; - means none)
-    if [ "$where" != "—" ] && [ "$where" != "-" ]; then
+    # 🔴 **Not for letters from an outside project**: it writes paths **in its own repository**, which do not exist here (2026-10-30, measured: an outside
+    #    project's first letter had 3 "does not resolve" reds, all false). Check those in its repository; this one can only judge its own paths.
+    case " $SEATS $RND_SEAT " in *" $sender "*) ext=0;; *) ext=1;; esac
+    if [ "$ext" = 0 ] && [ "$where" != "—" ] && [ "$where" != "-" ]; then
       # [Why not tr] `tr` substitutes **by byte**, and the CJK separators are multibyte, so it also rewrites bytes
       # inside a CJK filename -- **truncating the path into a name that does not exist and reporting a false red**
       # (measured and reported by the Supervisor seat on 2026-09-15). **Use sed, which works on characters.**
