@@ -32,6 +32,10 @@ else
 fi
 OUT="$(mktemp)"
 PLANNED="$(mktemp)"
+# 🔴 **Registered outside projects' drop-boxes are not scanned** (2026-10-30, measured): paths in `ai/mail/to-*/from-<outside project>.md` belong to
+#    **its** repository and can never resolve here; a red only pushes someone to edit a letter another repo wrote. Same list as the mail guard: `MAIL_EXT=` in `ops/verify/paths.env`.
+EXT_MAIL=""; MAIL_EXT=""; [ -f ops/verify/paths.env ] && . ops/verify/paths.env
+for e in $MAIL_EXT; do EXT_MAIL="$EXT_MAIL|/from-$e\.md\$"; done
 
 # Only paths starting with these top-level directories count; path characters = anything but whitespace, backticks, quotes, brackets, commas, pipes
 # [Trap] the extension whitelist must list **longer extensions first**, and include `.jsx`: the pattern has **no end anchor**,
@@ -82,7 +86,7 @@ while IFS= read -r f; do
       echo "broken  $f  ->  $p"
     fi
   done
-done < <(grep -E '\.md$' "$VIS" | grep -vE '^\./\.git/.*$|^\./tmp/.*$|^\./dist/.*$|^.*/node_modules/.*$|^\./archive/.*$|^\./.*/archive/.*$|^\./ai/specs/.*$|^\./product/requirements/.*$|^\./claude-outputs/.*$|^\./src/.*$|^\./_newroot/.*$|^\./ai/template/.*$|^\./SYNC\.md$') >> "$OUT"
+done < <(grep -E '\.md$' "$VIS" | grep -vE '^\./\.git/.*$|^\./tmp/.*$|^\./dist/.*$|^.*/node_modules/.*$|^\./archive/.*$|^\./.*/archive/.*$|^\./ai/specs/.*$|^\./product/requirements/.*$|^\./claude-outputs/.*$|^\./src/.*$|^\./_newroot/.*$|^\./ai/template/.*$|^\./SYNC\.md$'"$EXT_MAIL") >> "$OUT"
 
 # ---- (2) section anchors: is the section it points at still there? ----
 # [Why this exists] The Supervisor seat reported on 2026-09-15: `laws.md` pointed at `conventions.md` §9,
@@ -115,7 +119,7 @@ while IFS= read -r f; do
     done
     [ "$ok" -eq 1 ] || echo "broken anchor  $f:$ln  ->  $p §$a"
   done
-done < <(grep -E '\.md$' "$VIS" | grep -vE '^\./\.git/.*$|^\./tmp/.*$|^\./dist/.*$|^.*/node_modules/.*$|^\./archive/.*$|^\./.*/archive/.*$|^\./claude-outputs/.*$|^\./src/.*$|^\./_newroot/.*$|^\./ai/template/.*$|^\./SYNC\.md$|(^|/)maintenance\-log\.md$') >> "$OUT"
+done < <(grep -E '\.md$' "$VIS" | grep -vE '^\./\.git/.*$|^\./tmp/.*$|^\./dist/.*$|^.*/node_modules/.*$|^\./archive/.*$|^\./.*/archive/.*$|^\./claude-outputs/.*$|^\./src/.*$|^\./_newroot/.*$|^\./ai/template/.*$|^\./SYNC\.md$|(^|/)maintenance\-log\.md$'"$EXT_MAIL") >> "$OUT"
 
 if [ -s "$PLANNED" ]; then
   echo "  ($(sort -u "$PLANNED" | wc -l) marked planned, not counted as broken -- drop the marker once built:)"; sort -u "$PLANNED" | sed 's/^/    /'

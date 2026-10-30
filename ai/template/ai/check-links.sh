@@ -29,6 +29,10 @@ else
 fi
 OUT="$(mktemp)"
 PLANNED="$(mktemp)"
+# 🔴 **已登记的外部项目投递口不扫**（2026-10-30 实测）：`ai/mail/to-*/from-<外部项目>.md` 里的路径是**对方仓库**的，
+#    在本仓库必然指不到，判红只会逼人改别人写进来的信。名单与信箱守门同一处：`ops/verify/paths.env` 的 `MAIL_EXT=`。
+EXT_MAIL=""; MAIL_EXT=""; [ -f ops/verify/paths.env ] && . ops/verify/paths.env
+for e in $MAIL_EXT; do EXT_MAIL="$EXT_MAIL|/from-$e\.md\$"; done
 
 # 只认这几个顶级目录开头的路径；路径字符 = 除空白、反引号、引号、括号、逗号、竖线之外的一切（含中文）
 # 【坑】扩展名白名单必须**长扩展名在前**、且把 `.jsx` 列进去：这个正则**不带词尾锚**，
@@ -74,7 +78,7 @@ while IFS= read -r f; do
       echo "断链  $f  ->  $p"
     fi
   done
-done < <(grep -E '\.md$' "$VIS" | grep -vE '^\./\.git/.*$|^\./tmp/.*$|^\./dist/.*$|^.*/node_modules/.*$|^\./archive/.*$|^\./.*/archive/.*$|^\./ai/specs/.*$|^\./product/requirements/.*$|^\./claude-outputs/.*$|^\./src/.*$|^\./_newroot/.*$|^\./ai/template/.*$|^\./ai/template-en/.*$|(^|/)maintenance\-log\.md$') >> "$OUT"
+done < <(grep -E '\.md$' "$VIS" | grep -vE '^\./\.git/.*$|^\./tmp/.*$|^\./dist/.*$|^.*/node_modules/.*$|^\./archive/.*$|^\./.*/archive/.*$|^\./ai/specs/.*$|^\./product/requirements/.*$|^\./claude-outputs/.*$|^\./src/.*$|^\./_newroot/.*$|^\./ai/template/.*$|^\./ai/template-en/.*$|(^|/)maintenance\-log\.md$'"$EXT_MAIL") >> "$OUT"
 
 # 【为什么把维护记录排除在第①段之外】它是**历史记录，不是导航**：
 # 每一条都逐字引用需求方当时的原话和当时的路径，而路径会随重构改名、消失。
@@ -111,7 +115,7 @@ while IFS= read -r f; do
     done
     [ "$ok" -eq 1 ] || echo "锚点断链  $f:$ln  ->  $p §$a"
   done
-done < <(grep -E '\.md$' "$VIS" | grep -vE '^\./\.git/.*$|^\./tmp/.*$|^\./dist/.*$|^.*/node_modules/.*$|^\./archive/.*$|^\./.*/archive/.*$|^\./claude-outputs/.*$|^\./src/.*$|^\./_newroot/.*$|^\./ai/template/.*$|^\./ai/template-en/.*$|(^|/)maintenance\-log\.md$') >> "$OUT"
+done < <(grep -E '\.md$' "$VIS" | grep -vE '^\./\.git/.*$|^\./tmp/.*$|^\./dist/.*$|^.*/node_modules/.*$|^\./archive/.*$|^\./.*/archive/.*$|^\./claude-outputs/.*$|^\./src/.*$|^\./_newroot/.*$|^\./ai/template/.*$|^\./ai/template-en/.*$|(^|/)maintenance\-log\.md$'"$EXT_MAIL") >> "$OUT"
 
 if [ -s "$PLANNED" ]; then
   echo "  （标了待建、没判断链的 $(sort -u "$PLANNED" | wc -l) 条——建好就把「（待建）」删掉：）"; sort -u "$PLANNED" | sed 's/^/    /'
