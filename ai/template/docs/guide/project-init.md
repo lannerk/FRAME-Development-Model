@@ -255,7 +255,7 @@ git show HEAD:<那个文件>   # 把原件原样捞回来
 | 5 | `ai/state/now.md` | 「系统是什么样的」「跑在哪」两节 + 顶部日期与 🔔 行 —— 这是新会话最先读的东西 |
 | 6 | `ops/machines.json` | 开发机 / 测试机 / 构建机。**只有这里能写 IP**；旧文档里那些写死的 IP 搬到这里来，文档改成按 `id` 引用 |
 | 7 | `ai/rules/conventions-project.md` | **§三 实现纪律 · §四 前端 · §五 交付前自检清单**——你的项目跑什么命令才算「做完了」。这一份是 **seed**：同步永不覆盖、也永不推回源仓库，所以写在这里是安全的（编号跟着 `conventions.md` 连续，**不许重排**）。🔴 **本项目特有的检查不要在清单里加一行、也不要改 `ops/verify/check-all.sh`**——起名 `ops/verify/check-project-*.sh` 就会被自动跑 |
-| 8 | **占位目录改名** | 把 `product/design/prototype/_PROJECT_/` 改成项目名；按需建 `src/<项目名>/`。**新名字不许含 `<>:"\|?*`**——那几个字符在 Windows 上建不出来（`ops/verify/check-filenames.sh` 会拦） | 🔴 **改完不会被分发建回来**：那两份占位在 `ops/frame/classes.txt` 里是 **skip**（2026-09-28 起；在那之前它是 seed，改名后下一次分发会把 `_PROJECT_/` 又建一遍，于是同一个项目里两份原型目录）。
+| 8 | **占位目录改名** | 把 `product/design/prototype/_PROJECT_/` 改成项目名；按需建 `src/<项目名>/`，并把 `ops/paths.ps1` 里 `$Proj` 的占位填成这个子目录名（该文件保持「UTF-8 带 BOM」，PowerShell 5.1 才读得对中文）。**新名字不许含 `<>:"\|?*`**——那几个字符在 Windows 上建不出来（`ops/verify/check-filenames.sh` 会拦） | 🔴 **改完不会被分发建回来**：那两份占位在 `ops/frame/classes.txt` 里是 **skip**（2026-09-28 起；在那之前它是 seed，改名后下一次分发会把 `_PROJECT_/` 又建一遍，于是同一个项目里两份原型目录）。
 | 9 | **删掉 `SYNC.md`** | 它是维护模板用的，不是项目的一部分 |
 | 10 | `ai/frame-repo.conf` | **以后怎么跟上 FRAME 的更新，全靠这一份**：`role=`（不带模板的项目写 `consumer`）· `home=`（FRAME 源仓库在这台机器上的路径；**源与本项目同级**时写 `../FRAME-Development-Model` 即可）· `push=`（**拿不到源仓库提交权就写 `no`**＝单向拉回；不写时按角色默认，consumer=no）。填完**立一份基线**：`bash ops/frame/frame-sync.sh --adopt-mine`（记「本项目现在这样」，以后源那边的变化都算「源改的」→ 拉回来）。这一步省了，以后源更新就只能手工逐份比对——走法见 `docs/guide/frame-sync.md` §五。**再加两行**：`ide=<第 1 步 Q3 的答案>`（没答写 `undecided`）、`tier-rule=off`——《模型及 Effort 指定规则》的工具与开关，默认关（`ai/rules/model-effort.md` 第五节） |
 

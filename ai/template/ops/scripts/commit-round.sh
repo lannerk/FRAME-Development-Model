@@ -280,6 +280,25 @@ fi
 # 给了 `-- <路径>` 又没按席挑出文件（--all-seats）：就只提交这些路径下的改动，**不许退化成全仓 add -A**
 [ -z "$MINE" ] && [ "${#NARROW[@]}" -gt 0 ] && MINE="$CAND"
 
+# ── 收尾：任务状态变了，交接（now.md）就得跟着这次一起提交 ──
+# 【为什么要这条】一个消费项目的同题测试里（监督席 2026-10-31 转告），三个工具在一轮收尾都出错：漏改 now.md、声称改了其实没改、根本没提交。
+# 守门只查收件簿清零，看不见。**判的是要保的那件事**：这次提交里有任务的「状态:」变了（推进、打回、关闭都算），而 `ai/state/now.md`
+# 不在这次提交里——下一个会话开场读到的就是旧交接。确实不需要（例如只改了任务的错别字连带状态行格式）：`ANYWAY=1`，提交信息会写明。
+COMMITS0="${MINE:-$CAND}"; STCHG=""
+while IFS= read -r f; do
+  case "$f" in ai/tasks/T-*.md|ai/tasks/archive/T-*.md) ;; *) continue;; esac
+  new="$(grep -m1 '^状态:' "$f" 2>/dev/null)"; old="$(G show "HEAD:$f" 2>/dev/null | grep -m1 '^状态:')"
+  [ "$new" != "$old" ] && STCHG="$STCHG $(basename "$f" .md | cut -c1-6)"
+done <<< "$(printf '%s\n' "$COMMITS0" | grep .)"
+if [ -n "$STCHG" ] && ! printf '%s\n' "$COMMITS0" | grep -qx 'ai/state/now.md'; then
+  if [ "${ANYWAY:-0}" != 1 ]; then
+    echo "⛔ 这次提交改了任务状态（$STCHG），却没带上 ai/state/now.md：下一个会话开场读到的会是旧交接。"
+    echo "   先更新 now.md（做了什么 · 结论/下一步 · 证据在哪），一起提交；确实不需要就 ANYWAY=1，提交信息会写明。"
+    exit 1
+  fi
+  GUARD="$GUARD ⚠ 任务状态变了但没带 now.md（ANYWAY=1）"
+fi
+
 # ── 守门：只拦本次惹的红 ──
 # 红项明细在 tmp/.check-all.detail（check-all 每次都存）。**明细里点到了本次要提交的任何一个文件 → 拦**；
 # 都没点到 → 是别席或别处的红，照常提交，红项写进提交信息。明细不在（旧版巡检、或刚好被清掉）→ 判不了，照旧拦。

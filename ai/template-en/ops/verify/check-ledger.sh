@@ -161,6 +161,40 @@ if git rev-parse --git-dir >/dev/null 2>&1; then
   [ "$cur_total" -lt "$old_total" ] && say "the memory archive lost entries (HEAD $old_total -> now $cur_total; shorter:$shrunk): moving between volumes is fine, losing one is not (git show HEAD:<that file>)"
 fi
 
+# ---- (3e) the numbers you mention must exist, and numbering must move forward ----
+# [Why this exists] In one consumer project's side-by-side test (Supervisor 2026-10-31, forwarded), three tools all slipped at the end of a round; one way was
+# **a handover naming a task that does not exist** -- the guard only checked that the inbox was empty, and could not see it. What must hold: **every T / B / AD named
+# in the opening handover (now.md), the inbox and the task index has an entity**; and "next available" must be above the largest one in use (or the next person collides).
+# The "next available" line itself is not a reference.
+REF_FILES="ai/state/now.md product/requirements/inbox.md ai/tasks/index.md ai/bugs/index.md"
+# Example numbers in prose are not references: now.md is scanned whole; the inbox and the two indexes only by table data rows, skipping rows with template placeholders `<...>`.
+reflines() { case "$1" in ai/state/now.md) grep -vi 'next available' "$1";; *) grep -E '^\|' "$1" | grep -v '<' | grep -vi 'next available';; esac; }
+maxof() { sed -E "s/^$1-?0*//" | grep -E '^[0-9]+$' | sort -n | tail -1; }
+for pair in "T:ai/tasks" "B:ai/bugs"; do
+  pre="${pair%%:*}"; dir="${pair#*:}"; [ -d "$dir" ] || continue
+  have="$(find "$dir" -maxdepth 2 -name "${pre}-[0-9][0-9][0-9][0-9]-*.md" | sed -E "s#.*/(${pre}-[0-9]{4})-.*#\1#" | LC_ALL=C sort -u)"
+  for rf in $REF_FILES; do
+    [ -f "$rf" ] || continue
+    miss="$(reflines "$rf" | grep -oE "\b${pre}-[0-9]{4}\b" | grep -v "${pre}-0000" | LC_ALL=C sort -u | LC_ALL=C comm -23 - <(printf '%s\n' "$have"))"
+    [ -n "$miss" ] && say "$rf names $(printf '%s' "$miss" | paste -sd' ' -), which do not exist (no $dir/<id>-*.md)"
+  done
+  mx="$(printf '%s\n' "$have" | maxof "$pre")"
+  nx="$(grep -hi 'next available' "$dir/index.md" 2>/dev/null | grep -oE "${pre}-[0-9]{4}" | head -1 | maxof "$pre")"
+  [ -n "$mx" ] && [ -n "$nx" ] && [ "$nx" -le "$mx" ] && say "$dir/index.md says next available is ${pre}-$(printf '%04d' "$nx"), but ${pre}-$(printf '%04d' "$mx") exists -- numbering did not move forward, the next person will collide"
+done
+if [ -d ai/decisions ]; then
+  admax="$(grep -ohE '^\|[[:space:]]*(\*\*)?AD[0-9]+' ai/decisions/AD[0-9]*-[0-9]*.md 2>/dev/null | grep -oE '[0-9]+' | sort -n | tail -1)"
+  adnx="$(grep -hi 'next available' ai/decisions/index.md 2>/dev/null | grep -oE 'AD[0-9]+' | head -1 | grep -oE '[0-9]+')"
+  if [ -n "$admax" ]; then
+    for rf in $REF_FILES; do
+      [ -f "$rf" ] || continue
+      over="$(reflines "$rf" | grep -oE '\bAD[0-9]{1,4}\b' | grep -oE '[0-9]+' | sort -un | awk -v m="$admax" '$1>m {printf "AD%s ", $1}')"
+      [ -n "$over" ] && say "$rf names decisions not recorded yet: ${over}(the largest in the ledger is AD$admax)"
+    done
+    [ -n "$adnx" ] && [ "$adnx" -le "$admax" ] && say "ai/decisions/index.md says next available is AD$adnx, but AD$admax exists -- numbering did not move forward"
+  fi
+fi
+
 # ---- (4) loose files in the ai/ root ----
 while IFS= read -r f; do
   case "$(basename "$f")" in

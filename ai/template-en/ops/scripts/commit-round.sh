@@ -295,6 +295,26 @@ fi
 # With `-- <paths>` but no per-seat pick (--all-seats): commit only what changed under those paths; **never fall back to a whole-repo add -A**
 [ -z "$MINE" ] && [ "${#NARROW[@]}" -gt 0 ] && MINE="$CAND"
 
+# -- Wrap-up: a task's status changed, so the handover (now.md) goes in the same commit --
+# [Why this exists] In one consumer project's side-by-side test (Supervisor 2026-10-31, forwarded), three tools all slipped at the end of a round: now.md not
+# updated, claimed updated but not, not committed at all. The guards only checked the inbox and could not see it. **What must hold**: if a task's `status:`
+# changes in this commit (advanced, rejected, closed) and `ai/state/now.md` is not in it, the next session opens on a stale handover. If it truly is not
+# needed (e.g. a typo fix that reformatted the status line): `ANYWAY=1`, and the commit message says so.
+COMMITS0="${MINE:-$CAND}"; STCHG=""
+while IFS= read -r f; do
+  case "$f" in ai/tasks/T-*.md|ai/tasks/archive/T-*.md) ;; *) continue;; esac
+  new="$(grep -m1 '^status:' "$f" 2>/dev/null)"; old="$(G show "HEAD:$f" 2>/dev/null | grep -m1 '^status:')"
+  [ "$new" != "$old" ] && STCHG="$STCHG $(basename "$f" .md | cut -c1-6)"
+done <<< "$(printf '%s\n' "$COMMITS0" | grep .)"
+if [ -n "$STCHG" ] && ! printf '%s\n' "$COMMITS0" | grep -qx 'ai/state/now.md'; then
+  if [ "${ANYWAY:-0}" != 1 ]; then
+    echo "BLOCKED: this commit changes task status ($STCHG) but does not include ai/state/now.md: the next session would open on a stale handover."
+    echo "   Update now.md first (what was done · conclusion/next · where the evidence is) and commit them together; if it is truly not needed, ANYWAY=1 and the message says so."
+    exit 1
+  fi
+  GUARD="$GUARD (task status changed without now.md, ANYWAY=1)"
+fi
+
 # -- Guards: block only the reds this commit causes --
 # The red detail is in tmp/.check-all.detail (check-all always saves it). **If it names any file being committed -> block**;
 # if it names none, the red belongs to another seat or another place: commit, and record the reds in the message. No detail file

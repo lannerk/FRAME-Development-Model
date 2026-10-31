@@ -1,7 +1,8 @@
-# ops/paths.ps1 —— 仓库内路径只在这里定义一次
+﻿# ops/paths.ps1 —— 仓库内路径只在这里定义一次
 # 所有 .ps1 开头写：  . (Join-Path $PSScriptRoot "..\paths.ps1")
 # 以后再改目录名，只改这一个文件。守门：ops/verify/check-paths.sh
 # English: single source of truth for in-repo paths.
+# 🔴 这份存成「UTF-8 带 BOM」：Windows PowerShell 5.1 不认无 BOM 的 UTF-8，按系统代码页读，中文字符串读坏、$Proj 成空值（2026-10-31 实测）。编辑器另存时别把 BOM 去掉。
 
 $RepoRoot = (Resolve-Path (Join-Path $PSScriptRoot "..")).Path
 $SrcRoot  = Join-Path $RepoRoot "src"              # 源码根（多项目：一个项目一个子目录）

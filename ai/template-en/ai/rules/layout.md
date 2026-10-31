@@ -54,8 +54,7 @@ taken to a completely unrelated project without changing a single character.** S
 prefixes, machines and subnets go into `ops/verify/paths.env`** (class seed, never synced), and a guard with
 nothing configured **skips instead of going red**; the story behind a rule **stays** (it explains the "why") but
 is written generically ("someone used `git add -A` and swept 10 files belonging to other seats into their own
-commit" rather than a commit id). The guard `ops/verify/check-debrand.sh` scans both templates and the source
-repository against the host-side private-word list.
+commit" rather than a commit id). The guard `ops/verify/check-debrand.sh` scans both templates and the source repository against the host-side private-word list.
 
 ## 2. Inside `ai/`
 

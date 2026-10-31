@@ -152,6 +152,39 @@ if git rev-parse --git-dir >/dev/null 2>&1; then
   [ "$cur_total" -lt "$old_total" ] && say "记忆卷宗的条目总数变少了（HEAD $old_total → 现在 $cur_total；变短的：$shrunk）：卷与卷之间可以挪，但一条都不许丢（git show HEAD:<那一份> 找回来）"
 fi
 
+# ---- ③之五 写到的编号要真有、取号要往前推 ----
+# 【为什么要这条】一个消费项目的同题测试里（监督席 2026-10-31 转告），三个工具都在一轮收尾出错，其中一种是**交接里写了不存在的任务号**，
+# 守门只查收件簿清零，看不见。判的是要保的那件事：**开场必读的交接（now.md）、收件簿、任务索引里点到的 T / B / AD，都得有实体**；
+# 「下一个可用」号必须大于已有的最大号（否则下一个取号的人会撞号）。写着「下一个可用」的那一行本身不算引用。
+REF_FILES="ai/state/now.md product/requirements/inbox.md ai/tasks/index.md ai/bugs/index.md"
+# 说明文字里的举例编号不算引用：now.md 整份扫；收件簿与两份索引只看表格数据行，带模板占位 `<…>` 的行跳过。
+reflines() { case "$1" in ai/state/now.md) grep -v '下一个可用' "$1";; *) grep -E '^\|' "$1" | grep -v '<' | grep -v '下一个可用';; esac; }
+maxof() { sed -E "s/^$1-?0*//" | grep -E '^[0-9]+$' | sort -n | tail -1; }
+for pair in "T:ai/tasks" "B:ai/bugs"; do
+  pre="${pair%%:*}"; dir="${pair#*:}"; [ -d "$dir" ] || continue
+  have="$(find "$dir" -maxdepth 2 -name "${pre}-[0-9][0-9][0-9][0-9]-*.md" | sed -E "s#.*/(${pre}-[0-9]{4})-.*#\1#" | LC_ALL=C sort -u)"
+  for rf in $REF_FILES; do
+    [ -f "$rf" ] || continue
+    miss="$(reflines "$rf" | grep -oE "\b${pre}-[0-9]{4}\b" | grep -v "${pre}-0000" | LC_ALL=C sort -u | LC_ALL=C comm -23 - <(printf '%s\n' "$have"))"
+    [ -n "$miss" ] && say "$rf 点到了不存在的 $(printf '%s' "$miss" | paste -sd' ' -)（没有对应的 $dir/<编号>-*.md）"
+  done
+  mx="$(printf '%s\n' "$have" | maxof "$pre")"
+  nx="$(grep -h '下一个可用' "$dir/index.md" 2>/dev/null | grep -oE "${pre}-[0-9]{4}" | head -1 | maxof "$pre")"
+  [ -n "$mx" ] && [ -n "$nx" ] && [ "$nx" -le "$mx" ] && say "$dir/index.md「下一个可用」是 ${pre}-$(printf '%04d' "$nx")，可已有 ${pre}-$(printf '%04d' "$mx")——取号没往前推，下一个人会撞号"
+done
+if [ -d ai/decisions ]; then
+  admax="$(grep -ohE '^\|[[:space:]]*(\*\*)?AD[0-9]+' ai/decisions/AD[0-9]*-[0-9]*.md 2>/dev/null | grep -oE '[0-9]+' | sort -n | tail -1)"
+  adnx="$(grep -h '下一个可用' ai/decisions/index.md 2>/dev/null | grep -oE 'AD[0-9]+' | head -1 | grep -oE '[0-9]+')"
+  if [ -n "$admax" ]; then
+    for rf in $REF_FILES; do
+      [ -f "$rf" ] || continue
+      over="$(reflines "$rf" | grep -oE '\bAD[0-9]{1,4}\b' | grep -oE '[0-9]+' | sort -un | awk -v m="$admax" '$1>m {printf "AD%s ", $1}')"
+      [ -n "$over" ] && say "$rf 点到了还没记的决策 ${over}（台账里最大是 AD$admax）"
+    done
+    [ -n "$adnx" ] && [ "$adnx" -le "$admax" ] && say "ai/decisions/index.md「下一个可用」是 AD$adnx，可已有 AD$admax——取号没往前推"
+  fi
+fi
+
 # ---- ④ ai/ 根下的散件 ----
 while IFS= read -r f; do
   case "$(basename "$f")" in
