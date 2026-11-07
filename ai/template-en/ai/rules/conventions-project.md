@@ -54,3 +54,10 @@
 | 21 | `<tests>` | |
 | 22 | `<checks specific to this project, e.g. syntax scan / path reconciliation / rule lint>` | |
 
+## 6. Project directory ownership (adds to `ai/rules/layout.md` section 7)
+
+> The ownership table is FRAME itself; **the project's own directories are registered here**, same format; `ops/scripts/commit-round.sh` reads both tables (exact paths and longer prefixes win).
+> 🔴 The "Owner" cell **holds exactly one seat name** -- the script judges by the seat name in it.
+
+| Path (prefix or glob) | Owner |
+|---|---|

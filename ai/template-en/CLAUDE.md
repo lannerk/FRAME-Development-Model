@@ -54,7 +54,7 @@ what is in your head is still the old version, **and you will not feel a thing**
 
 > **Answering only "OK, reloaded" = did not read.** The test is simple: **if it cannot say what changed, it did not read.**
 > Same logic as a guard — judge the thing you are protecting, not its textual shadow.
-> **A new session does not need it**; it reads the latest copy of this file and the 🔔 line in `now.md` at the start.
+> **A new session does not need it**; it reads the latest copy of this file and the 🔔 line in `now.md` at the start. **A session whose context has been compacted (you see a compaction summary) treats it as if this command was given** -- after compaction the first things lost are the iron laws' details and your seat's prohibitions, and you will not notice (Supervisor 2026-11-07, from OpenRig: "compaction is not an unlock").
 
 ### ※ He told the wrong seat: **take it, don't do it, tell him who to go to**
 

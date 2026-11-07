@@ -256,6 +256,8 @@
 | `ai/mail/to-researcher/*` | **共写**（研究席与监督席、审查席） |
 | `ai/memory.md` · `ai/memory-archive/*` · `ai/mail/to-*` · `ai/mail/archive/*` · `ops/machines.json` · `docs/ops/*` | **共写**（四席都能写） |
 
+🔴 **项目自己的目录**（这张表是 FRAME 本体，不许写进具体项目的路径）**登记在 `ai/rules/conventions-project.md` 的「本项目目录归属」表**，格式同上；`commit-round.sh` 两张表一起读，精确路径与更长的前缀优先（2026-11-07：一个消费项目第二次要登记自己的目录）。
+
 🔴 **这张表判的是「谁维护」，不是「谁许可动」**：需求方拍板的任务单可以派别席动这里的文件，
 但做活那一席**当轮必须发信通报归属席**，由归属席复核（`ai/rules/workflow.md` §三之四）。
 

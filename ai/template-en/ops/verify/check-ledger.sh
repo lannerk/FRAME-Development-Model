@@ -195,6 +195,37 @@ if [ -d ai/decisions ]; then
   fi
 fi
 
+# ---- (3f) a passed task says which commit was reviewed; a task blocked on one that is done gets unblocked ----
+# [Why] Supervisor 2026-11-07, from OpenRig: after an archive commit (--unreviewed), or when the Developer changes files after review, nobody can tell which version
+# "passed" -- reviewing the wrong version is costly; and a task "blocked on T-####" stays blocked long after that task passed, because nothing reminds anyone.
+# Not retroactive (section 3c): only tasks created after REVIEWSHA_SINCE.
+SINCE_SHA="${REVIEWSHA_SINCE:-2026-11-08}"
+if git rev-parse --git-dir >/dev/null 2>&1 && [ -d ai/tasks ]; then
+  declare -A ADD2=(); d=""
+  while IFS= read -r l; do case "$l" in 20[0-9][0-9]-*) d="${l:0:10}";; ai/tasks/*) ADD2["$l"]="$d";; esac
+  done < <(git -c core.quotepath=false log --diff-filter=A --name-only --format=%cI -- ai/tasks/ 2>/dev/null)
+  stof() { grep -m1 '^status:' "$1" 2>/dev/null | sed 's/^status:[[:space:]]*//;s/[[:space:]]*$//'; }
+  for f in ai/tasks/T-*.md; do
+    [ -f "$f" ] || continue
+    st="$(stof "$f")"
+    case "$st" in
+      passed|"pass with follow-up")
+        a="${ADD2[$f]:-9999}"; [ "$a" \< "$SINCE_SHA" ] && continue
+        awk '/^## Review verdict/{k=1;next} /^## /{k=0} k' "$f" | grep -qiE 'reviewed.*[0-9a-f]{7,40}' \
+          || say "$f passed, but its review verdict does not say **which commit was reviewed** (or the working-tree fingerprint): once files change again nobody can tell which version passed (ai/rules/workflow.md task template)";;
+      blocked)
+        for ref in $(grep -m1 '^blocked on:' "$f" | grep -oE '\b(T|B)-[0-9]{4}\b' | sort -u); do
+          case "$ref" in
+            T-*) g="$(ls ai/tasks/$ref-*.md ai/tasks/archive/$ref-*.md 2>/dev/null | head -1)"; [ -n "$g" ] || continue
+                 case "$(stof "$g")" in passed|dropped) say "$f is blocked on $ref, but $ref is already \"$(stof "$g")\" -- it can be unblocked (back to todo, or carry on)";; esac;;
+            B-*) g="$(ls ai/bugs/$ref-*.md ai/bugs/archive/$ref-*.md 2>/dev/null | head -1)"; [ -n "$g" ] || continue
+                 [ "$(stof "$g")" = closed ] && say "$f is blocked on $ref, but $ref is closed -- it can be unblocked";;
+          esac
+        done;;
+    esac
+  done
+fi
+
 # ---- (4) loose files in the ai/ root ----
 while IFS= read -r f; do
   case "$(basename "$f")" in

@@ -161,7 +161,7 @@ SEAT_OF_FILE() {  # $1=路径 → 输出 维护席/审查席/开发席/监督席
   # 开发席每改一次就要发信请维护席复核，两天 4 封）。清单 `ai/frame-manifest.txt` 列的是 FRAME 自带的那几支，仍归维护席。
   case "$1" in ops/scripts/*) if [ -f ai/frame-manifest.txt ] && ! grep -qxF -- "$1" ai/frame-manifest.txt; then echo 开发席; return; fi;; esac
   o="$(awk -v f="$1" '
-    /^## / { sec = ($0 ~ /^## (七|7[.、])/); next }   # 只读 §七 那张表：layout.md 别的表第三列也会出现席位名
+    FNR==1 { sec=0 } /^## / { sec = ($0 ~ /^## (七|7[.、]|六、本项目目录归属|6\. Project directory ownership)/); next }   # 只读 §七 那张表：layout.md 别的表第三列也会出现席位名
     !sec { next }
     /^\|/ {
       line=$0
@@ -190,7 +190,7 @@ SEAT_OF_FILE() {  # $1=路径 → 输出 维护席/审查席/开发席/监督席
         else if (f == p) { exact = owner; exit }
       }
     }
-    END { if (exact != "") print exact; else if (best != "") print best }' ai/rules/layout.md)"
+    END { if (exact != "") print exact; else if (best != "") print best }' ai/rules/layout.md $([ -f ai/rules/conventions-project.md ] && echo ai/rules/conventions-project.md))"
   # 【`ops/` 下归属表没登记、也不在 FRAME 清单上的，同理归开发席】（项目自己的部署、发布配置，例如发布链路的骨架目录；
   # 需求方 2026-10-29 定的是「项目自己的脚本归开发席」，这些和脚本是同一类东西——维护席只管 FRAME 的规矩，不管产品的发布链路）。
   if [ -z "$o" ]; then case "$1" in ops/*) if [ -f ai/frame-manifest.txt ] && ! grep -qxF -- "$1" ai/frame-manifest.txt; then o=开发席; fi;; esac; fi
@@ -213,10 +213,10 @@ elif [ -n "$SEAT" ] && [ "$ALLSEATS" != 1 ]; then
   case "$SEAT" in 维|维护|维护席|maintainer) S0=维护席;; 审|审查|审查席|reviewer) S0=审查席;; 开|开发|开发席|developer) S0=开发席;;
     监|监督|监督席|supervisor) S0=监督席;; 研|研究|研究席|researcher) S0=研究席;; *) S0="$SEAT";; esac
   while IFS= read -r ps; do [ -n "$ps" ] && SCOPE+=("$ps"); done < <(awk -v s="$S0" -F'|' '
-    /^## / { sec = ($0 ~ /^## (七|7[.、])/); next }   # 只读 §七 那张表：layout.md 别的表第三列也会出现席位名
+    FNR==1 { sec=0 } /^## / { sec = ($0 ~ /^## (七|7[.、]|六、本项目目录归属|6\. Project directory ownership)/); next }   # 只读 §七 那张表：layout.md 别的表第三列也会出现席位名
     !sec { next }
     /^\|/ && !/^\|---/ { o=$3; if (o !~ s && o !~ /共写/) next
-      n=split($2, ps, "·"); for (i=1;i<=n;i++){ p=ps[i]; gsub(/[` ]/,"",p); gsub(/^\*\*|\*\*$/,"",p); if (p!="") print p } }' ai/rules/layout.md | sort -u)
+      n=split($2, ps, "·"); for (i=1;i<=n;i++){ p=ps[i]; gsub(/[` ]/,"",p); gsub(/^\*\*|\*\*$/,"",p); if (p!="") print p } }' ai/rules/layout.md $([ -f ai/rules/conventions-project.md ] && echo ai/rules/conventions-project.md) | sort -u)
 fi
 if [ "$DRY" = 1 ]; then
   D_STAT="$(G diff HEAD --shortstat -- "${SCOPE[@]}" | sed 's/^ *//')"

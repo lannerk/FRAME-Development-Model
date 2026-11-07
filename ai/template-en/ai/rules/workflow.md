@@ -96,7 +96,7 @@ subagents:
 - (A task with no interface writes "no UI in this one"; never leave the whole section empty)
 
 ## Review verdict
-- **Round N (date)**: pass / pass with follow-up (attach `T-####`) / reject. On a reject, state which item, why, and how to fix it.
+- **Round N (date)**: pass / pass with follow-up (attach `T-####`) / reject. On a reject, state which item, why, and how to fix it. **Reviewed**: `<commit id>` (not committed yet: the working-tree fingerprint, first 12 of `git diff HEAD | sha256sum`) -- if the files this task touched change afterwards, **the verdict is void and the task goes back to `in review`** (tasks created from 2026-11-08; the guard checks that `passed` ones state it).
 
 ## Test verdict (Reviewer writes; present only when the Requester says "review and test")
 | Category | Result | Evidence / why it wasn't tested |
@@ -185,6 +185,7 @@ the work finished the ticket and mailed a report the same round, and the owning 
 4. Record the final call as an AD, and mark it **"Requester's final call" and not "called on his behalf"** — development sees that line and doesn't have to ask.
 5. He interjects mid-round: fold it into the current round and **rewrite the development copy as a complete version** (development only reads the latest one).
 6. **Exception: the small-change fast lane** -- a small style / wording / docs change he tells the Developer directly is done on the spot and logged in the inbox; the Reviewer reviews every one next round (`ai/rules/requester.md` §4c).
+7. **What the assistant says under its own name is "relayed", not the Requester's words** (Requester 2026-11-02: a resident assistant relays deliveries and rejections and asks the Supervisor on his behalf): it does not go into `verbatim/`, is not logged as his words in the inbox, and **cannot ground an AD as "Requester's call"**; a seat acting on it writes "as relayed by the assistant". For calls (AD, deletion, push, release, changed goals) the assistant only reports, it does not decide for him.
 
 ## 4b. Dealing with him: **the whole block is in `ai/rules/requester.md`**
 

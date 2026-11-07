@@ -141,8 +141,7 @@ which computes it from the **real line counts** and takes no document's word for
 | Developer · Reviewer · Supervisor seat | **You don't change it yourself; the way to change it is to send mail**: `ai/mail/to-maintainer/from-<your seat>.md` (symptom + evidence + proposed fix + cost; anything longer than three lines becomes `claude-outputs/<your seat>/<date>-<topic>.md` and the letter carries only the path). **No need for the Requester as a transport**, and **leaving it in a task or report does not count as passing it on** (`ai/rules/requester.md`). **The test: is this suggestion "the thing this task is there to solve"? If not, mail it** |
 | Maintainer seat | Only act after the Requester confirms, record it in `ai/rules/maintenance-log.md`, **sync both the Chinese and the English template in the same round** |
 
-**The only exception is `docs/`**: whoever works from a document and finds it wrong **fixes it on the spot** (the one in §1 of this file).
-`docs/` is engineering documentation, not rules.
+**The only exception is `docs/`**: whoever works from a document and finds it wrong **fixes it on the spot** (the one in §1 of this file). `docs/` is engineering documentation, not rules.
 
 > **Why it is locked down this hard**: the rules are the coordinate system the four seats share. **If any one seat can move the coordinate system unilaterally, the other three drift without knowing it** —
 > and that drift has no symptom at all, until two rounds later someone finishes a piece of work on the new coordinates and someone else reviews it on the old ones.
@@ -151,8 +150,7 @@ which computes it from the **real line counts** and takes no document's word for
 
 `CLAUDE.md` **is loaded once every session**, so a line you add costs "one line × every session you have ever opened".
 
-**The criterion is one sentence**: **only what you would go wrong without goes into `CLAUDE.md`**; everything else goes into `ai/rules/` or a role handbook,
-with a single pointer line left in `CLAUDE.md`.
+**The criterion is one sentence**: **only what you would go wrong without goes into `CLAUDE.md`**; everything else goes into `ai/rules/` or a role handbook, with a single pointer line left in `CLAUDE.md`.
 
 | Goes in | Stays out |
 |---|---|
@@ -257,6 +255,8 @@ table — **never keep a second copy inside a script**), and `conformance sweep`
 | `ai/RandD/*` | Researcher seat |
 | `ai/mail/to-researcher/*` | **shared** (Researcher, Supervisor and Reviewer) |
 | `ai/memory.md` · `ai/memory-archive/*` · `ai/mail/to-*` · `ai/mail/archive/*` · `ops/machines.json` · `docs/ops/*` | **shared** (all four seats write) |
+
+🔴 **The project's own directories** (this table is FRAME itself and must not name a particular project's paths) **are registered in the "Project directory ownership" table in `ai/rules/conventions-project.md`**, same format; `commit-round.sh` reads both tables, exact paths and longer prefixes win (2026-11-07: a consumer project needed to register its own directory for the second time).
 
 🔴 **This table decides who *maintains* a file, not who is *allowed* to touch it**: a ticket the Requester settled may send
 another seat into these files, but that seat **must mail the owner the same round**, and the owner reviews it (`ai/rules/workflow.md` §3d).

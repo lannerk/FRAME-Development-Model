@@ -185,6 +185,36 @@ if [ -d ai/decisions ]; then
   fi
 fi
 
+# ---- ③之六 已过的任务要写「审的是」哪个提交；挂起所等的那一单办完了要解挂 ----
+# 【为什么】监督席 2026-11-07 对照 OpenRig：存档提交（--unreviewed）之后、或审完开发席又动了文件，「过」对应哪一版说不清——审错版本代价高；
+# 而「阻塞于 T-####」的单，那一单早已过了也没人提醒，挂着的单会一直挂着。不追溯（§三之三）：只查 REVIEWSHA_SINCE 之后建的任务。
+SINCE_SHA="${REVIEWSHA_SINCE:-2026-11-08}"
+if git rev-parse --git-dir >/dev/null 2>&1 && [ -d ai/tasks ]; then
+  declare -A ADD2=(); d=""
+  while IFS= read -r l; do case "$l" in 20[0-9][0-9]-*) d="${l:0:10}";; ai/tasks/*) ADD2["$l"]="$d";; esac
+  done < <(git -c core.quotepath=false log --diff-filter=A --name-only --format=%cI -- ai/tasks/ 2>/dev/null)
+  stof() { grep -m1 '^状态:' "$1" 2>/dev/null | sed 's/^状态:[[:space:]]*//;s/[[:space:]].*$//'; }
+  for f in ai/tasks/T-*.md; do
+    [ -f "$f" ] || continue
+    st="$(stof "$f")"
+    case "$st" in
+      已过|已过（带遗留）)
+        a="${ADD2[$f]:-9999}"; [ "$a" \< "$SINCE_SHA" ] && continue
+        awk '/^## 审查结论/{k=1;next} /^## /{k=0} k' "$f" | grep -qE '审的是.*[0-9a-f]{7,40}' \
+          || say "$f 已过，但「审查结论」没写**审的是**哪个提交（或工作树指纹）：之后文件再改就说不清过的是哪一版（ai/rules/workflow.md 任务模板）";;
+      挂起)
+        for ref in $(grep -m1 '^阻塞于:' "$f" | grep -oE '\b(T|B)-[0-9]{4}\b' | sort -u); do
+          case "$ref" in
+            T-*) g="$(ls ai/tasks/$ref-*.md ai/tasks/archive/$ref-*.md 2>/dev/null | head -1)"; [ -n "$g" ] || continue
+                 case "$(stof "$g")" in 已过|已过（带遗留）|作废) say "$f 挂起在 $ref 上，可 $ref 已经「$(stof "$g")」——可以解挂了（改回 待实施 或接着做）";; esac;;
+            B-*) g="$(ls ai/bugs/$ref-*.md ai/bugs/archive/$ref-*.md 2>/dev/null | head -1)"; [ -n "$g" ] || continue
+                 [ "$(stof "$g")" = 已关闭 ] && say "$f 挂起在 $ref 上，可 $ref 已经关闭——可以解挂了";;
+          esac
+        done;;
+    esac
+  done
+fi
+
 # ---- ④ ai/ 根下的散件 ----
 while IFS= read -r f; do
   case "$(basename "$f")" in

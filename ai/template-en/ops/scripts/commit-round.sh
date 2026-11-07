@@ -174,7 +174,7 @@ SEAT_OF_FILE() {  # $1=path -> prints Maintainer/Reviewer/Developer/Supervisor/s
   # `ai/frame-manifest.txt` lists the scripts FRAME ships; those stay with the Maintainer.
   case "$1" in ops/scripts/*) if [ -f ai/frame-manifest.txt ] && ! grep -qxF -- "$1" ai/frame-manifest.txt; then echo Developer; return; fi;; esac
   o="$(awk -v f="$1" '
-    /^## / { sec = ($0 ~ /^## (七|7[.、])/); next }   # read only the section-7 table: other tables in layout.md mention seat names in column 3 too
+    FNR==1 { sec=0 } /^## / { sec = ($0 ~ /^## (七|7[.、]|六、本项目目录归属|6\. Project directory ownership)/); next }   # read only the section-7 table: other tables in layout.md mention seat names in column 3 too
     !sec { next }
     /^\|/ {
       line=$0
@@ -201,7 +201,7 @@ SEAT_OF_FILE() {  # $1=path -> prints Maintainer/Reviewer/Developer/Supervisor/s
         else if (f == p) { exact = owner; exit }
       }
     }
-    END { if (exact != "") print exact; else if (best != "") print best }' ai/rules/layout.md)"
+    END { if (exact != "") print exact; else if (best != "") print best }' ai/rules/layout.md $([ -f ai/rules/conventions-project.md ] && echo ai/rules/conventions-project.md))"
   # [Anything under `ops/` that the table does not list and the FRAME manifest does not ship also goes to the Developer] (the project's own
   # deploy and release config, e.g. a release pipeline's skeleton directory; the Requester's 2026-10-29 call was "the project's own scripts belong
   # to the Developer", and these are the same kind of thing -- the Maintainer keeps FRAME's rules, not the product's release pipeline).
@@ -225,10 +225,10 @@ elif [ -n "$SEAT" ] && [ "$ALLSEATS" != 1 ]; then
   case "$SEAT" in maintainer|Maintainer|维护席) S0=Maintainer;; reviewer|Reviewer|审查席) S0=Reviewer;; developer|Developer|开发席) S0=Developer;;
     supervisor|Supervisor|监督席) S0=Supervisor;; researcher|Researcher|研究席) S0=Researcher;; *) S0="$SEAT";; esac
   while IFS= read -r ps; do [ -n "$ps" ] && SCOPE+=("$ps"); done < <(awk -v s="$S0" -F'|' '
-    /^## / { sec = ($0 ~ /^## (七|7[.、])/); next }   # read only the section-7 table: other tables in layout.md mention seat names in column 3 too
+    FNR==1 { sec=0 } /^## / { sec = ($0 ~ /^## (七|7[.、]|六、本项目目录归属|6\. Project directory ownership)/); next }   # read only the section-7 table: other tables in layout.md mention seat names in column 3 too
     !sec { next }
     /^\|/ && !/^\|---/ { o=$3; if (o !~ s && o !~ /shared/) next
-      n=split($2, ps, "·"); for (i=1;i<=n;i++){ p=ps[i]; gsub(/[` ]/,"",p); gsub(/^\*\*|\*\*$/,"",p); if (p!="") print p } }' ai/rules/layout.md | sort -u)
+      n=split($2, ps, "·"); for (i=1;i<=n;i++){ p=ps[i]; gsub(/[` ]/,"",p); gsub(/^\*\*|\*\*$/,"",p); if (p!="") print p } }' ai/rules/layout.md $([ -f ai/rules/conventions-project.md ] && echo ai/rules/conventions-project.md) | sort -u)
 fi
 if [ "$DRY" = 1 ]; then
   D_STAT="$(G diff HEAD --shortstat -- "${SCOPE[@]}" | sed 's/^ *//')"
