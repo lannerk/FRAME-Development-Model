@@ -250,6 +250,7 @@
 | `src/*` · `dist/*` · `claude-outputs/developer/*` | 开发席 |
 | `.github/workflows/*` | 开发席（CI 工作流跟着构建走；用别的 CI 平台就照这样给它的工作流路径加一行） |
 | `claude-outputs/supervisor/*` | 监督席 |
+| `claude-outputs/shared/*` | **共写**（三方都要看的素材：原型、截图、量出来的数；原来没登记，提交脚本静默跳过——一个消费项目两份评测原始数据因此一周没进仓库，2026-11-16 补） |
 | `ai/advisor/*` | 维护席（FRAME 本体；**内容改进任何一席都可以提，落地走维护席并先去品牌**） |
 | `product/requirements/requester-profile.md` | 监督席（他拍板的偏好由它追加；**四席与研究席都读**） |
 | `ai/RandD/*` | 研究席 |

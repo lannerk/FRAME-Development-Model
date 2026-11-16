@@ -48,8 +48,7 @@ Two things when you change it: ① **actually run it once** to confirm the new w
   **The one exception is the initialization migration's snapshot** `archive/legacy-<date>/` — the old project may never have been in git at all,
   so git can't get it back and that one copy stays (`docs/guide/project-init.md` §3.4). That is the only exception.
 
-🔴 **FRAME itself is independent of any specific project** (the Requester ruled on 2026-09-26: "frame should
-also be independent of any specific project"). The criterion is one testable sentence: **both templates can be
+🔴 **FRAME itself is independent of any specific project** (the Requester ruled on 2026-09-26: "frame should also be independent of any specific project"). The criterion is one testable sentence: **both templates can be
 taken to a completely unrelated project without changing a single character.** So: **project-specific paths,
 prefixes, machines and subnets go into `ops/verify/paths.env`** (class seed, never synced), and a guard with
 nothing configured **skips instead of going red**; the story behind a rule **stays** (it explains the "why") but
@@ -250,6 +249,7 @@ table — **never keep a second copy inside a script**), and `conformance sweep`
 | `src/*` · `dist/*` · `claude-outputs/developer/*` | Developer seat |
 | `.github/workflows/*` | Developer seat (CI workflows go with the build; on another CI platform add a row like this for its workflow path) |
 | `claude-outputs/supervisor/*` | Supervisor seat |
+| `claude-outputs/shared/*` | **shared** (material all three read: prototypes, screenshots, measurements; it used to be unlisted and the commit script skipped it silently -- in one consumer project two sets of evaluation data stayed out of the repo for a week; added 2026-11-16) |
 | `ai/advisor/*` | Maintainer seat (FRAME itself; **any seat may propose content, the change lands through the Maintainer and is de-branded first**) |
 | `product/requirements/requester-profile.md` | Supervisor seat (it appends the preferences he rules on; **all four seats and the Researcher read it**) |
 | `ai/RandD/*` | Researcher seat |
