@@ -51,6 +51,7 @@
 | `product/requirements/requester-profile.md` | 同路径 | **空骨架**（需求方画像：12 节空表 ＋ 怎么长的说明）。🔴 **seed 类，永不回流**——内容是项目私有的 |
 | `ops/verify/check-advisor.sh` | 同路径 | **原样**（判：选型卡四段齐 · 每题有为什么问与推荐 · 画像是 seed · 私有词没漏出去；**没开顾问库就 SKIP**） |
 | `ai/ide/`（整棵）· `ai/rules/model-effort.md` · `ops/verify/check-ide.sh` · `ops/scripts/ide-refresh.sh` | 同路径 | **原样**；`ai/ide/` 里的实现文件**只写英文一份**、两份模板放同一个文件，只有 `README.md` 分中英 |
+| `ops/scripts/seat-runner.ps1` · `ops/scripts/seat-runner.bat` · `ops/scripts/mail-out.ps1` · `docs/guide/seat-runner.md` | 同路径 | **原样**（统一 runner 与跨项目投信：程序与用法通用，不写项目名、机器）；`ops/scripts/seat-runner.conf` 给五席的默认行，**seed**——项目自己的席位、箱子、`env` 行写在宿主那份里，不回流 |
 | `ops/verify/.private-words` | **不进模板** | 宿主侧的私有词清单，**skip 类永不同步**——把要藏的词列进开源仓库等于指给别人看 |
 | `ai/FRAME-VERSION` | `ai/template/ai/FRAME-VERSION` | **版本号跟着 FRAME 走**；`fingerprint` 由脚本自动算，别手填 |
 | `ai/frame-repo.conf` | `ai/template/ai/frame-repo.conf` | **空白样板**：`role=consumer` ＋ `home=<绝对路径或 ../源仓库>` 占位 ＋ `push=no`（开源用户单向拉回），初始化时填。🔴 **同步永不覆盖它**（在 skip 名单里） |

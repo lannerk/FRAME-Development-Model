@@ -191,7 +191,7 @@ for f in "$D"/to-*/from-*.md; do
       # [Why not tr] `tr` substitutes **by byte**, and the CJK separators are multibyte, so it also rewrites bytes
       # inside a CJK filename -- **truncating the path into a name that does not exist and reporting a false red**
       # (measured and reported by the Supervisor seat on 2026-09-15). **Use sed, which works on characters.**
-      for pth in $(printf '%s' "$where" | sed 's/[`·,]/ /g' | grep -oE '[A-Za-z0-9_./-]+/[^[:space:]]+' || true); do
+      for pth in $(printf '%s' "$where" | sed -E 's/(`|·|,)/ /g' | grep -oE '[A-Za-z0-9_./-]+/[^[:space:]]+' || true); do
         # [Test that the file exists, not what is appended] A letter often writes `ai/rules/laws.md:33` to point at a line.
         # What must hold is that **the file still exists**; the line number is not part of the path.
         # Without stripping it every such reference goes falsely red, and the only way to clear a false red

@@ -36,6 +36,8 @@ during triage this is very easily mistaken for "the machine is broken". It usual
 
 ## 2. How to use the build / test environment
 
+> What has to run on the Requester's Windows computer (builds, tests, PowerShell scripts) and cannot run in your session goes to the runner: `docs/guide/seat-runner.md`.
+
 ```
 <the packaging command>
 <the commands to unpack, build, and run the tests and self-checks in a clean environment>

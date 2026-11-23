@@ -48,6 +48,7 @@ ai/check-links.sh
 ai/decisions/archive/.gitkeep
 ai/decisions/index.md
 ai/frame-manifest.txt
+ai/frame-manifest.txt.new
 ai/frame-repo.conf
 ai/glossary.md
 ai/ide/README.md
@@ -117,6 +118,7 @@ docs/architecture.md
 docs/features.md
 docs/guide/frame-sync.md
 docs/guide/project-init.md
+docs/guide/seat-runner.md
 docs/ops/realmachine.md
 docs/repo-layout.md
 gitignore.template
@@ -135,6 +137,10 @@ ops/scripts/clear-to-delete.bat
 ops/scripts/clear-to-delete.sh
 ops/scripts/commit-round.sh
 ops/scripts/ide-refresh.sh
+ops/scripts/mail-out.ps1
+ops/scripts/seat-runner.bat
+ops/scripts/seat-runner.conf
+ops/scripts/seat-runner.ps1
 ops/units/.gitkeep
 ops/verify/check-advisor.sh
 ops/verify/check-all.sh

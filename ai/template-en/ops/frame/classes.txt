@@ -54,6 +54,10 @@ follow  ops/scripts/*.sh
 follow  ops/scripts/*.bat
 follow  ops/frame/*.sh
 follow  ops/frame/classes.txt
+# The runner (`docs/guide/seat-runner.md`): the programs follow FRAME; **the seats file is the project's own** (which seats, where their boxes are, environment for jobs), seed.
+follow  ops/scripts/seat-runner.ps1
+follow  ops/scripts/mail-out.ps1
+seed    ops/scripts/seat-runner.conf
 follow  ops/.pathcheck-ignore
 
 # ── 🔴 永不同步 ──

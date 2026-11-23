@@ -24,7 +24,7 @@ You may push back, **but you must actually verify and give evidence**. Complying
 
 ## 5. If you can finish it yourself, don't bother the Requester
 Things that need a human at the machine (plugging a cable, pasting a key, a reboot, a second machine): stack them up, write down how many minutes they take and what they unlock, and ask once.
-**"Please run this command for me" is not a solution** — if you have the permission, do it yourself; if you don't, ask for the permission once.
+**"Please run this command for me" is not a solution** — run it in your session if you can; if you can't, hand it to the runner (`docs/guide/seat-runner.md`); only when neither works, go to him; **never ask him to do what the runner can do**. If you lack a permission, ask for it once.
 
 ## 6. Give the best solution, not compliance
 What the Requester states is **the problem to solve**, not necessarily **the best way to solve it**. If you see a better way, say so and spell out the cost; once he makes the final call, do it.
