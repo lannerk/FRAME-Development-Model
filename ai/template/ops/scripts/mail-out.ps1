@@ -7,7 +7,7 @@
 # What it does, and nothing else:
 #   - adds the one table row in -RowFile (UTF-8; date | what to do | where the details are | kind |
 #     answer wanted) to ..\<Project>\ai\mail\to-<Seat>\from-<this project>.md, above the empty rows;
-#   - with -Attach, copies that file of this repository into ..\<Project>\claude-outputs\shared\ under
+#   - with -Attach, copies that file of this repository (nothing outside it) into ..\<Project>\claude-outputs\shared\ under
 #     the same name, so the letter can point at a file its reader can open. An existing file is never
 #     overwritten.
 # A mailbox table that has its heading row but no |---| row under it gets that row (and says so).
@@ -54,6 +54,14 @@ if ($Attach) {
     $attachFrom = $Attach
     if (-not [IO.Path]::IsPathRooted($attachFrom)) { $attachFrom = Join-Path $RepoRoot $attachFrom }
     if (-not (Test-Path $attachFrom -PathType Leaf)) { Fail "no such file to attach: $Attach" }
+    # Only a file of this repository goes to the other project (developer's review, 2026-11-23): the job
+    # runs as the requester's administrator account, so an absolute path or a ..\ would carry any file
+    # of this machine into another project's folder.
+    $attachFull = (Resolve-Path -LiteralPath $attachFrom).Path
+    if (-not $attachFull.StartsWith($RepoRoot.TrimEnd('\') + '\', [StringComparison]::OrdinalIgnoreCase)) {
+        Fail "$Attach is not a file of this repository; only those are attached"
+    }
+    $attachFrom = $attachFull
     $shared = Join-Path $target 'claude-outputs\shared'
     if (-not (Test-Path $shared)) { Fail "there is no $shared to put the attached file in" }
     $attachTo = Join-Path $shared (Split-Path -Leaf $attachFrom)
