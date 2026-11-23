@@ -116,7 +116,8 @@ while IFS= read -r f; do
     while [ -n "$s" ]; do
       # [Why alternatives, not a bracket] in the C locale a bracket counts bytes, so `[、，]` also matches half of other
       # CJK characters (Git Bash started from PowerShell has no UTF-8 locale: hundreds of false broken anchors, measured).
-      if grep -qE "^#{1,6} +§?${s}(、|，|：|:|\.|,| |\$|—|--)" "$t"; then ok=1; break; fi
+      # Same reason for `(§)?` rather than `§?`: in bytes `?` would make only the last byte of `§` optional.
+      if grep -qE "^#{1,6} +(§)?${s}(、|，|：|:|\.|,| |\$|—|--)" "$t"; then ok=1; break; fi
       s=$(sed 's/.$//' <<< "$s")
     done
     [ "$ok" -eq 1 ] || echo "broken anchor  $f:$ln  ->  $p §$a"
