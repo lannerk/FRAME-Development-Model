@@ -36,8 +36,10 @@
 #   go through it.
 # Stop: create tmp\seat-runner\STOP (no new job starts; the runner ends when the running ones have
 #   ended), or close this window or press Ctrl+C (that ends the running jobs too).
-# It does not start while another seat-runner is open: two runners on one inbox would each take half
-#   the jobs.
+# It does not start while another seat-runner of THIS repository is open: two runners on one inbox would
+#   each take half the jobs. Runners of other projects are no concern (one window per project): the guard
+#   is a mutex named after this repository's path, not a look at the command lines of every PowerShell
+#   (that look stopped a second project's runner while the first project's was open, 2026-11-23).
 #   -Conf <file>          another seats file (for testing this script)
 #   -Box <dir>            the runner's own folder instead of tmp\seat-runner (for testing this script)
 #   -QuickMinutes <n>     another limit for quick jobs (for testing this script)
@@ -53,13 +55,22 @@ $repo = $RepoRoot
 if (-not $Conf) { $Conf = Join-Path $PSScriptRoot 'seat-runner.conf' }
 if (-not $Box) { $Box = Join-Path $Tmp 'seat-runner' }
 if (-not $Test) {
-    $open = @(Get-CimInstance Win32_Process -Filter "Name = 'powershell.exe'" -ErrorAction SilentlyContinue | Where-Object {
-        $_.ProcessId -ne $PID -and $_.CommandLine -and $_.CommandLine -match 'seat-runner\.ps1' -and $_.CommandLine -notmatch ' -Test( |$)' })
-    if ($open.Count -gt 0) {
-        Write-Host 'seat-runner: another runner is open. Close these windows first, then start this one again:'
-        foreach ($o in $open) { Write-Host ("  PID $($o.ProcessId): " + [regex]::Match($o.CommandLine, '[a-z-]+runner\.ps1').Value) }
+    # One mutex per repository: the name carries a hash of the repository path, so another project's runner
+    # never matches. Windows releases it when this process ends, however it ends.
+    $sha = [Security.Cryptography.SHA256]::Create()
+    $key = [BitConverter]::ToString($sha.ComputeHash([Text.Encoding]::UTF8.GetBytes($repo.TrimEnd('\').ToLowerInvariant()))).Replace('-', '').Substring(0, 16)
+    $script:held = New-Object System.Threading.Mutex($false, "Local\seat-runner-$key")
+    $mine = $false
+    try { $mine = $script:held.WaitOne(0) } catch [System.Threading.AbandonedMutexException] { $mine = $true }
+    $pidFile = Join-Path $Box 'runner.pid'
+    if (-not $mine) {
+        $who = ''
+        if (Test-Path $pidFile) { $who = ' (PID ' + (Get-Content -Raw $pidFile).Trim() + ')' }
+        Write-Host "seat-runner: a runner for $repo is already open$who. Close that window first, then start this one again."
         exit 1
     }
+    New-Item -ItemType Directory -Force -Path $Box | Out-Null
+    "$PID" | Set-Content -Encoding ASCII $pidFile
 }
 New-Item -ItemType Directory -Force -Path $Box | Out-Null
 $mainLog = Join-Path $Box 'runner.log'

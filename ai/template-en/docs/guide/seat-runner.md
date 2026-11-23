@@ -76,5 +76,5 @@ The Requester's projects often sit side by side under one parent folder; a sessi
 
 - **Registering a seat**: add a line `name | box | scripts | order` to `seat-runner.conf`; the runner notices the change and reads it again, no restart. A line that does not hold is skipped and the reason logged in `tmp\seat-runner\runner.log`.
 - **Stopping**: create an empty file `tmp\seat-runner\STOP` (no new job starts; the runner exits when the running ones end), or close the window (running jobs end with it).
-- Starting a second runner while one is open: it refuses and says which one is open.
+- Starting a second runner **for the same repository** while one is open: it refuses and says which one is open (PID). **Another project's runner does not count**: the check is on this repository's path, not on whether some `seat-runner` is running on the machine (2026-11-23: checking command lines instead let one project's open runner keep another project's from starting).
 - 🔴 **When emptying `tmp/`, skip every seat's box and `tmp\seat-runner\`**: clear only your own stage's script folders.
